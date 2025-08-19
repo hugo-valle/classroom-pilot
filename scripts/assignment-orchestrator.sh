@@ -208,14 +208,22 @@ load_configuration() {
         fi
     fi
     
-    # Set default assignment notebook if not specified
-    if [[ -z "${ASSIGNMENT_NOTEBOOK:-}" ]]; then
-        ASSIGNMENT_NOTEBOOK="assignment.ipynb"
-        log_debug "Using default assignment notebook: $ASSIGNMENT_NOTEBOOK"
+    # Set default assignment file if not specified
+    # Support universal file types with backward compatibility
+    if [[ -z "${ASSIGNMENT_FILE:-}" ]]; then
+        if [[ -n "${ASSIGNMENT_NOTEBOOK:-}" ]]; then
+            # Use legacy ASSIGNMENT_NOTEBOOK if set
+            ASSIGNMENT_FILE="$ASSIGNMENT_NOTEBOOK"
+            log_debug "Using assignment notebook (legacy): $ASSIGNMENT_FILE"
+        else
+            ASSIGNMENT_FILE="assignment.ipynb"
+            log_debug "Using default assignment file: $ASSIGNMENT_FILE"
+        fi
     fi
     
-    # Export variables for child scripts
-    export ASSIGNMENT_NOTEBOOK
+    # Export variables for child scripts (both new and legacy for compatibility)
+    export ASSIGNMENT_FILE
+    export ASSIGNMENT_NOTEBOOK="$ASSIGNMENT_FILE"  # For backward compatibility
     
     # Validate required configuration
     local required_vars=(
@@ -283,9 +291,9 @@ check_prerequisites() {
     log_info "Checking prerequisites..."
     
     # Check if we're in the right directory (assignment repository with tools submodule)
-    if [[ ! -f "$REPO_ROOT/$ASSIGNMENT_NOTEBOOK" ]] || [[ ! -d "$REPO_ROOT/tools" ]]; then
+    if [[ ! -f "$REPO_ROOT/$ASSIGNMENT_FILE" ]] || [[ ! -d "$REPO_ROOT/tools" ]]; then
         log_error "This script must be run from the template repository root"
-        log_error "Expected files: $ASSIGNMENT_NOTEBOOK, tools/ directory"
+        log_error "Expected files: $ASSIGNMENT_FILE, tools/ directory"
         exit 1
     fi
     

@@ -73,12 +73,13 @@ check_repository() {
     fi
     
     # Check if this looks like the template repository
-    ASSIGNMENT_NOTEBOOK="${ASSIGNMENT_NOTEBOOK:-assignment.ipynb}"
-    if [ ! -f "$ASSIGNMENT_NOTEBOOK" ]; then
+    # Support universal file types with backward compatibility
+    ASSIGNMENT_FILE="${ASSIGNMENT_FILE:-${ASSIGNMENT_NOTEBOOK:-assignment.ipynb}}"
+    if [ ! -f "$ASSIGNMENT_FILE" ]; then
         print_error "This doesn't appear to be the template repository."
         print_error "Please run this script from the assignment template directory."
         print_error "Assignment root detected as: $ASSIGNMENT_ROOT"
-        print_error "Expected assignment file: $ASSIGNMENT_NOTEBOOK"
+        print_error "Expected assignment file: $ASSIGNMENT_FILE"
         exit 1
     fi
     

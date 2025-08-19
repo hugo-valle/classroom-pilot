@@ -478,12 +478,13 @@ main() {
     fi
     
     # Check if we're in a valid assignment repository
-    ASSIGNMENT_NOTEBOOK="${ASSIGNMENT_NOTEBOOK:-assignment.ipynb}"
-    if [ ! -f "$ASSIGNMENT_ROOT/$ASSIGNMENT_NOTEBOOK" ]; then
+    # Support universal file types with backward compatibility
+    ASSIGNMENT_FILE="${ASSIGNMENT_FILE:-${ASSIGNMENT_NOTEBOOK:-assignment.ipynb}}"
+    if [ ! -f "$ASSIGNMENT_ROOT/$ASSIGNMENT_FILE" ]; then
         print_error "This script must be run from the template repository root directory"
         print_error "Make sure you're in the assignment template directory"
         print_error "Assignment root detected as: $ASSIGNMENT_ROOT"
-        print_error "Expected assignment file: $ASSIGNMENT_NOTEBOOK"
+        print_error "Expected assignment file: $ASSIGNMENT_FILE"
         exit 1
     fi
     

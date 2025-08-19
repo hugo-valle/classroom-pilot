@@ -207,8 +207,11 @@ CLASSROOM_URL="https://classroom.github.com/classrooms/ID/assignments/NAME"
 TEMPLATE_REPO_URL="https://github.com/ORG/template.git"
 GITHUB_ORGANIZATION="YOUR-ORG"
 
-# Generic Assignment Support (NEW in v1.4)
-ASSIGNMENT_NOTEBOOK="your_assignment.ipynb"  # Makes tools assignment-agnostic
+# Generic Assignment Support (NEW in v1.5)
+ASSIGNMENT_FILE="your_assignment_file"    # Universal: .ipynb, .py, .cpp, .sql, .md, etc.
+
+# Legacy support (deprecated - use ASSIGNMENT_FILE instead)
+# ASSIGNMENT_NOTEBOOK="your_assignment.ipynb"  # Jupyter notebooks only
 
 # Secret Management
 SECRETS=(
@@ -271,13 +274,15 @@ your-assignment/
 
 ### New in v1.4: Universal Assignment Support
 
-The tools now automatically detect assignment notebooks through the `ASSIGNMENT_NOTEBOOK` configuration variable, making the same toolset work across different assignments without modification:
+The tools now automatically detect assignment files through the `ASSIGNMENT_FILE` configuration variable, making the same toolset work across different assignments and file types without modification:
 
 ```bash
-# Different assignments, same tools
-hw1/assignment.conf:  ASSIGNMENT_NOTEBOOK="hw1_exercises.ipynb"
-hw2/assignment.conf:  ASSIGNMENT_NOTEBOOK="hw2_project.ipynb"  
-final/assignment.conf: ASSIGNMENT_NOTEBOOK="final_project.ipynb"
+# Different assignments, different file types, same tools
+hw1/assignment.conf:  ASSIGNMENT_FILE="python_basics.py"
+hw2/assignment.conf:  ASSIGNMENT_FILE="database_queries.sql"  
+hw3/assignment.conf:  ASSIGNMENT_FILE="data_analysis.ipynb"
+hw4/assignment.conf:  ASSIGNMENT_FILE="web_project.html"
+final/assignment.conf: ASSIGNMENT_FILE="capstone_project.cpp"
 ```
 
 ## 🔒 Security and Best Practices

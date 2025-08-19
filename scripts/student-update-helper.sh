@@ -296,11 +296,12 @@ help_single_student() {
         git merge --abort 2>/dev/null || true
         
         if git merge upstream/main --no-edit --allow-unrelated-histories -X theirs; then
-            print_status "Automatic resolution succeeded, preserving student notebook..."
+            print_status "Automatic resolution succeeded, preserving student work..."
             
-            # Restore student's notebook from backup branch
-            ASSIGNMENT_NOTEBOOK="${ASSIGNMENT_NOTEBOOK:-assignment.ipynb}"
-            git checkout "$backup_branch" -- "$ASSIGNMENT_NOTEBOOK" 2>/dev/null || true
+            # Restore student's assignment file from backup branch
+            # Support universal file types with backward compatibility
+            ASSIGNMENT_FILE="${ASSIGNMENT_FILE:-${ASSIGNMENT_NOTEBOOK:-assignment.ipynb}}"
+            git checkout "$backup_branch" -- "$ASSIGNMENT_FILE" 2>/dev/null || true
             
             # Commit the preserved student work
             if git diff --cached --quiet; then
@@ -428,15 +429,16 @@ help_student() {
         print_status "Attempting automatic conflict resolution..."
         
         # Try to resolve automatically by favoring template changes for infrastructure files
-        # but preserving student work in the main notebook
+        # but preserving student work in the main assignment file
         git merge --abort 2>/dev/null || true
         
         if git merge upstream/main --no-edit --allow-unrelated-histories -X theirs; then
-            print_status "Automatic resolution succeeded, preserving student notebook..."
+            print_status "Automatic resolution succeeded, preserving student work..."
             
-            # Restore student's notebook from backup branch
-            ASSIGNMENT_NOTEBOOK="${ASSIGNMENT_NOTEBOOK:-assignment.ipynb}"
-            git checkout "$backup_branch" -- "$ASSIGNMENT_NOTEBOOK" 2>/dev/null || true
+            # Restore student's assignment file from backup branch
+            # Support universal file types with backward compatibility
+            ASSIGNMENT_FILE="${ASSIGNMENT_FILE:-${ASSIGNMENT_NOTEBOOK:-assignment.ipynb}}"
+            git checkout "$backup_branch" -- "$ASSIGNMENT_FILE" 2>/dev/null || true
             
             # Commit the preserved student work
             if git diff --cached --quiet; then
@@ -644,12 +646,13 @@ main() {
     fi
     
     # Check if we're in a valid assignment repository
-    ASSIGNMENT_NOTEBOOK="${ASSIGNMENT_NOTEBOOK:-assignment.ipynb}"
-    if [ ! -f "$ASSIGNMENT_ROOT/$ASSIGNMENT_NOTEBOOK" ]; then
+    # Support universal file types with backward compatibility
+    ASSIGNMENT_FILE="${ASSIGNMENT_FILE:-${ASSIGNMENT_NOTEBOOK:-assignment.ipynb}}"
+    if [ ! -f "$ASSIGNMENT_ROOT/$ASSIGNMENT_FILE" ]; then
         print_error "This script must be run from the template repository root"
         print_error "Please navigate to the assignment template directory"
         print_error "Assignment root detected as: $ASSIGNMENT_ROOT"
-        print_error "Expected assignment file: $ASSIGNMENT_NOTEBOOK"
+        print_error "Expected assignment file: $ASSIGNMENT_FILE"
         exit 1
     fi
     
