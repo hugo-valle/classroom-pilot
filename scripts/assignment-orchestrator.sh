@@ -15,7 +15,9 @@ set -euo pipefail
 
 # Script directory and paths
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+# When tools is a submodule, REPO_ROOT should be the parent of the tools directory
+TOOLS_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+REPO_ROOT="$(cd "$TOOLS_ROOT/.." && pwd)"
 DEFAULT_CONFIG="$REPO_ROOT/assignment.conf"
 
 # Color codes for output
@@ -271,18 +273,18 @@ show_configuration_summary() {
 check_prerequisites() {
     log_info "Checking prerequisites..."
     
-    # Check if we're in the right directory
-    if [[ ! -f "$REPO_ROOT/m1_homework1.ipynb" ]] || [[ ! -d "$REPO_ROOT/scripts" ]]; then
+    # Check if we're in the right directory (assignment repository with tools submodule)
+    if [[ ! -f "$REPO_ROOT/m1_homework1.ipynb" ]] || [[ ! -d "$REPO_ROOT/tools" ]]; then
         log_error "This script must be run from the template repository root"
-        log_error "Expected files: m1_homework1.ipynb, scripts/ directory"
+        log_error "Expected files: m1_homework1.ipynb, tools/ directory"
         exit 1
     fi
     
-    # Check required scripts
+    # Check required scripts in tools submodule
     local required_scripts=(
-        "scripts/push-to-classroom.sh"
-        "scripts/fetch-student-repos.sh"
-        "scripts/add-secrets-to-students.sh"
+        "tools/scripts/push-to-classroom.sh"
+        "tools/scripts/fetch-student-repos.sh"
+        "tools/scripts/add-secrets-to-students.sh"
     )
     
     for script in "${required_scripts[@]}"; do
@@ -342,7 +344,7 @@ step_sync_template() {
     
     log_header "Step 1: Synchronizing Template with Classroom"
     
-    local cmd="$REPO_ROOT/scripts/push-to-classroom.sh"
+    local cmd="$REPO_ROOT/tools/scripts/push-to-classroom.sh"
     local args=()
     
     if [[ "$DRY_RUN" == "true" ]]; then
@@ -369,7 +371,7 @@ step_discover_repositories() {
     
     log_header "Step 2: Discovering Student Repositories"
     
-    local cmd="$REPO_ROOT/scripts/fetch-student-repos.sh"
+    local cmd="$REPO_ROOT/tools/scripts/fetch-student-repos.sh"
     local output_file="$REPO_ROOT/$OUTPUT_DIR/$STUDENT_REPOS_FILE"
     local args=(
         "--classroom-url" "$CLASSROOM_URL"
@@ -442,7 +444,7 @@ step_manage_secrets() {
         
         log_info "Managing secret: $secret_name ($description)"
         
-        local cmd="$REPO_ROOT/scripts/add-secrets-to-students.sh"
+        local cmd="$REPO_ROOT/tools/scripts/add-secrets-to-students.sh"
         local args=(
             "$secret_name"
             "--batch" "$batch_file"
@@ -491,7 +493,7 @@ step_assist_students() {
         return 1
     fi
     
-    local cmd="$REPO_ROOT/scripts/student-update-helper.sh"
+    local cmd="$REPO_ROOT/tools/scripts/student-update-helper.sh"
     local args=("--batch" "$students_file")
     
     if [[ "$DRY_RUN" == "true" ]]; then
