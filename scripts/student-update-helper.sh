@@ -28,10 +28,8 @@ NC='\033[0m' # No Color
 # Configuration
 TEMPLATE_REMOTE="origin"
 CLASSROOM_REMOTE="classroom"
-# NOTE: Update this URL when reusing this assignment in a different semester/class
-# or when creating a new assignment. GitHub Classroom generates unique URLs for each assignment.
-# Format: https://github.com/[ORG]/[classroom-semester-assignment-name]
-CLASSROOM_URL="https://github.com/WSU-ML-DL/wsu-ml-dl-classroom-fall25-cs6600-m1-homework1-cs6600-m1-homework1-template"
+# NOTE: CLASSROOM_URL is now loaded from assignment.conf
+# The classroom repository URL will be determined automatically or from configuration
 BRANCH="main"
 TEMP_DIR="/tmp/cs6600-student-helper"
 
@@ -66,15 +64,19 @@ show_help() {
 Student Update Helper Script - Instructor Tool
 
 USAGE:
-    $0 [student-repo-url]                    # Help specific student
+    $0 [student-repo-url]                    # Help specific student (requires classroom repo)
+    $0 --one-student [student-repo-url]      # Help single student (uses template directly)
     $0 --batch [file-with-urls]             # Help multiple students
     $0 --status [student-repo-url]          # Check student's update status
     $0 --check-classroom                    # Verify classroom repo is ready
     $0 --help                               # Show this help
 
 EXAMPLES:
-    # Help a specific student
+    # Help a specific student using classroom repository
     $0 https://github.com/WSU-ML-DL/cs6600-m1-homework1-student123
+
+    # Help a single student using template repository directly (NEW)
+    $0 --one-student https://github.com/WSU-ML-DL/cs6600-m1-homework1-student123
 
     # Check multiple students from a file
     $0 --batch student-repos.txt
@@ -88,10 +90,15 @@ EXAMPLES:
 FEATURES:
     - Check if students need updates
     - Clone and fix student repositories
-    - Apply updates safely with backups
+    - Apply updates safely with backups (from classroom or template)
     - Generate status reports
     - Batch process multiple students
     - Provide update instructions for students
+    - NEW: Single student mode bypasses classroom repository
+
+MODES:
+    Default mode:     Uses classroom repository for updates (requires valid classroom URL)
+    --one-student:    Uses template repository directly (bypasses classroom URL issues)
 
 STUDENT REPOS FILE FORMAT (for --batch):
     https://github.com/WSU-ML-DL/cs6600-m1-homework1-student1
@@ -195,6 +202,131 @@ check_student_status() {
         print_student "Student should run: ./scripts/update-assignment.sh"
         print_student "Or follow manual instructions in: docs/UPDATE-GUIDE.md"
         return 2  # Needs update
+    fi
+}
+
+# Function to help a single student using template repository directly
+help_single_student() {
+    local repo_url="$1"
+    local student_name=$(get_student_name "$repo_url")
+    local work_dir="$TEMP_DIR/$student_name"
+    
+    print_header "Helping Single Student: $student_name"
+    
+    # Validate URL
+    if ! validate_repo_url "$repo_url"; then
+        return 1
+    fi
+    
+    # Basic repository access check (no classroom comparison)
+    print_status "Checking repository access..."
+    if ! git ls-remote "$repo_url" &>/dev/null; then
+        print_error "Cannot access student repository: $repo_url"
+        return 1
+    fi
+    print_success "Student repository is accessible"
+    
+    # Show template information
+    if [ -n "${TEMPLATE_REPO_URL:-}" ]; then
+        print_status "Template repository: $TEMPLATE_REPO_URL"
+    fi
+    
+    # Ask for confirmation to proceed
+    echo
+    print_warning "This will clone the student's repository and apply template updates"
+    read -p "Do you want to proceed? [y/N] " -n 1 -r
+    echo
+    
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        print_status "Operation cancelled"
+        return 0
+    fi
+    
+    # Setup work directory
+    print_status "Setting up work directory..."
+    rm -rf "$work_dir"
+    mkdir -p "$work_dir"
+    
+    # Clone student repository
+    print_status "Cloning student repository..."
+    if ! git clone "$repo_url" "$work_dir"; then
+        print_error "Failed to clone student repository"
+        return 1
+    fi
+    
+    cd "$work_dir"
+    
+    # Add template as remote (use TEMPLATE_REPO_URL from config)
+    local template_url="${TEMPLATE_REPO_URL:-https://github.com/WSU-ML-DL/cs6600-m1-homework1-template.git}"
+    print_status "Adding template repository as upstream..."
+    git remote add upstream "$template_url"
+    
+    # Fetch updates from template
+    print_status "Fetching updates from template repository..."
+    if ! git fetch upstream; then
+        print_error "Failed to fetch from template repository"
+        return 1
+    fi
+    
+    # Create backup branch
+    local backup_branch="backup-before-update-$(date +%Y%m%d-%H%M%S)"
+    print_status "Creating backup branch: $backup_branch"
+    git checkout -b "$backup_branch"
+    git checkout main
+    
+    # Apply updates from template
+    print_status "Applying updates from template..."
+    if git merge upstream/main --no-edit --allow-unrelated-histories; then
+        print_success "Updates applied successfully!"
+        
+        # Push changes back to student repository
+        print_status "Pushing updates to student repository..."
+        if git push origin main; then
+            print_success "Student repository updated successfully!"
+            print_status "Student should now pull the latest changes"
+            return 0
+        else
+            print_error "Failed to push updates to student repository"
+            return 1
+        fi
+    else
+        print_warning "Merge conflicts detected. Attempting automatic resolution..."
+        
+        # Reset to before merge
+        git merge --abort 2>/dev/null || true
+        
+        if git merge upstream/main --no-edit --allow-unrelated-histories -X theirs; then
+            print_status "Automatic resolution succeeded, preserving student notebook..."
+            
+            # Restore student's notebook from backup branch
+            ASSIGNMENT_NOTEBOOK="${ASSIGNMENT_NOTEBOOK:-assignment.ipynb}"
+            git checkout "$backup_branch" -- "$ASSIGNMENT_NOTEBOOK" 2>/dev/null || true
+            
+            # Commit the preserved student work
+            if git diff --cached --quiet; then
+                # No staged changes, add any modified files
+                git add . 2>/dev/null || true
+            fi
+            
+            if ! git diff --cached --quiet; then
+                git commit -m "Preserve student work after template update"
+            fi
+            
+            print_status "Pushing resolved updates..."
+            if git push origin main; then
+                print_success "Updates with conflict resolution applied successfully!"
+                print_status "Student should pull the latest changes"
+                return 0
+            else
+                print_error "Failed to push resolved updates"
+                return 1
+            fi
+        else
+            print_error "Automatic conflict resolution failed"
+            print_error "Manual intervention required"
+            print_status "Backup created in branch: $backup_branch"
+            return 1
+        fi
     fi
 }
 
@@ -538,6 +670,15 @@ main() {
                 exit 1
             fi
             check_student_status "$2"
+            exit $?
+            ;;
+        --one-student)
+            if [ -z "$2" ]; then
+                print_error "Student repository URL required for --one-student"
+                print_error "Usage: $0 --one-student [student-repo-url]"
+                exit 1
+            fi
+            help_single_student "$2"
             exit $?
             ;;
         --batch)
