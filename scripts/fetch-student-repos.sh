@@ -16,7 +16,7 @@ PURPLE='\033[0;35m'
 NC='\033[0m' # No Color
 
 # Configuration
-DEFAULT_OUTPUT_FILE="scripts/student-repos-batch.txt"
+DEFAULT_OUTPUT_FILE="tools/generated/student-repos-batch.txt"
 DEFAULT_ORGANIZATION="WSU-ML-DL"
 DEFAULT_ASSIGNMENT_PREFIX="cs6600-m1-homework1"
 
@@ -289,10 +289,21 @@ show_dry_run() {
 
 # Main function
 main() {
-    # Check if we're in the right directory
-    if [ ! -f "m1_homework1.ipynb" ] || [ ! -d "scripts" ]; then
+    # Determine the assignment repository root when script is in tools submodule
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    if [[ "$SCRIPT_DIR" == */tools/scripts ]]; then
+        # Running from tools submodule - assignment root is two levels up
+        ASSIGNMENT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+    else
+        # Running from legacy scripts directory - assignment root is two levels up
+        ASSIGNMENT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+    fi
+    
+    # Check if we're in a valid assignment repository
+    if [ ! -f "$ASSIGNMENT_ROOT/m1_homework1.ipynb" ]; then
         print_error "This script must be run from the template repository root directory"
         print_error "Make sure you're in the cs6600-m1-homework1-template directory"
+        print_error "Assignment root detected as: $ASSIGNMENT_ROOT"
         exit 1
     fi
     
