@@ -208,6 +208,15 @@ load_configuration() {
         fi
     fi
     
+    # Set default assignment notebook if not specified
+    if [[ -z "${ASSIGNMENT_NOTEBOOK:-}" ]]; then
+        ASSIGNMENT_NOTEBOOK="assignment.ipynb"
+        log_debug "Using default assignment notebook: $ASSIGNMENT_NOTEBOOK"
+    fi
+    
+    # Export variables for child scripts
+    export ASSIGNMENT_NOTEBOOK
+    
     # Validate required configuration
     local required_vars=(
         "CLASSROOM_URL"
@@ -274,9 +283,9 @@ check_prerequisites() {
     log_info "Checking prerequisites..."
     
     # Check if we're in the right directory (assignment repository with tools submodule)
-    if [[ ! -f "$REPO_ROOT/m1_homework1.ipynb" ]] || [[ ! -d "$REPO_ROOT/tools" ]]; then
+    if [[ ! -f "$REPO_ROOT/$ASSIGNMENT_NOTEBOOK" ]] || [[ ! -d "$REPO_ROOT/tools" ]]; then
         log_error "This script must be run from the template repository root"
-        log_error "Expected files: m1_homework1.ipynb, tools/ directory"
+        log_error "Expected files: $ASSIGNMENT_NOTEBOOK, tools/ directory"
         exit 1
     fi
     

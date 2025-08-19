@@ -461,10 +461,23 @@ process_single_student() {
 
 # Main function
 main() {
-    # Check if we're in the right directory
-    if [ ! -f "m1_homework1.ipynb" ] || [ ! -d "scripts" ]; then
+    # Determine the assignment repository root when script is in tools submodule
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    if [[ "$SCRIPT_DIR" == */tools/scripts ]]; then
+        # Running from tools submodule - assignment root is two levels up
+        ASSIGNMENT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+    else
+        # Running from legacy scripts directory - assignment root is two levels up
+        ASSIGNMENT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+    fi
+    
+    # Check if we're in a valid assignment repository
+    ASSIGNMENT_NOTEBOOK="${ASSIGNMENT_NOTEBOOK:-assignment.ipynb}"
+    if [ ! -f "$ASSIGNMENT_ROOT/$ASSIGNMENT_NOTEBOOK" ]; then
         print_error "This script must be run from the template repository root directory"
-        print_error "Make sure you're in the cs6600-m1-homework1-template directory"
+        print_error "Make sure you're in the assignment template directory"
+        print_error "Assignment root detected as: $ASSIGNMENT_ROOT"
+        print_error "Expected assignment file: $ASSIGNMENT_NOTEBOOK"
         exit 1
     fi
     

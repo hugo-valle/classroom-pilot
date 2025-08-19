@@ -49,15 +49,30 @@ print_error() {
 check_repository() {
     print_status "Checking repository..."
     
+    # Determine the assignment repository root when script is in tools submodule
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    if [[ "$SCRIPT_DIR" == */tools/scripts ]]; then
+        # Running from tools submodule - assignment root is two levels up
+        ASSIGNMENT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+    else
+        # Running from legacy location - assignment root is two levels up
+        ASSIGNMENT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+    fi
+    
+    cd "$ASSIGNMENT_ROOT"
+    
     if [ ! -d ".git" ]; then
         print_error "Not in a git repository. Please run this script from the template repository root."
         exit 1
     fi
     
     # Check if this looks like the template repository
-    if [ ! -f "m1_homework1.ipynb" ] || [ ! -d "scripts" ]; then
+    ASSIGNMENT_NOTEBOOK="${ASSIGNMENT_NOTEBOOK:-assignment.ipynb}"
+    if [ ! -f "$ASSIGNMENT_NOTEBOOK" ]; then
         print_error "This doesn't appear to be the template repository."
-        print_error "Please run this script from cs6600-m1-homework1-template directory."
+        print_error "Please run this script from the assignment template directory."
+        print_error "Assignment root detected as: $ASSIGNMENT_ROOT"
+        print_error "Expected assignment file: $ASSIGNMENT_NOTEBOOK"
         exit 1
     fi
     
