@@ -172,6 +172,9 @@ ASSIGNMENT_NOTEBOOK="test.ipynb" ./tools/scripts/push-to-classroom.sh --force
 # Help specific student (uses assignment.conf settings automatically)
 ./tools/scripts/student-update-helper.sh https://github.com/WSU-ML-DL/cs6600-m1-homework1-student123
 
+# NEW: Help single student using template directly (bypasses classroom repo)
+./tools/scripts/student-update-helper.sh --one-student https://github.com/WSU-ML-DL/cs6600-m1-homework1-student123
+
 # Help all students from batch file
 ./tools/scripts/student-update-helper.sh --batch tools/generated/student-repos-students-only.txt
 
@@ -339,6 +342,10 @@ All scripts now automatically load settings from `assignment.conf`, making direc
   https://github.com/WSU-ML-DL/cs6600-m1-homework1-student123 \
   --dry-run
 
+# NEW: Single student help using template directly (bypasses classroom repo issues)
+./tools/scripts/student-update-helper.sh --one-student \
+  https://github.com/WSU-ML-DL/cs6600-m1-homework1-student123
+
 # Template Sync with Environment Override (for testing)
 ASSIGNMENT_NOTEBOOK="test_notebook.ipynb" ./tools/scripts/push-to-classroom.sh --force
 ```
@@ -402,10 +409,14 @@ CLASSROOM_URL="https://classroom.github.com/test" ./tools/scripts/fetch-student-
 
 # Weekly maintenance  
 ./tools/scripts/add-secrets-to-students.sh INSTRUCTOR_TESTS_TOKEN --batch tools/generated/student-repos-students-only.txt --max-age 7  # Refresh old secrets
+
+# Individual student help (when classroom repo has issues)
+./tools/scripts/student-update-helper.sh --one-student https://github.com/ORG/student-repo  # Direct template-to-student update
 ```
 
 **💡 Pro Tips:**
 - Always use `--dry-run` first to preview changes
+- Use `--one-student` when classroom repository URL issues occur
 - Generated batch files are saved in `tools/generated/` and automatically git-ignored
 - Scripts automatically detect submodule context and load `assignment.conf`
 - Use `--help` on any script to see all available options
