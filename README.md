@@ -92,16 +92,25 @@ gh_classroom_tools/
 **Automated discovery** of student repositories from GitHub Classroom assignments.
 
 ```bash
-# Discover from classroom URL
-./tools/scripts/fetch-student-repos.sh --classroom-url https://classroom.github.com/.../assignments/YOUR-ASSIGNMENT
+# Basic discovery (uses assignment.conf settings automatically)
+./tools/scripts/fetch-student-repos.sh
 
-# Generate batch files for other tools
-./tools/scripts/fetch-student-repos.sh --output student-repos.txt
+# Discover from classroom URL (auto-detects assignment name)
+./tools/scripts/fetch-student-repos.sh --classroom-url https://classroom.github.com/classrooms/206604610-wsu-ml-dl-classroom-fall25/assignments/cs6600-m1-homework1
+
+# Custom output file
+./tools/scripts/fetch-student-repos.sh --output custom-student-list.txt
+
+# Students only (exclude instructor and template repos)
+./tools/scripts/fetch-student-repos.sh --exclude-instructor
+
+# Dry run to preview what would be discovered
+./tools/scripts/fetch-student-repos.sh --dry-run
 ```
 
 **Key Features:**
 - Direct GitHub Classroom URL integration
-- Automatic assignment name extraction
+- Automatic assignment name extraction  
 - Template repository filtering
 - Batch file generation for downstream tools
 - **Generic assignment notebook detection** through configuration
@@ -111,11 +120,20 @@ gh_classroom_tools/
 **Batch secret management** with support for multiple tokens and age-based policies.
 
 ```bash
-# Add secret to all students
-./tools/scripts/add-secrets-to-students.sh SECRET_NAME --batch student-repos.txt
+# Add secret to specific student (uses assignment.conf settings)
+./tools/scripts/add-secrets-to-students.sh INSTRUCTOR_TESTS_TOKEN https://github.com/WSU-ML-DL/cs6600-m1-homework1-student123
 
-# Force update old secrets
-./tools/scripts/add-secrets-to-students.sh SECRET_NAME --force-update --batch student-repos.txt
+# Batch add secrets to all students
+./tools/scripts/add-secrets-to-students.sh INSTRUCTOR_TESTS_TOKEN --batch tools/generated/student-repos-students-only.txt
+
+# Force update old secrets regardless of age
+./tools/scripts/add-secrets-to-students.sh INSTRUCTOR_TESTS_TOKEN --force-update --batch student-repos.txt
+
+# Custom token file and age policy
+./tools/scripts/add-secrets-to-students.sh MY_TOKEN --token-file my_token.txt --max-age 30
+
+# Check token permissions before operations
+./tools/scripts/add-secrets-to-students.sh --check-token
 ```
 
 **Key Features:**
@@ -123,13 +141,20 @@ gh_classroom_tools/
 - Age-based secret rotation policies
 - Token validation and verification
 - Comprehensive error reporting
+- **Automatic configuration loading** from assignment.conf
 
 ### 4. Template Synchronization (`push-to-classroom.sh`)
 **Safe deployment** of template updates to GitHub Classroom.
 
 ```bash
-# Sync template to classroom
+# Sync template to classroom (uses assignment.conf settings automatically)
 ./tools/scripts/push-to-classroom.sh
+
+# Force push without confirmation prompts
+./tools/scripts/push-to-classroom.sh --force
+
+# Override assignment notebook for testing
+ASSIGNMENT_NOTEBOOK="test.ipynb" ./tools/scripts/push-to-classroom.sh --force
 ```
 
 **Key Features:**
@@ -144,11 +169,20 @@ gh_classroom_tools/
 **Automated assistance** for common student repository issues.
 
 ```bash
-# Help all students
-./tools/scripts/student-update-helper.sh --batch student-repos.txt
+# Help specific student (uses assignment.conf settings automatically)
+./tools/scripts/student-update-helper.sh https://github.com/WSU-ML-DL/cs6600-m1-homework1-student123
 
-# Help specific student
-./tools/scripts/student-update-helper.sh https://github.com/ORG/student-repo
+# Help all students from batch file
+./tools/scripts/student-update-helper.sh --batch tools/generated/student-repos-students-only.txt
+
+# Check student status without making changes
+./tools/scripts/student-update-helper.sh --status https://github.com/WSU-ML-DL/cs6600-m1-homework1-student123
+
+# Dry run to preview what would be done
+./tools/scripts/student-update-helper.sh https://github.com/WSU-ML-DL/cs6600-m1-homework1-student123 --dry-run
+
+# Check classroom repository readiness
+./tools/scripts/student-update-helper.sh --check-classroom
 ```
 
 **Key Features:**
@@ -265,7 +299,119 @@ final/assignment.conf: ASSIGNMENT_NOTEBOOK="final_project.ipynb"
 - **Backup and rollback** capabilities where applicable
 - **Generic assignment validation** through configurable notebook detection
 
-## 📚 Documentation
+## � Running Scripts Directly
+
+All scripts now automatically load settings from `assignment.conf`, making direct execution seamless. Here are practical examples for common instructor tasks:
+
+### Complete Assignment Setup Workflow
+
+```bash
+# 1. Discover all student repositories
+./tools/scripts/fetch-student-repos.sh --exclude-instructor
+
+# 2. Add secrets to all students  
+./tools/scripts/add-secrets-to-students.sh INSTRUCTOR_TESTS_TOKEN --batch tools/generated/student-repos-students-only.txt
+
+# 3. Push template updates to classroom
+./tools/scripts/push-to-classroom.sh
+
+# 4. Help students who need updates
+./tools/scripts/student-update-helper.sh --batch tools/generated/student-repos-students-only.txt --dry-run
+```
+
+### Individual Script Examples
+
+```bash
+# Repository Discovery with GitHub Classroom URL
+./tools/scripts/fetch-student-repos.sh \
+  --classroom-url https://classroom.github.com/classrooms/206604610-wsu-ml-dl-classroom-fall25/assignments/cs6600-m1-homework1 \
+  --exclude-instructor \
+  --output current-students.txt
+
+# Secret Management with Custom Settings
+./tools/scripts/add-secrets-to-students.sh GRADING_TOKEN \
+  --token-file grading_token.txt \
+  --max-age 30 \
+  --batch current-students.txt
+
+# Student Assistance for Specific Issues
+./tools/scripts/student-update-helper.sh \
+  https://github.com/WSU-ML-DL/cs6600-m1-homework1-student123 \
+  --dry-run
+
+# Template Sync with Environment Override (for testing)
+ASSIGNMENT_NOTEBOOK="test_notebook.ipynb" ./tools/scripts/push-to-classroom.sh --force
+```
+
+### Batch Processing Workflows
+
+```bash
+# Generate different student lists for different purposes
+./tools/scripts/fetch-student-repos.sh --exclude-instructor --output students-only.txt
+./tools/scripts/fetch-student-repos.sh --include-template --output all-repos.txt
+
+# Process different student groups
+./tools/scripts/add-secrets-to-students.sh INSTRUCTOR_TESTS_TOKEN --batch students-only.txt
+./tools/scripts/student-update-helper.sh --batch students-only.txt --dry-run
+
+# Status checking across all students
+while read repo; do
+  echo "Checking: $repo"
+  ./tools/scripts/student-update-helper.sh --status "$repo"
+done < students-only.txt
+```
+
+### Troubleshooting and Validation
+
+```bash
+# Verify your token permissions
+./tools/scripts/add-secrets-to-students.sh --check-token
+
+# Test repository discovery without writing files
+./tools/scripts/fetch-student-repos.sh --dry-run
+
+# Check individual student status
+./tools/scripts/student-update-helper.sh --status https://github.com/WSU-ML-DL/cs6600-m1-homework1-student123
+
+# Validate classroom repository state
+./tools/scripts/student-update-helper.sh --check-classroom
+```
+
+### Environment Variable Overrides
+
+When you need to test or run scripts with different settings without modifying `assignment.conf`:
+
+```bash
+# Test with different assignment notebook
+ASSIGNMENT_NOTEBOOK="test.ipynb" ./tools/scripts/fetch-student-repos.sh --dry-run
+
+# Override GitHub organization for testing
+GITHUB_ORGANIZATION="TEST-ORG" ./tools/scripts/fetch-student-repos.sh --dry-run
+
+# Use different classroom URL temporarily
+CLASSROOM_URL="https://classroom.github.com/test" ./tools/scripts/fetch-student-repos.sh --dry-run
+```
+
+### Quick Reference: Most Common Commands
+
+```bash
+# Daily instructor workflow
+./tools/scripts/fetch-student-repos.sh --exclude-instructor  # Get current student list
+./tools/scripts/push-to-classroom.sh                         # Sync any template changes
+./tools/scripts/student-update-helper.sh --batch tools/generated/student-repos-students-only.txt --dry-run  # Check who needs help
+
+# Weekly maintenance  
+./tools/scripts/add-secrets-to-students.sh INSTRUCTOR_TESTS_TOKEN --batch tools/generated/student-repos-students-only.txt --max-age 7  # Refresh old secrets
+```
+
+**💡 Pro Tips:**
+- Always use `--dry-run` first to preview changes
+- Generated batch files are saved in `tools/generated/` and automatically git-ignored
+- Scripts automatically detect submodule context and load `assignment.conf`
+- Use `--help` on any script to see all available options
+- Environment variables override `assignment.conf` settings for testing
+
+## �📚 Documentation
 
 Comprehensive documentation is provided for all tools and workflows:
 

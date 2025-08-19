@@ -59,6 +59,12 @@ check_repository() {
         ASSIGNMENT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
     fi
     
+    # Load assignment configuration if available
+    if [ -f "$ASSIGNMENT_ROOT/assignment.conf" ]; then
+        echo "[INFO] Loading assignment configuration from: $ASSIGNMENT_ROOT/assignment.conf"
+        source "$ASSIGNMENT_ROOT/assignment.conf"
+    fi
+    
     cd "$ASSIGNMENT_ROOT"
     
     if [ ! -d ".git" ]; then

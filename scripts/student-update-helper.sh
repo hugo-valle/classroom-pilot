@@ -505,6 +505,12 @@ main() {
         ASSIGNMENT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
     fi
     
+    # Load assignment configuration if available
+    if [ -f "$ASSIGNMENT_ROOT/assignment.conf" ]; then
+        print_status "Loading assignment configuration from: $ASSIGNMENT_ROOT/assignment.conf"
+        source "$ASSIGNMENT_ROOT/assignment.conf"
+    fi
+    
     # Check if we're in a valid assignment repository
     ASSIGNMENT_NOTEBOOK="${ASSIGNMENT_NOTEBOOK:-assignment.ipynb}"
     if [ ! -f "$ASSIGNMENT_ROOT/$ASSIGNMENT_NOTEBOOK" ]; then
