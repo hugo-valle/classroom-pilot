@@ -1,0 +1,70 @@
+# GitHub Classroom Tools - Git Ignore
+
+# Generated files from tool execution
+generated/
+*.txt
+student-repos-*.txt
+repos-*.txt
+
+# GitHub tokens and sensitive files
+*_token.txt
+*.token
+*.key
+*.pem
+
+# Assignment-specific configuration (should be in parent repo)
+# assignment.conf should be in the assignment repo, not in tools repo
+
+# Temporary files
+*.tmp
+*.temp
+.temp/
+.tmp/
+
+# Log files
+*.log
+logs/
+
+# OS specific files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Backup files
+*.bak
+*.backup
+*.orig
+
+# Node.js (in case future tools need it)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python (in case future tools need it)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Test outputs and debugging
+test-output/
+debug/
+*.debug
