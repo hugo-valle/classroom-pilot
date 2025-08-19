@@ -1,6 +1,6 @@
 # GitHub Classroom Tools
 
-A comprehensive automation suite for managing GitHub Classroom assignments with advanced workflow orchestration, repository discovery, and secret management capabilities.
+A comprehensive automation suite for managing GitHub Classroom assignments with advanced workflow orchestration, repository discovery, and secret management capabilities. **Now with generic assignment support and git submodule architecture for maximum reusability.**
 
 ## 🎯 Overview
 
@@ -11,6 +11,9 @@ This repository provides a complete set of tools for instructors to automate Git
 - **Template synchronization** with GitHub Classroom
 - **Student assistance tools** for common issues
 - **Master workflow orchestration** through configuration files
+- **Generic assignment support** through variable-driven configuration
+- **Git submodule deployment** for cross-assignment reusability
+- **Advanced repository context detection** for submodule environments
 
 ## 🚀 Quick Start
 
@@ -18,7 +21,7 @@ This repository provides a complete set of tools for instructors to automate Git
 
 ```bash
 # In your assignment repository root
-git submodule add https://github.com/YOUR-ORG/gh_classroom_tools.git tools
+git submodule add https://github.com/hugo-valle/gh_classroom_tools.git tools
 git submodule update --init --recursive
 ```
 
@@ -28,6 +31,9 @@ git submodule update --init --recursive
 # Copy and customize the configuration template
 cp tools/assignment-example.conf assignment.conf
 vim assignment.conf
+
+# Set your assignment notebook file (key for generic support)
+# Example: ASSIGNMENT_NOTEBOOK="m1_homework1.ipynb"
 ```
 
 ### 3. Run the Complete Workflow
@@ -79,6 +85,8 @@ gh_classroom_tools/
 - Support for partial workflow execution
 - Dry-run preview mode
 - Comprehensive error handling and recovery
+- **Generic assignment support** through ASSIGNMENT_NOTEBOOK variable
+- **Submodule context detection** for proper repository root identification
 
 ### 2. Repository Discovery (`fetch-student-repos.sh`)
 **Automated discovery** of student repositories from GitHub Classroom assignments.
@@ -96,6 +104,8 @@ gh_classroom_tools/
 - Automatic assignment name extraction
 - Template repository filtering
 - Batch file generation for downstream tools
+- **Generic assignment notebook detection** through configuration
+- **Improved error handling** with repository path context
 
 ### 3. Secret Management (`add-secrets-to-students.sh`)
 **Batch secret management** with support for multiple tokens and age-based policies.
@@ -127,6 +137,8 @@ gh_classroom_tools/
 - Backup and rollback capabilities
 - Branch management
 - Pre-deployment validation
+- **Assignment-agnostic operation** through environment variables
+- **Enhanced repository context awareness** for submodule deployment
 
 ### 5. Student Assistance (`student-update-helper.sh`)
 **Automated assistance** for common student repository issues.
@@ -144,6 +156,8 @@ gh_classroom_tools/
 - Update guidance
 - Batch processing support
 - Educational feedback
+- **Universal assignment compatibility** through variable-driven configuration
+- **Advanced repository root detection** for submodule environments
 
 ## ⚙️ Configuration System
 
@@ -155,6 +169,9 @@ The `assignment.conf` file controls all aspects of the workflow:
 CLASSROOM_URL="https://classroom.github.com/classrooms/ID/assignments/NAME"
 TEMPLATE_REPO_URL="https://github.com/ORG/template.git"
 GITHUB_ORGANIZATION="YOUR-ORG"
+
+# Generic Assignment Support (NEW in v1.4)
+ASSIGNMENT_NOTEBOOK="your_assignment.ipynb"  # Makes tools assignment-agnostic
 
 # Secret Management
 SECRETS=(
@@ -183,33 +200,47 @@ OUTPUT_DIR="tools/generated"
 
 ```bash
 # 1. Initial setup
-git submodule add https://github.com/YOUR-ORG/gh_classroom_tools.git tools
+git submodule add https://github.com/hugo-valle/gh_classroom_tools.git tools
 cp tools/assignment-example.conf assignment.conf
 
 # 2. Create assignment in GitHub Classroom
 # Get the classroom URL from GitHub Classroom interface
 
-# 3. Configure and run automation
-vim assignment.conf  # Add classroom URL and settings
-./tools/scripts/assignment-orchestrator.sh --dry-run  # Preview
-./tools/scripts/assignment-orchestrator.sh  # Execute
+# 3. Configure for your specific assignment (NEW in v1.4)
+vim assignment.conf  # Set ASSIGNMENT_NOTEBOOK="your_assignment.ipynb"
 
-# 4. Ongoing maintenance
-./tools/scripts/assignment-orchestrator.sh --step secrets  # Update secrets
-./tools/scripts/assignment-orchestrator.sh --step assist   # Help students
+# 4. Run automation with enhanced generic support
+./tools/scripts/assignment-orchestrator.sh assignment.conf --dry-run  # Preview
+./tools/scripts/assignment-orchestrator.sh assignment.conf  # Execute
+
+# 5. Ongoing maintenance
+./tools/scripts/assignment-orchestrator.sh assignment.conf --step secrets  # Update secrets
+./tools/scripts/assignment-orchestrator.sh assignment.conf --step assist   # Help students
 ```
 
 ### Integration with Assignment Repositories
 
 ```bash
-# Assignment repository structure with submodule
+# Assignment repository structure with submodule (v1.4 Enhanced)
 your-assignment/
 ├── tools/                    # <- GitHub Classroom Tools (submodule)
-├── assignment.conf           # <- Your assignment configuration
+├── assignment.conf           # <- Your assignment configuration with ASSIGNMENT_NOTEBOOK
 ├── instructor_token.txt      # <- Your GitHub token (git-ignored)
-├── notebook.ipynb            # <- Assignment content
+├── your_assignment.ipynb     # <- Assignment notebook (configurable name)
 ├── requirements.txt          # <- Assignment dependencies
-└── .gitignore               # <- Includes tools/generated/ pattern
+├── .gitignore               # <- Includes tools/generated/ pattern
+└── tools/generated/         # <- Auto-generated files (git-ignored)
+```
+
+### New in v1.4: Universal Assignment Support
+
+The tools now automatically detect assignment notebooks through the `ASSIGNMENT_NOTEBOOK` configuration variable, making the same toolset work across different assignments without modification:
+
+```bash
+# Different assignments, same tools
+hw1/assignment.conf:  ASSIGNMENT_NOTEBOOK="hw1_exercises.ipynb"
+hw2/assignment.conf:  ASSIGNMENT_NOTEBOOK="hw2_project.ipynb"  
+final/assignment.conf: ASSIGNMENT_NOTEBOOK="final_project.ipynb"
 ```
 
 ## 🔒 Security and Best Practices
@@ -225,12 +256,14 @@ your-assignment/
 - **Check organization permissions** automatically
 - **Handle access denied scenarios** gracefully
 - **Provide clear error messages** for permission issues
+- **Enhanced submodule context detection** for proper repository root identification
 
 ### Safe Operations
 - **Dry-run mode** for testing configurations
 - **User confirmation** before destructive operations
 - **Partial failure handling** with detailed reporting
 - **Backup and rollback** capabilities where applicable
+- **Generic assignment validation** through configurable notebook detection
 
 ## 📚 Documentation
 
@@ -244,12 +277,15 @@ Comprehensive documentation is provided for all tools and workflows:
 
 ## 🚀 Advanced Usage
 
-### Multiple Assignment Management
+### Multiple Assignment Management (Enhanced in v1.4)
 ```bash
-# Different configurations for different assignments
-./tools/scripts/assignment-orchestrator.sh hw1.conf
-./tools/scripts/assignment-orchestrator.sh hw2.conf  
-./tools/scripts/assignment-orchestrator.sh final-project.conf
+# Different configurations for different assignments with generic support
+./tools/scripts/assignment-orchestrator.sh hw1.conf     # ASSIGNMENT_NOTEBOOK="hw1.ipynb"
+./tools/scripts/assignment-orchestrator.sh hw2.conf     # ASSIGNMENT_NOTEBOOK="hw2.ipynb"
+./tools/scripts/assignment-orchestrator.sh final.conf   # ASSIGNMENT_NOTEBOOK="final_project.ipynb"
+
+# Direct environment variable override for testing
+ASSIGNMENT_NOTEBOOK="test.ipynb" ./tools/scripts/push-to-classroom.sh --dry-run
 ```
 
 ### CI/CD Integration
@@ -286,6 +322,8 @@ Comprehensive documentation is provided for all tools and workflows:
 2. **Missing permissions** - Check organization membership and repository access
 3. **Token file not found** - Create token files as specified in configuration
 4. **Repository access denied** - Verify GitHub permissions and organization membership
+5. **Assignment notebook not found** - Check ASSIGNMENT_NOTEBOOK variable in configuration
+6. **Submodule context issues** - Ensure tools are properly initialized with `git submodule update --init`
 
 ### Getting Help
 - Check the comprehensive documentation in `docs/`
@@ -305,6 +343,15 @@ This is an internal tool suite. For issues or improvements:
 - **v1.1** - GitHub Classroom URL integration
 - **v1.2** - Master workflow orchestrator
 - **v1.3** - Comprehensive documentation and configuration system
+- **v1.4** - Generic assignment support, enhanced submodule architecture, and improved repository context detection
+
+### What's New in v1.4
+- **Generic Assignment Support**: Tools now work with any assignment through `ASSIGNMENT_NOTEBOOK` configuration
+- **Enhanced Submodule Architecture**: Improved repository context detection for submodule deployment
+- **Variable-Driven Configuration**: Assignment-agnostic operation through environment variables
+- **Advanced Error Handling**: Better error messages with repository path context
+- **Universal Compatibility**: Single toolset works across multiple assignments without modification
+- **Production-Tested**: Validated with real GitHub Classroom integration
 
 ---
 
