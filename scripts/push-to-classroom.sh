@@ -22,11 +22,11 @@ NC='\033[0m' # No Color
 
 # Configuration
 CLASSROOM_REMOTE="classroom"
-# NOTE: Update this URL when reusing this assignment in a different semester/class
-# or when creating a new assignment. GitHub Classroom generates unique URLs for each assignment.
-# Format: https://github.com/[ORG]/[classroom-semester-assignment-name]
-CLASSROOM_URL="https://github.com/WSU-ML-DL/wsu-ml-dl-classroom-fall25-cs6600-m1-homework1-cs6600-m1-homework1-template"
 BRANCH="main"
+
+# NOTE: CLASSROOM_REPO_URL is now loaded from assignment.conf
+# This should be the GitHub Classroom repository URL (not the assignment page URL)
+# Format: https://github.com/[ORG]/[classroom-semester-assignment-name]
 
 # Function to print colored output
 print_status() {
@@ -63,6 +63,16 @@ check_repository() {
     if [ -f "$ASSIGNMENT_ROOT/assignment.conf" ]; then
         echo "[INFO] Loading assignment configuration from: $ASSIGNMENT_ROOT/assignment.conf"
         source "$ASSIGNMENT_ROOT/assignment.conf"
+    fi
+    
+    # Validate required configuration
+    if [ -z "${CLASSROOM_REPO_URL:-}" ]; then
+        print_error "CLASSROOM_REPO_URL is not set in assignment.conf"
+        print_error "Please add the GitHub Classroom repository URL to your configuration:"
+        print_error "CLASSROOM_REPO_URL=\"https://github.com/ORG/classroom-semester-assignment-name\""
+        print_error ""
+        print_error "This is different from CLASSROOM_URL (which is the assignment page URL)"
+        exit 1
     fi
     
     cd "$ASSIGNMENT_ROOT"
@@ -110,11 +120,11 @@ setup_classroom_remote() {
         print_status "Classroom remote already exists"
         
         # Update the URL in case it changed
-        git remote set-url ${CLASSROOM_REMOTE} ${CLASSROOM_URL}
+        git remote set-url ${CLASSROOM_REMOTE} ${CLASSROOM_REPO_URL}
         print_status "Updated classroom remote URL"
     else
         print_status "Adding classroom remote..."
-        git remote add ${CLASSROOM_REMOTE} ${CLASSROOM_URL}
+        git remote add ${CLASSROOM_REMOTE} ${CLASSROOM_REPO_URL}
         print_success "Added classroom remote"
     fi
 }
@@ -241,7 +251,7 @@ show_next_steps() {
     echo
     echo "  4. Check that student tests still pass with the updates"
     echo
-    print_status "Classroom repository URL: ${CLASSROOM_URL}"
+    print_status "Classroom repository URL: ${CLASSROOM_REPO_URL}"
 }
 
 # Main script logic

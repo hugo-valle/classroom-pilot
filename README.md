@@ -204,6 +204,7 @@ The `assignment.conf` file controls all aspects of the workflow:
 ```bash
 # Assignment Information
 CLASSROOM_URL="https://classroom.github.com/classrooms/ID/assignments/NAME"
+CLASSROOM_REPO_URL="https://github.com/ORG/classroom-semester-assignment"  # Optional: for push-to-classroom.sh
 TEMPLATE_REPO_URL="https://github.com/ORG/template.git"
 GITHUB_ORGANIZATION="YOUR-ORG"
 
