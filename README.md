@@ -1,19 +1,21 @@
 # GitHub Classroom Tools
 
-A comprehensive automation suite for managing GitHub Classroom assignments with advanced workflow orchestration, repository discovery, and secret management capabilities. **Now with generic assignment support and git submodule architecture for maximum reusability.**
+A comprehensive automation suite for managing GitHub Classroom assignments with advanced workflow orchestration, repository discovery, and secret management capabilities. **Now with universal file type support and enhanced GitHub Classroom integration.**
 
 ## 🎯 Overview
 
 This repository provides a complete set of tools for instructors to automate GitHub Classroom assignment management, including:
 
-- **Automated repository discovery** from GitHub Classroom assignments
+- **Universal assignment file support** - Works with any file type (.py, .cpp, .sql, .md, .html, .ipynb, etc.)
+- **Automated repository discovery** from GitHub Classroom assignments with smart filtering
 - **Batch secret management** across multiple student repositories  
-- **Template synchronization** with GitHub Classroom
-- **Student assistance tools** for common issues
+- **Template synchronization** with GitHub Classroom repositories
+- **Student assistance tools** for common workflow issues
 - **Master workflow orchestration** through configuration files
-- **Generic assignment support** through variable-driven configuration
+- **Instructor repository filtering** to focus on student repositories only
 - **Git submodule deployment** for cross-assignment reusability
 - **Advanced repository context detection** for submodule environments
+- **Clear URL distinction** between Classroom assignment pages and repository URLs
 
 ## 🚀 Quick Start
 
@@ -32,8 +34,12 @@ git submodule update --init --recursive
 cp tools/assignment-example.conf assignment.conf
 vim assignment.conf
 
-# Set your assignment notebook file (key for generic support)
-# Example: ASSIGNMENT_NOTEBOOK="m1_homework1.ipynb"
+# Set your assignment file (supports any file type!)
+# Examples:
+# ASSIGNMENT_FILE="homework.py"        # Python assignment
+# ASSIGNMENT_FILE="assignment.cpp"     # C++ assignment  
+# ASSIGNMENT_FILE="queries.sql"        # SQL assignment
+# ASSIGNMENT_FILE="notebook.ipynb"     # Jupyter notebook
 ```
 
 ### 3. Run the Complete Workflow
@@ -203,16 +209,20 @@ The `assignment.conf` file controls all aspects of the workflow:
 
 ```bash
 # Assignment Information
-CLASSROOM_URL="https://classroom.github.com/classrooms/ID/assignments/NAME"
-CLASSROOM_REPO_URL="https://github.com/ORG/classroom-semester-assignment"  # Optional: for push-to-classroom.sh
-TEMPLATE_REPO_URL="https://github.com/ORG/template.git"
-GITHUB_ORGANIZATION="YOUR-ORG"
+CLASSROOM_URL="https://classroom.github.com/classrooms/ID/assignments/NAME"          # Assignment page URL
+CLASSROOM_REPO_URL="https://github.com/ORG/classroom-semester-assignment"           # Optional: Classroom repo URL
+TEMPLATE_REPO_URL="https://github.com/ORG/template.git"                             # Template repository
+GITHUB_ORGANIZATION="YOUR-ORG"                                                      # GitHub organization
 
-# Generic Assignment Support (NEW in v1.5)
-ASSIGNMENT_FILE="your_assignment_file"    # Universal: .ipynb, .py, .cpp, .sql, .md, etc.
+# Universal Assignment Support (v1.6+)
+ASSIGNMENT_FILE="your_assignment_file"    # Any file type: .py, .cpp, .sql, .md, .ipynb, etc.
 
 # Legacy support (deprecated - use ASSIGNMENT_FILE instead)
 # ASSIGNMENT_NOTEBOOK="your_assignment.ipynb"  # Jupyter notebooks only
+
+# Repository Discovery Options
+INCLUDE_TEMPLATE_IN_BATCH=false           # Include template repository in batch operations
+EXCLUDE_INSTRUCTOR_REPOS=false            # Exclude instructor-* repositories from student operations
 
 # Secret Management
 SECRETS=(
@@ -230,6 +240,57 @@ STEP_ASSIST_STUDENTS=false
 OUTPUT_DIR="tools/generated"
 ```
 
+### URL Configuration Guide
+
+Understanding the difference between GitHub Classroom URLs is crucial for proper configuration:
+
+#### `CLASSROOM_URL` (Required)
+- **What it is**: The GitHub Classroom assignment management page URL
+- **Used for**: Discovering student repositories, extracting assignment names
+- **Format**: `https://classroom.github.com/classrooms/CLASSROOM-ID/assignments/ASSIGNMENT-NAME`
+- **How to find**: Go to GitHub Classroom → Your Classroom → Assignments → Click your assignment → Copy URL from browser
+
+#### `CLASSROOM_REPO_URL` (Optional)
+- **What it is**: The actual git repository URL created by GitHub Classroom for the assignment
+- **Used for**: Template synchronization with `push-to-classroom.sh`
+- **Format**: `https://github.com/ORG/classroom-semester-assignment-template`
+- **How to find**: Look for a repository in your organization with a name like `classroom-fall25-assignment-template`
+
+```bash
+# Example distinction:
+CLASSROOM_URL="https://classroom.github.com/classrooms/12345/assignments/cs6600-homework1"     # Assignment page
+CLASSROOM_REPO_URL="https://github.com/WSU-ML-DL/classroom-fall25-cs6600-homework1-template"  # Repository URL
+```
+
+### Universal File Type Support
+
+The tools now support any assignment file type, not just Jupyter notebooks:
+
+```bash
+# Python assignments
+ASSIGNMENT_FILE="homework.py"
+ASSIGNMENT_FILE="main.py"
+
+# C++ assignments  
+ASSIGNMENT_FILE="assignment.cpp"
+ASSIGNMENT_FILE="main.hpp"
+
+# SQL assignments
+ASSIGNMENT_FILE="queries.sql"
+ASSIGNMENT_FILE="database_homework.sql"
+
+# Web development
+ASSIGNMENT_FILE="index.html"
+ASSIGNMENT_FILE="styles.css"
+
+# Documentation
+ASSIGNMENT_FILE="README.md"
+ASSIGNMENT_FILE="report.md"
+
+# Jupyter notebooks (original support)
+ASSIGNMENT_FILE="notebook.ipynb"
+```
+
 ### Example Configurations
 - `assignment-example.conf` - Ready-to-use template
 - Safe defaults for testing and development
@@ -245,9 +306,9 @@ git submodule add https://github.com/hugo-valle/gh_classroom_tools.git tools
 cp tools/assignment-example.conf assignment.conf
 
 # 2. Create assignment in GitHub Classroom
-# Get the classroom URL from GitHub Classroom interface
+# Get the CLASSROOM_URL from GitHub Classroom interface
 
-# 3. Configure for your specific assignment (NEW in v1.4)
+# 3. Configure for your specific assignment
 vim assignment.conf  # Set ASSIGNMENT_NOTEBOOK="your_assignment.ipynb"
 
 # 4. Run automation with enhanced generic support
@@ -506,14 +567,68 @@ This is an internal tool suite. For issues or improvements:
 - **v1.1** - GitHub Classroom URL integration
 - **v1.2** - Master workflow orchestrator
 - **v1.3** - Comprehensive documentation and configuration system
-- **v1.4** - Generic assignment support, enhanced submodule architecture, and improved repository context detection
+## 🔧 Troubleshooting
 
-### What's New in v1.4
-- **Generic Assignment Support**: Tools now work with any assignment through `ASSIGNMENT_NOTEBOOK` configuration
+### Common URL Configuration Issues
+
+#### "CLASSROOM_REPO_URL is not set" Error
+```bash
+# Error from push-to-classroom.sh
+[ERROR] CLASSROOM_REPO_URL is not set in assignment.conf
+
+# Solution: Add the GitHub Classroom repository URL (not the assignment page URL)
+CLASSROOM_REPO_URL="https://github.com/ORG/classroom-semester-assignment-template"
+```
+
+#### Repository Discovery Issues
+```bash
+# No repositories found
+[WARNING] No repositories found matching pattern: assignment-prefix-*
+
+# Check your CLASSROOM_URL format:
+# ✅ Correct: https://classroom.github.com/classrooms/12345/assignments/assignment-name
+# ❌ Wrong: https://github.com/ORG/repository-name
+```
+
+#### Instructor Repository Filtering
+```bash
+# To exclude instructor repositories from student operations:
+EXCLUDE_INSTRUCTOR_REPOS=true
+
+# This filters out repositories with "instructor" in the name:
+# ✅ Included: cs6600-homework1-student123
+# ❌ Excluded: cs6600-homework1-instructor-tests
+```
+
+### File Type Support
+```bash
+# Universal file type examples:
+ASSIGNMENT_FILE="homework.py"        # Python
+ASSIGNMENT_FILE="assignment.cpp"     # C++
+ASSIGNMENT_FILE="queries.sql"        # SQL
+ASSIGNMENT_FILE="notebook.ipynb"     # Jupyter
+
+# Legacy support (still works):
+ASSIGNMENT_NOTEBOOK="notebook.ipynb"  # Will be converted to ASSIGNMENT_FILE
+```
+
+## 📈 Version History
+
+### v1.6 (Latest)
+- **Universal File Type Support**: Works with .py, .cpp, .sql, .md, .ipynb, and any file type
+- **Enhanced URL Management**: Clear distinction between CLASSROOM_URL and CLASSROOM_REPO_URL
+- **Smart Repository Filtering**: EXCLUDE_INSTRUCTOR_REPOS option for student-focused operations
+- **Improved Documentation**: Comprehensive guides and examples for all features
+
+### v1.5
+- **Enhanced Configuration System**: More granular control over workflow steps
+- **Advanced Repository Discovery**: Better filtering and organization options
+- **Improved Error Handling**: Clearer error messages and validation
+
+### v1.4
+- **Generic Assignment Support**: Tools now work with any assignment through variable configuration
 - **Enhanced Submodule Architecture**: Improved repository context detection for submodule deployment
 - **Variable-Driven Configuration**: Assignment-agnostic operation through environment variables
-- **Advanced Error Handling**: Better error messages with repository path context
-- **Universal Compatibility**: Single toolset works across multiple assignments without modification
 - **Production-Tested**: Validated with real GitHub Classroom integration
 
 ---

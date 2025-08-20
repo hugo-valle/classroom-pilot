@@ -203,6 +203,11 @@ fetch_student_repos() {
             continue
         fi
         
+        # Skip instructor repositories if requested
+        if [[ "${exclude_instructor:-false}" == "true" ]] && [[ "$repo_name" == *"instructor"* ]]; then
+            continue
+        fi
+        
         # Only include repositories that have the assignment prefix followed by a dash (student repos)
         if [[ "$repo_name" == "$assignment_prefix-"* ]]; then
             https_repos+=("$repo_https")
@@ -377,10 +382,10 @@ main() {
                 include_template="true"
                 shift
                 ;;
-            # "--exclude-instructor")
-            #     exclude_instructor="true"
-            #     shift
-            #     ;;
+            "--exclude-instructor")
+                exclude_instructor="true"
+                shift
+                ;;
             "--dry-run")
                 dry_run="true"
                 shift

@@ -399,6 +399,10 @@ step_discover_repositories() {
         args+=("--include-template")
     fi
     
+    if [[ "${EXCLUDE_INSTRUCTOR_REPOS:-false}" == "true" ]]; then
+        args+=("--exclude-instructor")
+    fi
+    
     if [[ "$DRY_RUN" == "true" ]]; then
         args+=("--dry-run")
     fi
