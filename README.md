@@ -49,7 +49,164 @@ vim assignment.conf
 ./tools/scripts/assignment-orchestrator.sh assignment.conf
 ```
 
-## 📁 Repository Structure
+## � Adding Tools to Your Assignment Repository
+
+### Step-by-Step Submodule Setup
+
+To use these GitHub Classroom automation tools in your assignment repository, you need to add them as a git submodule. **The submodule folder must be named `tools`** for the scripts to work correctly.
+
+#### 1. Navigate to Your Assignment Repository
+
+```bash
+# Go to your assignment repository root directory
+cd /path/to/your-assignment-repository
+
+# Verify you're in the right place (should see your assignment files)
+ls -la
+# You should see files like: assignment.ipynb, README.md, requirements.txt, etc.
+```
+
+#### 2. Add the Tools Submodule
+
+```bash
+# Add the tools repository as a submodule named 'tools'
+git submodule add https://github.com/hugo-valle/gh_classroom_tools.git tools
+
+# Initialize and update the submodule
+git submodule update --init --recursive
+```
+
+**⚠️ Important**: The submodule **must** be named `tools` because:
+- All scripts expect to find themselves at `./tools/scripts/`
+- Configuration files are loaded relative to the `tools/` directory
+- The orchestrator automatically detects the repository root as the parent of `tools/`
+
+#### 3. Verify the Setup
+
+```bash
+# Check that the submodule was added correctly
+git status
+# Should show: new file: .gitmodules and new file: tools
+
+# Verify the tools are accessible
+ls tools/scripts/
+# Should show: assignment-orchestrator.sh, fetch-student-repos.sh, etc.
+
+# Test the submodule setup
+./tools/scripts/assignment-orchestrator.sh --help
+# Should display the help message
+```
+
+#### 4. Commit the Submodule Addition
+
+```bash
+# Add and commit the submodule to your repository
+git add .gitmodules tools
+git commit -m "Add GitHub Classroom automation tools as submodule
+
+- Added hugo-valle/gh_classroom_tools as tools/ submodule
+- Provides complete workflow automation for GitHub Classroom
+- Includes orchestrator, repository discovery, and secret management"
+
+# Push to your repository
+git push origin main
+```
+
+#### 5. Create Your Configuration
+
+```bash
+# Copy the example configuration and customize it for your assignment
+cp tools/assignment-example.conf assignment.conf
+
+# Edit the configuration for your specific assignment
+vim assignment.conf  # or your preferred editor
+
+# Key settings to configure:
+# - CLASSROOM_URL: Your GitHub Classroom assignment URL
+# - ASSIGNMENT_FILE: Your main assignment file (any type: .py, .cpp, .sql, .ipynb, etc.)
+# - GITHUB_ORGANIZATION: Your GitHub organization name
+# - SECRETS: Any secrets you want to add to student repositories
+```
+
+### Repository Structure After Setup
+
+After adding the tools submodule, your assignment repository should look like this:
+
+```
+your-assignment-repository/
+├── .gitmodules                    # Git submodule configuration (auto-created)
+├── assignment.conf                # Your assignment configuration
+├── your-assignment-file.*         # Your main assignment file (.py, .cpp, .sql, .ipynb, etc.)
+├── README.md                      # Your assignment README
+├── requirements.txt               # Dependencies (if applicable)
+├── tools/                         # ← GitHub Classroom Tools (submodule)
+│   ├── scripts/                   # Automation scripts
+│   ├── docs/                      # Documentation
+│   ├── assignment-example.conf    # Configuration template
+│   └── README.md                  # Tools documentation
+└── [other assignment files]       # Additional assignment resources
+```
+
+### Updating the Tools Submodule
+
+When new features or fixes are added to the tools repository, you can update your submodule:
+
+```bash
+# Update to the latest version of the tools
+git submodule update --remote tools
+
+# Commit the submodule update
+git add tools
+git commit -m "Update tools submodule to latest version"
+git push origin main
+```
+
+### Troubleshooting Submodule Setup
+
+#### Common Issues and Solutions
+
+**Issue**: `./tools/scripts/assignment-orchestrator.sh: No such file or directory`
+```bash
+# Solution: Initialize the submodule
+git submodule update --init --recursive
+```
+
+**Issue**: Scripts can't find configuration or repository root
+```bash
+# Solution: Ensure submodule is named 'tools' (not 'gh_classroom_tools')
+git submodule add https://github.com/hugo-valle/gh_classroom_tools.git tools
+```
+
+**Issue**: Permission denied when running scripts
+```bash
+# Solution: Make scripts executable
+chmod +x tools/scripts/*.sh
+```
+
+**Issue**: Submodule appears empty after cloning
+```bash
+# Solution: Initialize submodules after cloning
+git clone <your-repo-url>
+cd <your-repo>
+git submodule update --init --recursive
+```
+
+### For Team Repositories
+
+If multiple instructors are working on the same assignment repository:
+
+```bash
+# When cloning the repository, always initialize submodules
+git clone <assignment-repo-url>
+cd <assignment-repo>
+git submodule update --init --recursive
+
+# When pulling updates that include submodule changes
+git pull origin main
+git submodule update --init --recursive
+```
+
+## �📁 Repository Structure
 
 ```
 gh_classroom_tools/
