@@ -16,53 +16,29 @@
 
 set -e  # Exit on any error
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-CYAN='\033[0;36m'
-PURPLE='\033[0;35m'
-NC='\033[0m' # No Color
-
 # Configuration
 TEMPLATE_REMOTE="origin"
 CLASSROOM_REMOTE="classroom"
 # NOTE: CLASSROOM_URL is now loaded from assignment.conf
 # The classroom repository URL will be determined automatically or from configuration
 BRANCH="main"
-TEMP_DIR="/tmp/cs6600-student-helper"
+TEMP_DIR="/tmp/student-helper"
 
-# Function to print colored output
-print_header() {
-    echo -e "${PURPLE}=== $1 ===${NC}"
-}
+# Source shared utilities
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/../utils/config.sh"
+source "$SCRIPT_DIR/../utils/logging.sh"
 
-print_status() {
-    echo -e "${BLUE}[INFO]${NC} $1"
-}
+# Get organization from config
+GITHUB_ORGANIZATION="$(get_config_value GITHUB_ORGANIZATION)"
 
-print_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
-}
-
-print_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
-}
-
-print_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
-}
-
-print_student() {
-    echo -e "${CYAN}[STUDENT]${NC} $1"
-}
+# Get template repo URL and extract assignment prefix
+TEMPLATE_REPO_URL="$(get_config_value TEMPLATE_REPO_URL)"
+DEFAULT_ASSIGNMENT_PREFIX="$(basename "$TEMPLATE_REPO_URL" .git)"
 
 # Function to show help
 show_help() {
     cat << EOF
-Student Update Helper Script - Instructor Tool
-
 USAGE:
     $0 [student-repo-url]                    # Help specific student (requires classroom repo)
     $0 --one-student [student-repo-url]      # Help single student (uses template directly)
@@ -73,16 +49,16 @@ USAGE:
 
 EXAMPLES:
     # Help a specific student using classroom repository
-    $0 https://github.com/WSU-ML-DL/cs6600-m1-homework1-student123
+    $0 https://github.com/${GITHUB_ORGANIZATION}/${DEFAULT_ASSIGNMENT_PREFIX}-student123
 
     # Help a single student using template repository directly (NEW)
-    $0 --one-student https://github.com/WSU-ML-DL/cs6600-m1-homework1-student123
+    $0 --one-student https://github.com/${GITHUB_ORGANIZATION}/${DEFAULT_ASSIGNMENT_PREFIX}-student123
 
     # Check multiple students from a file
     $0 --batch student-repos.txt
 
     # Check if a student needs updates
-    $0 --status https://github.com/WSU-ML-DL/cs6600-m1-homework1-student123
+    $0 --status https://github.com/${GITHUB_ORGANIZATION}/${DEFAULT_ASSIGNMENT_PREFIX}-student123
 
     # Verify classroom repository is ready for student updates
     $0 --check-classroom
@@ -101,9 +77,9 @@ MODES:
     --one-student:    Uses template repository directly (bypasses classroom URL issues)
 
 STUDENT REPOS FILE FORMAT (for --batch):
-    https://github.com/WSU-ML-DL/cs6600-m1-homework1-student1
-    https://github.com/WSU-ML-DL/cs6600-m1-homework1-student2
-    https://github.com/WSU-ML-DL/cs6600-m1-homework1-student3
+    https://github.com/${GITHUB_ORGANIZATION}/${DEFAULT_ASSIGNMENT_PREFIX}-student1
+    https://github.com/${GITHUB_ORGANIZATION}/${DEFAULT_ASSIGNMENT_PREFIX}-student2
+    https://github.com/${GITHUB_ORGANIZATION}/${DEFAULT_ASSIGNMENT_PREFIX}-student3
 
 EOF
 }
@@ -111,16 +87,19 @@ EOF
 # Function to extract student name from repo URL
 get_student_name() {
     local repo_url="$1"
-    echo "$repo_url" | sed -E 's/.*cs6600-m1-homework1-(.+)$/\1/' | sed 's/.git$//'
+    echo "$repo_url" | sed -E "s/.*${DEFAULT_ASSIGNMENT_PREFIX}-(.+)$/\1/" | sed 's/.git$//'
 }
 
 # Function to validate repository URL
 validate_repo_url() {
     local repo_url="$1"
     
-    if [[ ! "$repo_url" =~ ^https://github\.com/WSU-ML-DL/.*cs6600-m1-homework1-.* ]]; then
+        # Get assignment name from config for validation
+        local assignment_name="$(get_config_value ASSIGNMENT_NAME)"
+        
+        if [[ ! "$repo_url" =~ ^https://github\.com/${GITHUB_ORGANIZATION}/.*${assignment_name}-.* ]]; then
         print_error "Invalid repository URL format"
-        print_error "Expected: https://github.com/WSU-ML-DL/cs6600-m1-homework1-[student-name]"
+            print_error "Expected: https://github.com/${GITHUB_ORGANIZATION}/${assignment_name}-[student-name]"
         return 1
     fi
     
@@ -257,7 +236,11 @@ help_single_student() {
     cd "$work_dir"
     
     # Add template as remote (use TEMPLATE_REPO_URL from config)
-    local template_url="${TEMPLATE_REPO_URL:-https://github.com/WSU-ML-DL/cs6600-m1-homework1-template.git}"
+    local template_url="${TEMPLATE_REPO_URL}"
+    if [[ -z "$template_url" ]]; then
+        print_error "TEMPLATE_REPO_URL not set in configuration"
+        return 1
+    fi
     print_status "Adding template repository as upstream..."
     git remote add upstream "$template_url"
     
@@ -622,7 +605,7 @@ If you encounter any issues, please:
 - Contact the instructor
 
 Best regards,
-CS6600 Instructional Team
+Instructional Team
 
 EOF
 }

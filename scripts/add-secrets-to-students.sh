@@ -6,43 +6,21 @@
 
 set -e
 
-# Color codes for output
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-CYAN='\033[0;36m'
-PURPLE='\033[0;35m'
-NC='\033[0m' # No Color
+# Source shared utilities
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/../utils/logging.sh"
+source "$SCRIPT_DIR/../utils/config.sh"
 
-# Configuration
-DEFAULT_SECRET_NAME="INSTRUCTOR_TESTS_TOKEN"
-DEFAULT_TOKEN_FILE="instructor_token.txt"
-INSTRUCTOR_TESTS_REPO="WSU-ML-DL/cs6600-m1-homework1-instructor-tests"
-
-# Print functions for colored output
-print_header() {
-    echo -e "${PURPLE}=== $1 ===${NC}"
-}
-
-print_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
-}
-
-print_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
-}
-
-print_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
-}
-
-print_status() {
-    echo -e "${BLUE}[INFO]${NC} $1"
-}
-
-print_student() {
-    echo -e "${CYAN}[STUDENT]${NC} $1"
-}
+# Get default values from config
+DEFAULT_ORGANIZATION="$(get_config_value GITHUB_ORGANIZATION)"
+# Get assignment prefix from template repo URL if ASSIGNMENT_NAME is not set
+ASSIGNMENT_NAME="$(get_config_value ASSIGNMENT_NAME)"
+if [ -z "$ASSIGNMENT_NAME" ]; then
+    TEMPLATE_REPO_URL="$(get_config_value TEMPLATE_REPO_URL)"
+    DEFAULT_ASSIGNMENT_PREFIX="$(basename "$TEMPLATE_REPO_URL" .git)"
+else
+    DEFAULT_ASSIGNMENT_PREFIX="$ASSIGNMENT_NAME"
+fi
 
 # Function to show help
 show_help() {
@@ -65,19 +43,19 @@ PARAMETERS:
 
 EXAMPLES:
     # Add INSTRUCTOR_TESTS_TOKEN to a specific student (using default token file)
-    ./scripts/add-secrets-to-students.sh INSTRUCTOR_TESTS_TOKEN https://github.com/WSU-ML-DL/cs6600-m1-homework1-student123
+    ./scripts/add-secrets-to-students.sh INSTRUCTOR_TESTS_TOKEN https://github.com/${DEFAULT_ORGANIZATION}/${DEFAULT_ASSIGNMENT_PREFIX}-student123
 
     # Add custom secret using default token file
-    ./scripts/add-secrets-to-students.sh MY_CUSTOM_TOKEN https://github.com/WSU-ML-DL/cs6600-m1-homework1-student123
+    ./scripts/add-secrets-to-students.sh MY_CUSTOM_TOKEN https://github.com/${DEFAULT_ORGANIZATION}/${DEFAULT_ASSIGNMENT_PREFIX}-student123
 
     # Add secrets to multiple students from a file
     ./scripts/add-secrets-to-students.sh INSTRUCTOR_TESTS_TOKEN --batch student-repos.txt
 
     # Use custom token file
-    ./scripts/add-secrets-to-students.sh INSTRUCTOR_TESTS_TOKEN --token-file my_token.txt https://github.com/WSU-ML-DL/cs6600-m1-homework1-student123
+    ./scripts/add-secrets-to-students.sh INSTRUCTOR_TESTS_TOKEN --token-file my_token.txt https://github.com/${DEFAULT_ORGANIZATION}/${DEFAULT_ASSIGNMENT_PREFIX}-student123
 
     # Update secrets older than 30 days instead of default 90
-    ./scripts/add-secrets-to-students.sh INSTRUCTOR_TESTS_TOKEN --max-age 30 https://github.com/WSU-ML-DL/cs6600-m1-homework1-student123
+    ./scripts/add-secrets-to-students.sh INSTRUCTOR_TESTS_TOKEN --max-age 30 https://github.com/${DEFAULT_ORGANIZATION}/${DEFAULT_ASSIGNMENT_PREFIX}-student123
 
     # Force update all secrets regardless of age
     ./scripts/add-secrets-to-students.sh INSTRUCTOR_TESTS_TOKEN --force-update --batch student-repos.txt
@@ -97,9 +75,9 @@ TOKEN FILE SETUP:
     3. The file is automatically ignored by git (.gitignore)
 
 STUDENT REPOS FILE FORMAT (for --batch):
-    https://github.com/WSU-ML-DL/cs6600-m1-homework1-student1
-    https://github.com/WSU-ML-DL/cs6600-m1-homework1-student2
-    https://github.com/WSU-ML-DL/cs6600-m1-homework1-student3
+    https://github.com/${DEFAULT_ORGANIZATION}/${DEFAULT_ASSIGNMENT_PREFIX}-student1
+    https://github.com/${DEFAULT_ORGANIZATION}/${DEFAULT_ASSIGNMENT_PREFIX}-student2
+    https://github.com/${DEFAULT_ORGANIZATION}/${DEFAULT_ASSIGNMENT_PREFIX}-student3
 
 SETUP:
     1. Make sure you have GitHub CLI installed: https://cli.github.com/
@@ -113,16 +91,20 @@ EOF
 # Function to extract student name from repository URL
 get_student_name() {
     local repo_url="$1"
-    echo "$repo_url" | sed -E 's/.*cs6600-m1-homework1-(.+)$/\1/' | sed 's/.git$//'
+    echo "$repo_url" | sed -E "s/.*${DEFAULT_ASSIGNMENT_PREFIX}-(.+)$/\1/" | sed 's/.git$//'
 }
 
 # Function to validate repository URL format
 validate_repo_url() {
     local repo_url="$1"
     
-    if [[ ! "$repo_url" =~ ^https://github\.com/WSU-ML-DL/.*cs6600-m1-homework1-.* ]]; then
+    # Get assignment name and organization from config for validation
+    local assignment_name="$(get_config_value ASSIGNMENT_NAME)"
+    local github_org="$(get_config_value GITHUB_ORGANIZATION)"
+    
+    if [[ ! "$repo_url" =~ ^https://github\.com/${github_org}/.*${assignment_name}-.* ]]; then
         print_error "Invalid repository URL format"
-        print_error "Expected: https://github.com/WSU-ML-DL/cs6600-m1-homework1-[student-name]"
+        print_error "Expected: https://github.com/${github_org}/${assignment_name}-[student-name]"
         return 1
     fi
     

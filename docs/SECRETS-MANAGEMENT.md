@@ -20,10 +20,10 @@ This script automates adding secrets (like `INSTRUCTOR_TESTS_TOKEN`) to student 
 ### Add secret to single student
 ```bash
 # Using default secret name and token file
-./scripts/add-secrets-to-students.sh INSTRUCTOR_TESTS_TOKEN https://github.com/WSU-ML-DL/cs6600-m1-homework1-student123
+./scripts/add-secrets-to-students.sh INSTRUCTOR_TESTS_TOKEN https://github.com/YOUR_ORG/assignment-name-student123
 
 # Using custom token file
-./scripts/add-secrets-to-students.sh INSTRUCTOR_TESTS_TOKEN --token-file my_token.txt https://github.com/WSU-ML-DL/cs6600-m1-homework1-student123
+./scripts/add-secrets-to-students.sh INSTRUCTOR_TESTS_TOKEN --token-file my_token.txt https://github.com/YOUR_ORG/assignment-name-student123
 ```
 
 ### Add secrets to multiple students
@@ -35,18 +35,18 @@ This script automates adding secrets (like `INSTRUCTOR_TESTS_TOKEN`) to student 
 ### Add custom secrets
 ```bash
 # Add different types of secrets
-./scripts/add-secrets-to-students.sh MY_CUSTOM_SECRET https://github.com/WSU-ML-DL/cs6600-m1-homework1-student123
-./scripts/add-secrets-to-students.sh API_KEY https://github.com/WSU-ML-DL/cs6600-m1-homework1-student123
+./scripts/add-secrets-to-students.sh MY_CUSTOM_SECRET https://github.com/YOUR_ORG/assignment-name-student123
+./scripts/add-secrets-to-students.sh API_KEY https://github.com/YOUR_ORG/assignment-name-student123
 ```
 
 ## Student Repository File Format
 
 Create a file (like `student-repos-secrets.txt`) with one repository URL per line:
 ```text
-# CS6600 Student Repositories
-https://github.com/WSU-ML-DL/cs6600-m1-homework1-student1
-https://github.com/WSU-ML-DL/cs6600-m1-homework1-student2
-https://github.com/WSU-ML-DL/cs6600-m1-homework1-student3
+# Student Repositories
+https://github.com/YOUR_ORG/assignment-name-student1
+https://github.com/YOUR_ORG/assignment-name-student2
+https://github.com/YOUR_ORG/assignment-name-student3
 
 # Lines starting with # are ignored
 # Empty lines are also ignored

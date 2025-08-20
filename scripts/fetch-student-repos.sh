@@ -6,41 +6,27 @@
 
 set -e
 
-# Color codes for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-CYAN='\033[0;36m'
-PURPLE='\033[0;35m'
-NC='\033[0m' # No Color
-
 # Configuration
 DEFAULT_OUTPUT_FILE="tools/generated/student-repos-batch.txt"
-DEFAULT_ORGANIZATION="WSU-ML-DL"
-DEFAULT_ASSIGNMENT_PREFIX="cs6600-m1-homework1"
 
-# Print functions for colored output
-print_header() {
-    echo -e "${PURPLE}=== $1 ===${NC}"
-}
+# Source shared utilities
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/../utils/config.sh"
+source "$SCRIPT_DIR/../utils/logging.sh"
 
-print_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
-}
+# Get organization and assignment prefix from config
+DEFAULT_ORGANIZATION="$(get_config_value GITHUB_ORGANIZATION)"
+# Get assignment prefix from template repo URL if ASSIGNMENT_NAME is not set
+ASSIGNMENT_NAME="$(get_config_value ASSIGNMENT_NAME)"
+if [ -z "$ASSIGNMENT_NAME" ]; then
+    TEMPLATE_REPO_URL="$(get_config_value TEMPLATE_REPO_URL)"
+    DEFAULT_ASSIGNMENT_PREFIX="$(basename "$TEMPLATE_REPO_URL" .git)"
+else
+    DEFAULT_ASSIGNMENT_PREFIX="$ASSIGNMENT_NAME"
+fi
+DEFAULT_CLASSROOM_URL="$(get_config_value CLASSROOM_URL)"
 
-print_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
-}
-
-print_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
-}
-
-print_status() {
-    echo -e "${BLUE}[INFO]${NC} $1"
-}
-
+# Custom print function for this script
 print_student() {
     echo -e "${CYAN}[FOUND]${NC} $1"
 }
@@ -58,8 +44,8 @@ USAGE:
     ./scripts/fetch-student-repos.sh --help                                     # Show this help
 
 PARAMETERS:
-    assignment-prefix     Repository prefix pattern (default: cs6600-m1-homework1)
-    organization         GitHub organization name (default: WSU-ML-DL)
+    assignment-prefix     Repository prefix pattern (default: ${DEFAULT_ASSIGNMENT_PREFIX})
+    organization         GitHub organization name (default: ${DEFAULT_ORGANIZATION})
     --output             Output file path (default: scripts/student-repos-batch.txt)
     --assignment         Assignment prefix (alternative to positional arg)
     --org                Organization name (alternative to positional arg)
@@ -69,11 +55,11 @@ PARAMETERS:
     --dry-run            Show what would be fetched without writing file
 
 EXAMPLES:
-    # Fetch all cs6600-m1-homework1 student repos from WSU-ML-DL organization
+    # Fetch all ${DEFAULT_ASSIGNMENT_PREFIX} student repos from ${DEFAULT_ORGANIZATION} organization
     ./scripts/fetch-student-repos.sh
 
     # Fetch with custom assignment and organization
-    ./scripts/fetch-student-repos.sh cs6600-m2-homework2 MY-ORG
+    ./scripts/fetch-student-repos.sh my-assignment MY-ORG
 
     # Save to custom file
     ./scripts/fetch-student-repos.sh --output my-students.txt
@@ -88,16 +74,16 @@ EXAMPLES:
     ./scripts/fetch-student-repos.sh --exclude-instructor
 
     # Use GitHub Classroom URL directly
-    ./scripts/fetch-student-repos.sh --classroom-url https://classroom.github.com/classrooms/206604610-wsu-ml-dl-classroom-fall25/assignments/cs6600-m1-homework1
+    ./scripts/fetch-student-repos.sh --classroom-url "${DEFAULT_CLASSROOM_URL}"
 
     # Fetch specific assignment with custom output
-    ./scripts/fetch-student-repos.sh --assignment cs6600-final-project --output final-project-repos.txt
+    ./scripts/fetch-student-repos.sh --assignment final-project --output final-project-repos.txt
 
 OUTPUT FORMAT:
     The output file will contain one repository URL per line:
-    https://github.com/WSU-ML-DL/cs6600-m1-homework1-student1
-    https://github.com/WSU-ML-DL/cs6600-m1-homework1-student2
-    https://github.com/WSU-ML-DL/cs6600-m1-homework1-student3
+    https://github.com/${DEFAULT_ORGANIZATION}/${DEFAULT_ASSIGNMENT_PREFIX}-student1
+    https://github.com/${DEFAULT_ORGANIZATION}/${DEFAULT_ASSIGNMENT_PREFIX}-student2
+    https://github.com/${DEFAULT_ORGANIZATION}/${DEFAULT_ASSIGNMENT_PREFIX}-student3
 
 REQUIREMENTS:
     - GitHub CLI (gh) must be installed and authenticated

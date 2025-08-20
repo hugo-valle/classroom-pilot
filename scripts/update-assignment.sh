@@ -1,13 +1,18 @@
 #!/bin/bash
-# CS6600 Assignment Update Script
+# Assignment Update Script
 # Run this script to get the latest template updates from GitHub Classroom
 
-echo "🔄 Updating CS6600 Assignment 1 from template..."
+echo "🔄 Updating assignment from template..."
 echo "📚 GitHub Classroom Environment Detected"
 echo ""
 
-# Define the correct template repository URL
-TEMPLATE_REPO="https://github.com/WSU-ML-DL/cs6600-m1-homework1-template.git"
+# Source shared config utility
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/../utils/config.sh"
+
+# Get template repo and organization from config
+TEMPLATE_REPO="$(get_config_value TEMPLATE_REPO_URL)"
+GITHUB_ORGANIZATION="$(get_config_value GITHUB_ORGANIZATION)"
 
 # Check if template repository is private and needs authentication
 echo "📖 IMPORTANT: This template repository is PRIVATE"
@@ -53,8 +58,15 @@ if ! git remote | grep -q "upstream"; then
             exit 1
         fi
         
-        # Use authenticated URL
-        AUTH_REPO="https://${USERNAME}:${TOKEN}@github.com/WSU-ML-DL/cs6600-m1-homework1-template.git"
+        # Use authenticated URL - get repository name from template URL
+        if [[ -z "$TEMPLATE_REPO" ]]; then
+            echo "❌ TEMPLATE_REPO_URL not found in configuration"
+            exit 1
+        fi
+        
+        # Extract the repo path from the template URL and create authenticated URL
+        REPO_PATH=$(echo "$TEMPLATE_REPO" | sed 's|https://github.com/||' | sed 's|\.git$||')
+        AUTH_REPO="https://${USERNAME}:${TOKEN}@github.com/${REPO_PATH}.git"
         
         echo "🔐 Adding authenticated remote..."
         if ! git remote add upstream "$AUTH_REPO"; then

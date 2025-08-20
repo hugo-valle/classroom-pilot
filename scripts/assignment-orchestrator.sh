@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# CS6600 Assignment Workflow Orchestrator
+# Assignment Workflow Orchestrator
 # 
 # This script orchestrates the complete workflow for managing GitHub Classroom assignments:
 # 1. Template synchronization with classroom
@@ -20,13 +20,8 @@ TOOLS_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 REPO_ROOT="$(cd "$TOOLS_ROOT/.." && pwd)"
 DEFAULT_CONFIG="$REPO_ROOT/assignment.conf"
 
-# Color codes for output
-readonly RED='\033[0;31m'
-readonly GREEN='\033[0;32m'
-readonly YELLOW='\033[1;33m'
-readonly BLUE='\033[0;34m'
-readonly CYAN='\033[0;36m'
-readonly NC='\033[0m' # No Color
+# Source shared color codes (but keep custom log functions)
+source "$TOOLS_ROOT/utils/logging.sh"
 
 # Default values
 CONFIG_FILE="$DEFAULT_CONFIG"
@@ -65,7 +60,7 @@ log_header() {
 # Help function
 show_help() {
     cat << 'EOF'
-CS6600 Assignment Workflow Orchestrator
+Assignment Workflow Orchestrator
 
 USAGE:
     ./scripts/assignment-orchestrator.sh [config-file] [options]
@@ -557,7 +552,7 @@ execute_step() {
 
 # Main workflow execution
 execute_workflow() {
-    log_header "Executing CS6600 Assignment Workflow"
+    log_header "Executing Assignment Workflow"
     
     local start_time
     start_time=$(date +%s)
