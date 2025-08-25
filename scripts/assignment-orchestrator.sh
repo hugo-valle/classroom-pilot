@@ -236,7 +236,10 @@ load_configuration() {
     done
     
     # Set default values for optional configuration
-    SECRETS="${SECRETS:-()}"
+    # Ensure SECRETS is always an array
+    if [[ -z "${SECRETS+x}" ]]; then
+        SECRETS=()
+    fi
     SECRET_MAX_AGE_DAYS="${SECRET_MAX_AGE_DAYS:-90}"
     SECRET_FORCE_UPDATE="${SECRET_FORCE_UPDATE:-false}"
     OUTPUT_DIR="${OUTPUT_DIR:-scripts}"
