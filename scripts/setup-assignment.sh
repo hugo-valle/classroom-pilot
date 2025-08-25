@@ -243,7 +243,7 @@ EOF
 
 # Main assignment file (the primary file students work on - any type)
 # Universal support: .ipynb, .py, .cpp, .sql, .md, .html, etc.
-MAIN_ASSIGNMENT_FILE="${CONFIG_VALUES[MAIN_ASSIGNMENT_FILE]}"
+ASSIGNMENT_FILE="${CONFIG_VALUES[MAIN_ASSIGNMENT_FILE]}"
 
 # =============================================================================
 # SECRET MANAGEMENT
