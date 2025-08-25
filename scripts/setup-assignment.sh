@@ -563,12 +563,18 @@ main() {
     CONFIG_VALUES[GITHUB_ORGANIZATION]="$PROMPT_RESULT"
     
     prompt_input \
+
         "Template repository URL" \
         "https://github.com/${CONFIG_VALUES[GITHUB_ORGANIZATION]}/${extracted_assignment}-template.git" \
         "validate_url" \
         "The TEMPLATE repository that students fork from (contains starter code/files). Usually has '-template' suffix."\
-        "This is the repo created by GitHub Classroom for this assignment"\
+        "This is the repo created by GitHub Classroom for this assignment"
     CONFIG_VALUES[TEMPLATE_REPO_URL]="$PROMPT_RESULT"
+    # Error and exit if TEMPLATE_REPO_URL is empty
+    if [ -z "${CONFIG_VALUES[TEMPLATE_REPO_URL]}" ]; then
+        echo -e "${RED}ERROR:${NC} The Template repository URL is required for assignment setup. Please provide a valid URL." >&2
+        exit 1
+    fi
     
     # Step 3: Assignment details
     show_progress "Assignment Details"
