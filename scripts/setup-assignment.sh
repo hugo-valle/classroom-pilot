@@ -563,7 +563,6 @@ main() {
     CONFIG_VALUES[GITHUB_ORGANIZATION]="$PROMPT_RESULT"
     
     prompt_input \
-
         "Template repository URL" \
         "https://github.com/${CONFIG_VALUES[GITHUB_ORGANIZATION]}/${extracted_assignment}-template.git" \
         "validate_url" \
