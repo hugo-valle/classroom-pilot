@@ -65,7 +65,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup GitHub CLI
-        uses: cli/gh-extension@main
+        run: |
+          # GitHub CLI is pre-installed on GitHub Actions runners
+          gh --version
 
       - name: Install shell
         run: |
