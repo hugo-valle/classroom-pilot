@@ -67,12 +67,17 @@ prompt_input() {
         if [[ -t 0 ]]; then
             # Interactive mode: read from stdin
             read -r value
-        elif [[ -r /dev/tty ]]; then
+        elif [[ -t 1 ]] && [[ -r /dev/tty ]]; then
             # Non-interactive with tty available: read from tty
             read -r value < /dev/tty
         else
-            # Fallback: read from stdin
-            read -r value || value=""
+            # Fallback: read from stdin, or use default if non-interactive
+            if read -r value 2>/dev/null; then
+                : # Successfully read from stdin
+            else
+                # No input available, use default or empty
+                value="${default:-}"
+            fi
         fi
         
         # Use default if empty

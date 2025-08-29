@@ -87,8 +87,9 @@ jobs:
       - name: Test setup wizard (dry run)
         run: |
           echo "🧪 Testing setup wizard..."
-          # Test help functionality (most compatible approach)
-          bash scripts/setup-assignment.sh --help || echo "Help test completed with status $?"
+          # Test help functionality with explicit debugging
+          echo "Testing setup-assignment.sh --help"
+          bash -x tools/scripts/setup-assignment.sh --help || echo "Setup help test completed with status $?"
 
       - name: Test orchestrator (dry run)
         run: |
@@ -335,11 +336,20 @@ jobs:
           # Get release notes from previous job
           RELEASE_NOTES="${{ needs.generate-changelog.outputs.release_notes }}"
           
-          # Create the release
-          gh release create "$VERSION" \
-            --title "$TITLE" \
-            --notes "$RELEASE_NOTES" \
-            $PRERELEASE_FLAG
+          # Check if release already exists
+          if gh release view "$VERSION" >/dev/null 2>&1; then
+            echo "Release $VERSION already exists, updating it..."
+            gh release edit "$VERSION" \
+              --title "$TITLE" \
+              --notes "$RELEASE_NOTES" \
+              $PRERELEASE_FLAG
+          else
+            echo "Creating new release $VERSION..."
+            gh release create "$VERSION" \
+              --title "$TITLE" \
+              --notes "$RELEASE_NOTES" \
+              $PRERELEASE_FLAG
+          fi
 
   update-changelog:
     name: 📝 Update Changelog
