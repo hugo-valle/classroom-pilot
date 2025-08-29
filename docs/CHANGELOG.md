@@ -7,9 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Note**: This tools package is designed to be used as a Git submodule in assignment template repositories.
 
-## [Pre-released] - v1.1.0-alpha.1 - 2025-08-26
+## [Unreleased] - v1.1.0-alpha.1
 
 ### Added
+- **Automated Release Pipeline**: Complete GitHub Actions workflows for CI/CD
+  - **Release Workflow**: Automatically builds, tests, and publishes releases when tags are pushed
+  - **CI Workflow**: Continuous integration testing on PRs and pushes
+  - **Auto Update Workflow**: Weekly health checks and dependency monitoring
+- **Multi-Shell Testing**: Automated testing across bash and zsh environments
+- **Security Automation**: Integrated Shellcheck linting and secret scanning
+- **Smart Release Notes**: Automatic generation of contextual release notes based on version type
 - **Flexible Secret Management Configuration**: Setup wizard now asks users whether they have tests in a separate private instructor repository or in the template repository
 - **Conditional Secret Management**: STEP_MANAGE_SECRETS can be disabled when tests are included in the template repository
 - **Enhanced Setup Wizard**: New Step 5 in setup-assignment.sh provides guided configuration for secret management scenarios
@@ -18,6 +25,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Enhanced Configuration Documentation**: assignment.conf now includes comprehensive comments explaining both secret management scenarios
 
 ### Changed
+- **Release Process**: Now fully automated via GitHub Actions - simply push a tag to trigger release
+- **Version Validation**: Automatic validation of semantic version tag formats
+- **Quality Assurance**: All releases now include automated testing and security scanning
 - **Assignment Orchestrator Workflow**: Secret management and student assistance steps now only run when student repositories are successfully discovered
 - **Setup Wizard Flow**: Increased total steps from 7 to 8 to accommodate new secret management configuration
 - **Configuration File Generation**: create_config_file() now generates different SECRETS_CONFIG sections based on user choice
@@ -30,6 +40,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Workflow Success Reporting**: Overall workflow now succeeds when template sync completes, regardless of repository discovery status
 
 ### Technical Details
+- Added comprehensive GitHub Actions workflows (.github/workflows/)
+- Automated testing across multiple shell environments
+- Integrated security scanning with TruffleHog and Shellcheck
+- Smart version detection and pre-release handling
+- Automatic CHANGELOG.md maintenance for non-alpha releases
 - Updated `assignment-orchestrator.sh` workflow logic to make steps more independent
 - Enhanced `setup-assignment.sh` with conditional token configuration
 - Improved error messages to be more informative about skipped steps
