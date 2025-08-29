@@ -17,6 +17,12 @@ REPO_ROOT="$(cd "$TOOLS_ROOT/.." && pwd)"
 # Source shared logging utility
 source "$TOOLS_ROOT/utils/logging.sh"
 
+# Additional logging functions for consistency
+log_info() { print_status "$@"; }
+log_success() { print_success "$@"; }
+log_warning() { print_warning "$@"; }
+log_error() { print_error "$@"; }
+
 # Configuration
 CRON_SCRIPT="$TOOLS_ROOT/scripts/cron-sync.sh"
 LOG_FILE="$REPO_ROOT/tools/generated/cron-sync.log"
