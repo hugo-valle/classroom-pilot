@@ -8,7 +8,17 @@ This repository provides a complete set of tools for instructors to automate Git
 
 - **Universal assignment file support** - Works with any file type (.py, .cpp, .sql, .md, .html, .ipynb, etc.)
 - **Automated repository discovery** from GitHub Classroom assignments with smart filtering
-- **Batch **💡 Pro Tips:**
+- **Batch secret management** across multiple student repositories  
+- **Template synchronization** with GitHub Classroom repositories
+- **Automated cron scheduling** for hands-off assignment management
+- **Student assistance tools** for common workflow issues
+- **Master workflow orchestration** through configuration files
+- **Instructor repository filtering** to focus on student repositories only
+- **Git submodule deployment** for cross-assignment reusability
+- **Advanced repository context detection** for submodule environments
+- **Clear URL distinction** between Classroom assignment pages and repository URLs
+
+## 💡 Pro Tips:
 - Always use `--dry-run` first to preview changes
 - Use `--one-student` when classroom repository URL issues occur
 - Generated batch files are saved in `tools/generated/` and automatically git-ignored
@@ -152,15 +162,6 @@ gh release create v1.0.0 --generate-notes
 
 For detailed workflow documentation, see [`.github/README.md`](.github/README.md) and the [changelog](docs/CHANGELOG.md).
 
-## 📚 Documentationnagement** across multiple student repositories  
-- **Template synchronization** with GitHub Classroom repositories
-- **Student assistance tools** for common workflow issues
-- **Master workflow orchestration** through configuration files
-- **Instructor repository filtering** to focus on student repositories only
-- **Git submodule deployment** for cross-assignment reusability
-- **Advanced repository context detection** for submodule environments
-- **Clear URL distinction** between Classroom assignment pages and repository URLs
-
 ## 🚀 Quick Start
 
 ### 1. Add as Submodule to Your Assignment Repository
@@ -192,6 +193,28 @@ vim assignment.conf
 # Execute the full automation workflow
 ./tools/scripts/assignment-orchestrator.sh assignment.conf
 ```
+
+### 4. Optional: Set Up Automated Cron Sync
+
+For hands-off assignment management, install the automated cron job:
+
+```bash
+# Install 4-hour automated sync
+./tools/scripts/manage-cron.sh install
+
+# Monitor sync activity
+./tools/scripts/manage-cron.sh logs
+
+# Check status
+./tools/scripts/manage-cron.sh status
+```
+
+The cron job will automatically:
+- Sync template changes with GitHub Classroom every 4 hours
+- Push tokens to student repositories as they accept assignments
+- Log all activity for monitoring
+
+See [Cron Automation Documentation](docs/CRON-AUTOMATION.md) for detailed setup and configuration.
 
 ## � Adding Tools to Your Assignment Repository
 
