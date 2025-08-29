@@ -373,13 +373,18 @@ step_sync_template() {
     local cmd="$REPO_ROOT/tools/scripts/push-to-classroom.sh"
     local args=()
     
+    # Pass force flag for non-interactive execution
+    if [[ "$FORCE_YES" == "true" ]]; then
+        args+=("--force")
+    fi
+    
     if [[ "$DRY_RUN" == "true" ]]; then
-        log_info "DRY RUN: Would execute: $cmd"
+        log_info "DRY RUN: Would execute: $cmd ${args[*]}"
         log_info "This would sync the template repository to GitHub Classroom"
         return 0
     fi
     
-    log_info "Executing: $cmd"
+    log_info "Executing: $cmd ${args[*]}"
     if ! "$cmd" "${args[@]}"; then
         log_error "Template synchronization failed"
         return 1
