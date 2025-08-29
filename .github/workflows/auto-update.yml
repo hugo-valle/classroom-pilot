@@ -1,0 +1,80 @@
+name: 🔄 Auto Update
+
+on:
+  schedule:
+    # Run weekly on Sundays at 2 AM UTC
+    - cron: '0 2 * * 0'
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  update-dependencies:
+    name: 📦 Update Dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update GitHub Actions
+        run: |
+          echo "🔄 Checking for GitHub Actions updates..."
+          
+          # Update actions to latest versions (this would need a more sophisticated implementation)
+          # For now, just report current versions
+          echo "Current GitHub Actions versions:"
+          grep -r "uses:" .github/workflows/ || true
+
+      - name: Check script dependencies
+        run: |
+          echo "🔍 Checking script dependencies..."
+          
+          # Check if GitHub CLI is referenced and suggest updates
+          if grep -r "gh " scripts/; then
+            echo "📋 Scripts use GitHub CLI - ensure latest version is available"
+          fi
+          
+          # Check for outdated patterns or deprecated features
+          echo "✅ Dependency check complete"
+
+      - name: Create update PR
+        run: |
+          # This would create a PR if any updates are found
+          # Implementation would depend on what needs updating
+          echo "🚀 No automated updates configured yet"
+          echo "This job serves as a placeholder for future dependency management"
+
+  health-check:
+    name: 🏥 Health Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check repository health
+        run: |
+          echo "🏥 Performing repository health check..."
+          
+          # Check for common issues
+          echo "📂 Checking file structure..."
+          required_files=(
+            "scripts/setup-assignment.sh"
+            "scripts/assignment-orchestrator.sh"
+            "scripts/fetch-student-repos.sh"
+            "docs/CHANGELOG.md"
+          )
+          
+          for file in "${required_files[@]}"; do
+            if [ -f "$file" ]; then
+              echo "✅ $file exists"
+            else
+              echo "❌ $file missing"
+            fi
+          done
+          
+          echo "📊 Repository statistics:"
+          echo "- Scripts: $(find scripts/ -name "*.sh" | wc -l)"
+          echo "- Documentation files: $(find docs/ -name "*.md" 2>/dev/null | wc -l || echo 0)"
+          echo "- Workflow files: $(find .github/workflows/ -name "*.yml" | wc -l)"
+          
+          echo "✅ Health check complete"

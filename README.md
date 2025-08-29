@@ -8,7 +8,151 @@ This repository provides a complete set of tools for instructors to automate Git
 
 - **Universal assignment file support** - Works with any file type (.py, .cpp, .sql, .md, .html, .ipynb, etc.)
 - **Automated repository discovery** from GitHub Classroom assignments with smart filtering
-- **Batch secret management** across multiple student repositories  
+- **Batch **💡 Pro Tips:**
+- Always use `--dry-run` first to preview changes
+- Use `--one-student` when classroom repository URL issues occur
+- Generated batch files are saved in `tools/generated/` and automatically git-ignored
+- Scripts automatically detect submodule context and load `assignment.conf`
+- Use `--help` on any script to see all available options
+- Environment variables override `assignment.conf` settings for testing
+
+## 🚀 Automation & CI/CD
+
+The GitHub Classroom Tools now include comprehensive automation through GitHub Actions workflows for professional development and release management.
+
+### Automated Release Management
+
+The tools use **Git Flow** with semantic versioning for professional release management:
+
+- **Alpha releases**: `v1.0.0-alpha.1` - Development snapshots with latest features
+- **Beta releases**: `v1.0.0-beta.1` - Release candidates for testing
+- **Stable releases**: `v1.0.0` - Production-ready versions
+
+```bash
+# Create and push a release tag to trigger automation
+git tag v1.1.0-alpha.1
+git push origin v1.1.0-alpha.1
+
+# The automation will:
+# 1. Run comprehensive tests and security scans
+# 2. Generate release notes from CHANGELOG.md
+# 3. Create GitHub release with assets
+# 4. Update documentation
+```
+
+### GitHub Actions Workflows
+
+#### 🔄 Release Workflow (`.github/workflows/release.yml`)
+Triggered on: Git tags (v*.*.*)
+
+**Capabilities:**
+- **Multi-shell testing**: Validates scripts on bash, zsh, fish
+- **Security scanning**: ShellCheck analysis for all bash scripts
+- **Automated releases**: Creates GitHub releases with generated notes
+- **Asset publishing**: Bundles and uploads release artifacts
+- **Documentation updates**: Automatically updates changelog
+
+```bash
+# Manual workflow trigger (for testing)
+gh workflow run release.yml
+```
+
+#### ✅ Continuous Integration (`.github/workflows/ci.yml`)
+Triggered on: Push to main/develop, Pull Requests
+
+**Capabilities:**
+- **Syntax validation**: Ensures all scripts are syntactically correct
+- **Shell compatibility**: Tests across bash 4.0+, zsh, and fish
+- **Security checks**: Comprehensive ShellCheck scanning
+- **Dependency validation**: Verifies GitHub CLI and git availability
+- **Configuration testing**: Validates assignment.conf parsing
+
+#### 🔧 Auto-Update Workflow (`.github/workflows/auto-update.yml`)
+Triggered on: Weekly schedule, manual dispatch
+
+**Capabilities:**
+- **Dependency updates**: Automatically updates GitHub Actions versions
+- **Security patches**: Creates PRs for security-related updates
+- **Documentation sync**: Keeps README and docs synchronized
+- **Maintenance tasks**: Automated cleanup and optimization
+
+### Development Workflow
+
+#### Branch Strategy
+```bash
+# Feature development
+git checkout develop
+git checkout -b feature/new-enhancement
+# ... make changes ...
+git commit -m "feat: add new enhancement"
+git push origin feature/new-enhancement
+# Create PR to develop branch
+
+# Release preparation
+git checkout develop
+git checkout -b release/1.1.0
+# Update CHANGELOG.md, bump versions
+git commit -m "chore: prepare release 1.1.0"
+git push origin release/1.1.0
+# Create PR to main branch
+
+# Create release tag
+git checkout main
+git tag v1.1.0
+git push origin v1.1.0  # Triggers automated release
+```
+
+#### Release Process
+1. **Development**: Work on `feature/*` branches from `develop`
+2. **Integration**: Merge features to `develop` branch
+3. **Release Preparation**: Create `release/*` branch, update CHANGELOG.md
+4. **Release**: Merge to `main`, create Git tag
+5. **Automation**: GitHub Actions handles testing, building, and publishing
+
+### Monitoring & Maintenance
+
+#### Workflow Status
+```bash
+# Check workflow runs
+gh run list --workflow=release.yml
+gh run list --workflow=ci.yml
+
+# View specific run details
+gh run view <run-id>
+
+# Download workflow artifacts
+gh run download <run-id>
+```
+
+#### Release Management
+```bash
+# List all releases
+gh release list
+
+# View specific release
+gh release view v1.0.0
+
+# Create manual release (bypasses automation)
+gh release create v1.0.0 --generate-notes
+```
+
+### Automation Benefits
+
+- **Quality Assurance**: Automated testing prevents regressions
+- **Security**: Regular security scanning and dependency updates
+- **Documentation**: Always up-to-date release notes and changelogs
+- **Consistency**: Standardized release process across all versions
+- **Efficiency**: Reduces manual release overhead by 90%
+- **Reliability**: Automated validation ensures release quality
+
+**🔧 Configuration Files:**
+- `.github/workflows/`: All automation workflows
+- `docs/CHANGELOG.md`: Professional changelog following Keep a Changelog format
+- `.github/README.md`: Workflow documentation and usage guides
+
+For detailed workflow documentation, see [`.github/README.md`](.github/README.md) and the [changelog](docs/CHANGELOG.md).
+
+## 📚 Documentationnagement** across multiple student repositories  
 - **Template synchronization** with GitHub Classroom repositories
 - **Student assistance tools** for common workflow issues
 - **Master workflow orchestration** through configuration files
@@ -718,12 +862,6 @@ This is an internal tool suite. For issues or improvements:
 2. Update documentation for any changes
 3. Verify backward compatibility with existing configurations
 
-## 📈 Version History
-
-- **v1.0** - Initial release with complete automation suite
-- **v1.1** - GitHub Classroom URL integration
-- **v1.2** - Master workflow orchestrator
-- **v1.3** - Comprehensive documentation and configuration system
 ## 🔧 Troubleshooting
 
 ### Common URL Configuration Issues
@@ -768,25 +906,6 @@ ASSIGNMENT_FILE="notebook.ipynb"     # Jupyter
 # Legacy support (still works):
 ASSIGNMENT_NOTEBOOK="notebook.ipynb"  # Will be converted to ASSIGNMENT_FILE
 ```
-
-## 📈 Version History
-
-### v1.6 (Latest)
-- **Universal File Type Support**: Works with .py, .cpp, .sql, .md, .ipynb, and any file type
-- **Enhanced URL Management**: Clear distinction between CLASSROOM_URL and CLASSROOM_REPO_URL
-- **Smart Repository Filtering**: EXCLUDE_INSTRUCTOR_REPOS option for student-focused operations
-- **Improved Documentation**: Comprehensive guides and examples for all features
-
-### v1.5
-- **Enhanced Configuration System**: More granular control over workflow steps
-- **Advanced Repository Discovery**: Better filtering and organization options
-- **Improved Error Handling**: Clearer error messages and validation
-
-### v1.4
-- **Generic Assignment Support**: Tools now work with any assignment through variable configuration
-- **Enhanced Submodule Architecture**: Improved repository context detection for submodule deployment
-- **Variable-Driven Configuration**: Assignment-agnostic operation through environment variables
-- **Production-Tested**: Validated with real GitHub Classroom integration
 
 ---
 

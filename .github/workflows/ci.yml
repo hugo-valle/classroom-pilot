@@ -1,0 +1,98 @@
+name: 🔄 CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    name: 🧪 Test Scripts
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        shell: [bash, zsh]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install shell
+        run: |
+          if [ "${{ matrix.shell }}" = "zsh" ]; then
+            sudo apt-get update
+            sudo apt-get install -y zsh
+          fi
+
+      - name: Test script syntax
+        run: |
+          echo "🔍 Testing script syntax with ${{ matrix.shell }}..."
+          for script in scripts/*.sh; do
+            echo "Checking $script..."
+            ${{ matrix.shell }} -n "$script"
+          done
+
+      - name: Test help commands
+        run: |
+          echo "🧪 Testing help commands..."
+          ${{ matrix.shell }} scripts/setup-assignment.sh --help
+          ${{ matrix.shell }} scripts/assignment-orchestrator.sh --help
+          ${{ matrix.shell }} scripts/fetch-student-repos.sh --help
+
+  lint:
+    name: 🔍 Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Shellcheck
+        uses: ludeeus/action-shellcheck@master
+        with:
+          scandir: './scripts'
+          severity: info
+
+  security:
+    name: 🛡️ Security
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Scan for secrets
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: main
+          head: HEAD
+
+  validate-docs:
+    name: 📚 Validate Docs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check CHANGELOG format
+        run: |
+          echo "📝 Validating CHANGELOG.md..."
+          if [ ! -f "docs/CHANGELOG.md" ]; then
+            echo "❌ CHANGELOG.md not found"
+            exit 1
+          fi
+          
+          # Check for required sections
+          if ! grep -q "## \[Unreleased\]" docs/CHANGELOG.md; then
+            echo "❌ CHANGELOG.md missing [Unreleased] section"
+            exit 1
+          fi
+          
+          echo "✅ CHANGELOG.md format is valid"
+
+      - name: Check README exists
+        run: |
+          if [ ! -f "README.md" ] && [ ! -f "docs/README.md" ]; then
+            echo "⚠️ No README.md found"
+          else
+            echo "✅ README.md found"
+          fi

@@ -1,0 +1,339 @@
+name: 🚀 Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'          # Matches v1.0.0, v1.0.0-alpha.1, v1.0.0-beta.1, etc.
+
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  validate:
+    name: 🔍 Validate Release
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      is_prerelease: ${{ steps.version.outputs.is_prerelease }}
+      release_type: ${{ steps.version.outputs.release_type }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract version info
+        id: version
+        run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          echo "version=${TAG_NAME}" >> $GITHUB_OUTPUT
+          
+          # Determine if this is a prerelease
+          if [[ "$TAG_NAME" =~ -alpha\.|beta\.|rc\. ]]; then
+            echo "is_prerelease=true" >> $GITHUB_OUTPUT
+            if [[ "$TAG_NAME" =~ -alpha\. ]]; then
+              echo "release_type=alpha" >> $GITHUB_OUTPUT
+            elif [[ "$TAG_NAME" =~ -beta\. ]]; then
+              echo "release_type=beta" >> $GITHUB_OUTPUT
+            else
+              echo "release_type=rc" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "is_prerelease=false" >> $GITHUB_OUTPUT
+            echo "release_type=stable" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Validate tag format
+        run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          if [[ ! "$TAG_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-alpha\.[0-9]+|-beta\.[0-9]+|-rc\.[0-9]+)?$ ]]; then
+            echo "❌ Invalid tag format: $TAG_NAME"
+            echo "Expected format: v1.0.0, v1.0.0-alpha.1, v1.0.0-beta.1, v1.0.0-rc.1"
+            exit 1
+          fi
+          echo "✅ Valid tag format: $TAG_NAME"
+
+  test:
+    name: 🧪 Run Tests
+    runs-on: ubuntu-latest
+    needs: validate
+    strategy:
+      matrix:
+        shell: [bash, zsh]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup GitHub CLI
+        uses: cli/gh-extension@main
+
+      - name: Install shell
+        run: |
+          if [ "${{ matrix.shell }}" = "zsh" ]; then
+            sudo apt-get update
+            sudo apt-get install -y zsh
+          fi
+
+      - name: Test script syntax
+        run: |
+          echo "🔍 Testing script syntax..."
+          for script in scripts/*.sh; do
+            echo "Checking $script..."
+            ${{ matrix.shell }} -n "$script"
+          done
+
+      - name: Test setup wizard (dry run)
+        run: |
+          echo "🧪 Testing setup wizard..."
+          # Test help functionality
+          ${{ matrix.shell }} scripts/setup-assignment.sh --help
+
+      - name: Test orchestrator (dry run)
+        run: |
+          echo "🧪 Testing orchestrator..."
+          # Create minimal test configuration
+          cat > test-assignment.conf << EOF
+          CLASSROOM_URL="https://classroom.github.com/classrooms/12345/assignments/test"
+          TEMPLATE_REPO_URL="https://github.com/test/test-template"
+          GITHUB_ORGANIZATION="test-org"
+          ASSIGNMENT_NAME="test-assignment"
+          ASSIGNMENT_FILE="test.ipynb"
+          SECRETS_CONFIG=""
+          STEP_SYNC_TEMPLATE=true
+          STEP_DISCOVER_REPOS=true
+          STEP_MANAGE_SECRETS=false
+          STEP_ASSIST_STUDENTS=false
+          OUTPUT_DIR="tools/generated"
+          EXCLUDE_INSTRUCTOR_REPOS=true
+          INCLUDE_TEMPLATE_REPO=false
+          DEFAULT_DRY_RUN=true
+          LOG_LEVEL=INFO
+          SKIP_CONFIRMATIONS=false
+          EOF
+          
+          # Test orchestrator help
+          ${{ matrix.shell }} scripts/assignment-orchestrator.sh --help
+
+      - name: Test individual scripts
+        run: |
+          echo "🧪 Testing individual scripts..."
+          ${{ matrix.shell }} scripts/fetch-student-repos.sh --help
+          ${{ matrix.shell }} scripts/add-secrets-to-students.sh --help || true
+          ${{ matrix.shell }} scripts/push-to-classroom.sh --help || true
+
+  security-scan:
+    name: 🛡️ Security Scan
+    runs-on: ubuntu-latest
+    needs: validate
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Shellcheck
+        uses: ludeeus/action-shellcheck@master
+        with:
+          scandir: './scripts'
+          severity: warning
+
+      - name: Scan for secrets
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: main
+          head: HEAD
+
+  generate-changelog:
+    name: 📝 Generate Release Notes
+    runs-on: ubuntu-latest
+    needs: [validate, test, security-scan]
+    outputs:
+      release_notes: ${{ steps.notes.outputs.release_notes }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate release notes
+        id: notes
+        run: |
+          VERSION="${{ needs.validate.outputs.version }}"
+          RELEASE_TYPE="${{ needs.validate.outputs.release_type }}"
+          
+          # Extract changelog section for this version
+          if grep -q "## \[$VERSION\]" docs/CHANGELOG.md; then
+            # Extract existing changelog section
+            CHANGELOG_SECTION=$(sed -n "/## \[$VERSION\]/,/## \[/p" docs/CHANGELOG.md | sed '$d' | tail -n +2)
+          else
+            # Generate basic release notes from git log
+            PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+            if [ -n "$PREV_TAG" ]; then
+              CHANGELOG_SECTION="### Changes since $PREV_TAG"$'\n\n'
+              CHANGELOG_SECTION+=$(git log --pretty=format:"- %s" $PREV_TAG..HEAD)
+            else
+              CHANGELOG_SECTION="### Initial release"$'\n\n'"- Complete GitHub Classroom Assignment Management Suite"
+            fi
+          fi
+          
+          # Create release notes based on release type
+          case "$RELEASE_TYPE" in
+            "alpha")
+              RELEASE_NOTES="## ⚠️ Alpha Release $VERSION
+
+          **This is a pre-release version for testing and feedback.**
+
+          ### 🚀 What's New
+          $CHANGELOG_SECTION
+
+          ### 📋 Installation
+          \`\`\`bash
+          # Add as submodule to your assignment repository
+          git submodule add https://github.com/hugo-valle/gh_classroom_tools.git tools
+          cd tools
+          git checkout tags/$VERSION
+          cd ..
+          
+          # Run setup wizard
+          ./tools/scripts/setup-assignment.sh
+          \`\`\`
+
+          ### ⚠️ Known Limitations
+          - This is an alpha release - expect some rough edges
+          - Please report issues and provide feedback
+          - Not recommended for production use
+
+          ### 🔗 Links
+          - [Documentation](https://github.com/hugo-valle/gh_classroom_tools/tree/$VERSION/docs)
+          - [Report Issues](https://github.com/hugo-valle/gh_classroom_tools/issues)"
+              ;;
+            "beta")
+              RELEASE_NOTES="## 🎯 Beta Release $VERSION
+
+          **This is a beta release - feature complete but may have minor issues.**
+
+          ### 🚀 What's New
+          $CHANGELOG_SECTION
+
+          ### 📋 Installation
+          \`\`\`bash
+          # Add as submodule to your assignment repository
+          git submodule add https://github.com/hugo-valle/gh_classroom_tools.git tools
+          cd tools
+          git checkout tags/$VERSION
+          cd ..
+          
+          # Run setup wizard
+          ./tools/scripts/setup-assignment.sh
+          \`\`\`
+
+          ### 🧪 Testing
+          - Suitable for testing in non-production environments
+          - Please report any remaining issues
+
+          ### 🔗 Links
+          - [Documentation](https://github.com/hugo-valle/gh_classroom_tools/tree/$VERSION/docs)
+          - [Report Issues](https://github.com/hugo-valle/gh_classroom_tools/issues)"
+              ;;
+            "stable")
+              RELEASE_NOTES="## 🎉 Stable Release $VERSION
+
+          ### 🚀 What's New
+          $CHANGELOG_SECTION
+
+          ### 📋 Installation
+          \`\`\`bash
+          # Add as submodule to your assignment repository
+          git submodule add https://github.com/hugo-valle/gh_classroom_tools.git tools
+          cd tools
+          git checkout tags/$VERSION
+          cd ..
+          
+          # Run setup wizard
+          ./tools/scripts/setup-assignment.sh
+          \`\`\`
+
+          ### 🔗 Links
+          - [Documentation](https://github.com/hugo-valle/gh_classroom_tools/tree/$VERSION/docs)
+          - [Report Issues](https://github.com/hugo-valle/gh_classroom_tools/issues)"
+              ;;
+          esac
+          
+          # Save release notes (escape for GitHub Actions)
+          {
+            echo 'release_notes<<EOF'
+            echo "$RELEASE_NOTES"
+            echo 'EOF'
+          } >> $GITHUB_OUTPUT
+
+  create-release:
+    name: 🎉 Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [validate, generate-changelog]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ needs.validate.outputs.version }}
+          release_name: |
+            ${{ needs.validate.outputs.release_type == 'alpha' && '⚠️ Alpha Release' || 
+                needs.validate.outputs.release_type == 'beta' && '🎯 Beta Release' || 
+                '🎉 Stable Release' }} ${{ needs.validate.outputs.version }}
+          body: ${{ needs.generate-changelog.outputs.release_notes }}
+          draft: false
+          prerelease: ${{ needs.validate.outputs.is_prerelease == 'true' }}
+
+  update-changelog:
+    name: 📝 Update Changelog
+    runs-on: ubuntu-latest
+    needs: [validate, create-release]
+    if: needs.validate.outputs.release_type != 'alpha'  # Only for beta and stable
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update CHANGELOG.md
+        run: |
+          VERSION="${{ needs.validate.outputs.version }}"
+          DATE=$(date +%Y-%m-%d)
+          
+          # Update [Unreleased] to the actual version with date
+          if grep -q "## \[Unreleased\]" docs/CHANGELOG.md; then
+            sed -i "s/## \[Unreleased\]/## [$VERSION] - $DATE/" docs/CHANGELOG.md
+            
+            # Add new [Unreleased] section at the top
+            sed -i "/## \[$VERSION\] - $DATE/i\\## [Unreleased]\\n" docs/CHANGELOG.md
+          fi
+
+      - name: Commit changelog updates
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add docs/CHANGELOG.md
+          git commit -m "docs: update changelog for ${{ needs.validate.outputs.version }}" || exit 0
+          git push
+
+  notify:
+    name: 📢 Notify
+    runs-on: ubuntu-latest
+    needs: [validate, create-release]
+    if: always()
+    steps:
+      - name: Notify success
+        if: needs.create-release.result == 'success'
+        run: |
+          echo "🎉 Successfully released ${{ needs.validate.outputs.version }}"
+          echo "Release type: ${{ needs.validate.outputs.release_type }}"
+          echo "Prerelease: ${{ needs.validate.outputs.is_prerelease }}"
+
+      - name: Notify failure
+        if: needs.create-release.result == 'failure'
+        run: |
+          echo "❌ Release failed for ${{ needs.validate.outputs.version }}"
+          exit 1
