@@ -309,14 +309,28 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config --global advice.detachedHead false
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
       - name: Create Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          set -e
           VERSION="${{ needs.validate.outputs.version }}"
           RELEASE_TYPE="${{ needs.validate.outputs.release_type }}"
           IS_PRERELEASE="${{ needs.validate.outputs.is_prerelease }}"
+          
+          echo "Creating release for version: $VERSION"
+          echo "Release type: $RELEASE_TYPE"
+          echo "Is prerelease: $IS_PRERELEASE"
           
           # Set release title based on type
           if [ "$RELEASE_TYPE" = "alpha" ]; then
@@ -327,40 +341,31 @@ jobs:
             TITLE="🎉 Stable Release $VERSION"
           fi
           
-          # Create release using GitHub CLI with explicit non-interactive flags
+          # Create release using GitHub CLI with minimal options
           PRERELEASE_FLAG=""
           if [ "$IS_PRERELEASE" = "true" ]; then
             PRERELEASE_FLAG="--prerelease"
           fi
           
-          # Get release notes from previous job (with fallback)
-          RELEASE_NOTES="${{ needs.generate-changelog.outputs.release_notes }}"
-          if [ -z "$RELEASE_NOTES" ]; then
-            RELEASE_NOTES="Automated release $VERSION"
-          fi
+          # Simple release notes
+          RELEASE_NOTES="Automated release $VERSION with comprehensive CI/CD automation."
           
-          # Create temporary file for release notes to avoid CLI issues
-          echo "$RELEASE_NOTES" > /tmp/release_notes.txt
+          # Try to create release with timeout
+          timeout 60 gh release create "$VERSION" \
+            --title "$TITLE" \
+            --notes "$RELEASE_NOTES" \
+            $PRERELEASE_FLAG \
+            --verify-tag || {
+            echo "Release creation failed or timed out. Checking if release exists..."
+            if gh release view "$VERSION" >/dev/null 2>&1; then
+              echo "Release $VERSION already exists."
+            else
+              echo "Release creation failed completely."
+              exit 1
+            fi
+          }
           
-          # Check if release already exists
-          if gh release view "$VERSION" >/dev/null 2>&1; then
-            echo "Release $VERSION already exists, updating it..."
-            gh release edit "$VERSION" \
-              --title "$TITLE" \
-              --notes-file /tmp/release_notes.txt \
-              $PRERELEASE_FLAG || echo "Release edit completed with status $?"
-          else
-            echo "Creating new release $VERSION..."
-            gh release create "$VERSION" \
-              --title "$TITLE" \
-              --notes-file /tmp/release_notes.txt \
-              $PRERELEASE_FLAG || echo "Release create completed with status $?"
-          fi
-          
-          # Cleanup
-          rm -f /tmp/release_notes.txt
-          
-          echo "Release process completed for $VERSION"
+          echo "Release process completed successfully!"
 
   update-changelog:
     name: 📝 Update Changelog
