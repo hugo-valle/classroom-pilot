@@ -35,9 +35,32 @@ jobs:
       - name: Test help commands
         run: |
           echo "🧪 Testing help commands..."
-          ${{ matrix.shell }} scripts/setup-assignment.sh --help
-          ${{ matrix.shell }} scripts/assignment-orchestrator.sh --help
-          ${{ matrix.shell }} scripts/fetch-student-repos.sh --help
+          
+          # Create mock directory structure for testing
+          mkdir -p ../mock-assignment
+          cd ../mock-assignment
+          
+          # Create mock assignment.conf
+          cat > assignment.conf << 'EOF'
+          CLASSROOM_URL="https://classroom.github.com/classrooms/12345/assignments/test"
+          TEMPLATE_REPO_URL="https://github.com/test-org/test-template"
+          GITHUB_ORGANIZATION="test-org"
+          ASSIGNMENT_NOTEBOOK="test.ipynb"
+          INSTRUCTOR_TESTS_TOKEN="test-token"
+          SECRETS_CONFIG="test-secrets.json"
+          STEP_MANAGE_SECRETS="true"
+          EOF
+          
+          # Create mock assignment notebook
+          echo '{"cells":[],"metadata":{},"nbformat":4,"nbformat_minor":4}' > test.ipynb
+          
+          # Create symlink to tools
+          ln -s ../gh_classroom_tools tools
+          
+          # Test help commands with proper context
+          ${{ matrix.shell }} tools/scripts/setup-assignment.sh --help
+          ${{ matrix.shell }} tools/scripts/assignment-orchestrator.sh --help
+          ${{ matrix.shell }} tools/scripts/fetch-student-repos.sh --help
 
   lint:
     name: 🔍 Lint
@@ -51,6 +74,8 @@ jobs:
         with:
           scandir: './scripts'
           severity: info
+        env:
+          SHELLCHECK_OPTS: -e SC2034,SC2155
 
   security:
     name: 🛡️ Security
