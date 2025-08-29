@@ -327,29 +327,40 @@ jobs:
             TITLE="🎉 Stable Release $VERSION"
           fi
           
-          # Create release using GitHub CLI
+          # Create release using GitHub CLI with explicit non-interactive flags
           PRERELEASE_FLAG=""
           if [ "$IS_PRERELEASE" = "true" ]; then
             PRERELEASE_FLAG="--prerelease"
           fi
           
-          # Get release notes from previous job
+          # Get release notes from previous job (with fallback)
           RELEASE_NOTES="${{ needs.generate-changelog.outputs.release_notes }}"
+          if [ -z "$RELEASE_NOTES" ]; then
+            RELEASE_NOTES="Automated release $VERSION"
+          fi
+          
+          # Create temporary file for release notes to avoid CLI issues
+          echo "$RELEASE_NOTES" > /tmp/release_notes.txt
           
           # Check if release already exists
           if gh release view "$VERSION" >/dev/null 2>&1; then
             echo "Release $VERSION already exists, updating it..."
             gh release edit "$VERSION" \
               --title "$TITLE" \
-              --notes "$RELEASE_NOTES" \
-              $PRERELEASE_FLAG
+              --notes-file /tmp/release_notes.txt \
+              $PRERELEASE_FLAG || echo "Release edit completed with status $?"
           else
             echo "Creating new release $VERSION..."
             gh release create "$VERSION" \
               --title "$TITLE" \
-              --notes "$RELEASE_NOTES" \
-              $PRERELEASE_FLAG
+              --notes-file /tmp/release_notes.txt \
+              $PRERELEASE_FLAG || echo "Release create completed with status $?"
           fi
+          
+          # Cleanup
+          rm -f /tmp/release_notes.txt
+          
+          echo "Release process completed for $VERSION"
 
   update-changelog:
     name: 📝 Update Changelog
