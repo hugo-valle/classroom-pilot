@@ -32,7 +32,7 @@ declare -A TOKEN_FILES
 PROMPT_RESULT=""  # Global variable for prompt results
 
 # Progress tracking
-TOTAL_STEPS=7
+TOTAL_STEPS=8
 CURRENT_STEP=0
 
 # Function to show progress
@@ -249,21 +249,51 @@ ASSIGNMENT_FILE="${CONFIG_VALUES[MAIN_ASSIGNMENT_FILE]}"
 # SECRET MANAGEMENT
 # =============================================================================
 
+EOF
+
+    # Conditionally add secrets configuration based on user choice
+    if [[ "${CONFIG_VALUES[USE_SECRETS]}" == "true" ]]; then
+        cat >> "$CONFIG_FILE" << EOF
 # Secrets to add to student repositories
 # Format: SECRET_NAME:description:token_file_path:max_age_days
+# 
+# Use this when you have a separate private instructor repository with tests
+# that students need access to via GitHub secrets.
 SECRETS_CONFIG="
 INSTRUCTOR_TESTS_TOKEN:Token for accessing instructor test repository:instructor_token.txt:90
 EOF
 
-    # Add additional secrets if configured
-    for secret_name in "${!TOKEN_FILES[@]}"; do
-        if [ "$secret_name" != "INSTRUCTOR_TESTS_TOKEN" ]; then
-            echo "${secret_name}:${secret_name} for assignment functionality:${TOKEN_FILES[$secret_name]}:90" >> "$CONFIG_FILE"
-        fi
-    done
+        # Add additional secrets if configured
+        for secret_name in "${!TOKEN_FILES[@]}"; do
+            if [ "$secret_name" != "INSTRUCTOR_TESTS_TOKEN" ]; then
+                echo "${secret_name}:${secret_name} for assignment functionality:${TOKEN_FILES[$secret_name]}:90" >> "$CONFIG_FILE"
+            fi
+        done
+
+        cat >> "$CONFIG_FILE" << EOF
+"
+EOF
+    else
+        cat >> "$CONFIG_FILE" << EOF
+# Secrets to add to student repositories
+# Format: SECRET_NAME:description:token_file_path:max_age_days
+# 
+# Use this when you have a separate private instructor repository with tests
+# that students need access to via GitHub secrets.
+# 
+# If your tests are included in the same template repository, you can:
+# 1. Set STEP_MANAGE_SECRETS=false in the WORKFLOW CONFIGURATION section, OR
+# 2. Leave SECRETS_CONFIG empty (comment out or set to empty string)
+# SECRETS_CONFIG="
+# INSTRUCTOR_TESTS_TOKEN:Token for accessing instructor test repository:instructor_token.txt:90
+# "
+
+# For assignments where tests are in the template repository, use:
+SECRETS_CONFIG=""
+EOF
+    fi
 
     cat >> "$CONFIG_FILE" << EOF
-"
 
 # =============================================================================
 # WORKFLOW CONFIGURATION
@@ -272,7 +302,7 @@ EOF
 # Workflow steps to execute (true/false)
 STEP_SYNC_TEMPLATE=true
 STEP_DISCOVER_REPOS=true
-STEP_MANAGE_SECRETS=true
+STEP_MANAGE_SECRETS=${CONFIG_VALUES[USE_SECRETS]}   # Set to false if tests are in template repo (no separate instructor repo)
 STEP_ASSIST_STUDENTS=false
 
 # Output directory for generated files
@@ -489,13 +519,17 @@ show_completion() {
     echo -e "${GREEN}║                                                                              ║${NC}"
     echo -e "${GREEN}║${NC}  ${CYAN}📁 Files Created:${NC}"
     echo -e "${GREEN}║${NC}     • assignment.conf - Complete assignment configuration"
-    echo -e "${GREEN}║${NC}     • instructor_token.txt - Secure GitHub API token"
     
-    for secret_name in "${!TOKEN_FILES[@]}"; do
-        if [ "$secret_name" != "INSTRUCTOR_TESTS_TOKEN" ]; then
-            echo -e "${GREEN}║${NC}     • ${TOKEN_FILES[$secret_name]} - Additional token file"
-        fi
-    done
+    # Conditionally show token files
+    if [[ "${CONFIG_VALUES[USE_SECRETS]}" == "true" ]]; then
+        echo -e "${GREEN}║${NC}     • instructor_token.txt - Secure GitHub API token"
+        
+        for secret_name in "${!TOKEN_FILES[@]}"; do
+            if [ "$secret_name" != "INSTRUCTOR_TESTS_TOKEN" ]; then
+                echo -e "${GREEN}║${NC}     • ${TOKEN_FILES[$secret_name]} - Additional token file"
+            fi
+        done
+    fi
     
     echo -e "${GREEN}║${NC}     • .gitignore - Updated to protect sensitive files"
     echo -e "${GREEN}║                                                                              ║${NC}"
@@ -607,64 +641,96 @@ main() {
         "The GitHub Classroom management repository (WITHOUT '-template' suffix). Used to push updates to all student repos."
     CONFIG_VALUES[CLASSROOM_REPO_URL]="$PROMPT_RESULT"
     
-    # Step 5: Token setup
-    show_progress "GitHub Token Configuration"
+    # Step 5: Secret Management Configuration
+    show_progress "Secret Management Configuration"
     
-    echo -e "${BLUE}💡 You need a GitHub personal access token with 'repo' and 'admin:repo_hook' permissions${NC}"
-    echo -e "${YELLOW}Create one at: https://github.com/settings/tokens${NC}"
+    echo -e "${BLUE}Where are your assignment tests located?${NC}"
+    echo -e "${CYAN}   Option 1: Tests are included in the template repository (simpler setup)${NC}"
+    echo -e "${CYAN}   Option 2: Tests are in a separate private instructor repository (more secure)${NC}"
+    echo
+    echo -e "${BLUE}Do you have tests in a separate private instructor repository? (y/N)${NC}"
     
-    prompt_secure \
-        "GitHub personal access token" \
-        "This token will be securely stored in instructor_token.txt"
-    CONFIG_VALUES[INSTRUCTOR_TESTS_TOKEN_VALUE]="$PROMPT_RESULT"
-    
-    TOKEN_FILES[INSTRUCTOR_TESTS_TOKEN]="instructor_token.txt"
-    
-    # Ask for additional tokens
-    echo -e "\n${BLUE}Do you need to configure additional tokens/secrets? (y/N)${NC}"
-    # Only read input if we have a TTY (interactive terminal)
     if [[ -t 0 ]]; then
-        read -r add_tokens
+        read -r use_secrets
     else
-        # In non-interactive mode, read from stdin
-        read -r add_tokens || add_tokens="N"
+        read -r use_secrets || use_secrets="N"
     fi
     
-    if [[ "$add_tokens" =~ ^[Yy]$ ]]; then
-        while true; do
-            echo -e "\n${GREEN}Enter additional secret name (or press Enter to finish):${NC}"
-            # Only read input if we have a TTY (interactive terminal)
-            if [[ -t 0 ]]; then
-                read -r secret_name
-            else
-                # In non-interactive mode, read from stdin
-                read -r secret_name || secret_name=""
-            fi
-            
-            if [ -z "$secret_name" ]; then
-                break
-            fi
-            
-            if validate_non_empty "$secret_name" && [[ "$secret_name" =~ ^[A-Z_][A-Z0-9_]*$ ]]; then
-                local token_file="${secret_name,,}_token.txt"  # lowercase filename
-                prompt_secure \
-                    "Token value for $secret_name" \
-                    "This will be stored in $token_file"
-                CONFIG_VALUES[${secret_name}_VALUE]="$PROMPT_RESULT"
-                TOKEN_FILES[$secret_name]="$token_file"
-            else
-                print_error "Secret name must be uppercase with underscores (e.g., API_KEY, DATABASE_TOKEN)"
-            fi
-        done
+    if [[ "$use_secrets" =~ ^[Yy]$ ]]; then
+        CONFIG_VALUES[USE_SECRETS]="true"
+        echo -e "${GREEN}✓ Secret management will be enabled for accessing instructor test repository${NC}"
+    else
+        CONFIG_VALUES[USE_SECRETS]="false"
+        echo -e "${GREEN}✓ Secret management will be disabled (tests in template repository)${NC}"
     fi
+
+    # Step 6: Token setup (conditional)
+    if [[ "${CONFIG_VALUES[USE_SECRETS]}" == "true" ]]; then
+        show_progress "GitHub Token Configuration"
     
-    # Step 6: Create files
+        echo -e "${BLUE}💡 You need a GitHub personal access token with 'repo' and 'admin:repo_hook' permissions${NC}"
+        echo -e "${YELLOW}Create one at: https://github.com/settings/tokens${NC}"
+        
+        prompt_secure \
+            "GitHub personal access token" \
+            "This token will be securely stored in instructor_token.txt"
+        CONFIG_VALUES[INSTRUCTOR_TESTS_TOKEN_VALUE]="$PROMPT_RESULT"
+        
+        TOKEN_FILES[INSTRUCTOR_TESTS_TOKEN]="instructor_token.txt"
+        
+        # Ask for additional tokens
+        echo -e "\n${BLUE}Do you need to configure additional tokens/secrets? (y/N)${NC}"
+        # Only read input if we have a TTY (interactive terminal)
+        if [[ -t 0 ]]; then
+            read -r add_tokens
+        else
+            # In non-interactive mode, read from stdin
+            read -r add_tokens || add_tokens="N"
+        fi
+        
+        if [[ "$add_tokens" =~ ^[Yy]$ ]]; then
+            while true; do
+                echo -e "\n${GREEN}Enter additional secret name (or press Enter to finish):${NC}"
+                # Only read input if we have a TTY (interactive terminal)
+                if [[ -t 0 ]]; then
+                    read -r secret_name
+                else
+                    # In non-interactive mode, read from stdin
+                    read -r secret_name || secret_name=""
+                fi
+                
+                if [ -z "$secret_name" ]; then
+                    break
+                fi
+                
+                if validate_non_empty "$secret_name" && [[ "$secret_name" =~ ^[A-Z_][A-Z0-9_]*$ ]]; then
+                    local token_file="${secret_name,,}_token.txt"  # lowercase filename
+                    prompt_secure \
+                        "Token value for $secret_name" \
+                        "This will be stored in $token_file"
+                    CONFIG_VALUES[${secret_name}_VALUE]="$PROMPT_RESULT"
+                    TOKEN_FILES[$secret_name]="$token_file"
+                else
+                    print_error "Secret name must be uppercase with underscores (e.g., API_KEY, DATABASE_TOKEN)"
+                fi
+            done
+        fi
+    else
+        echo -e "${BLUE}ℹ️  Skipping token configuration (tests are in template repository)${NC}"
+    fi
+
+    # Step 7: Create files
     show_progress "Creating Configuration Files"
     create_config_file
-    create_token_files
+    
+    # Only create token files if secrets are enabled
+    if [[ "${CONFIG_VALUES[USE_SECRETS]}" == "true" ]]; then
+        create_token_files
+    fi
+    
     update_gitignore
     
-    # Step 7: Validation
+    # Step 8: Validation
     show_progress "Validating Setup"
     validate_github_access
     
