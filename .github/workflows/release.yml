@@ -310,18 +310,36 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Create Release
-        uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ needs.validate.outputs.version }}
-          release_name: |
-            ${{ needs.validate.outputs.release_type == 'alpha' && '⚠️ Alpha Release' || 
-                needs.validate.outputs.release_type == 'beta' && '🎯 Beta Release' || 
-                '🎉 Stable Release' }} ${{ needs.validate.outputs.version }}
-          body: ${{ needs.generate-changelog.outputs.release_notes }}
-          draft: false
-          prerelease: ${{ needs.validate.outputs.is_prerelease == 'true' }}
+        run: |
+          VERSION="${{ needs.validate.outputs.version }}"
+          RELEASE_TYPE="${{ needs.validate.outputs.release_type }}"
+          IS_PRERELEASE="${{ needs.validate.outputs.is_prerelease }}"
+          
+          # Set release title based on type
+          if [ "$RELEASE_TYPE" = "alpha" ]; then
+            TITLE="⚠️ Alpha Release $VERSION"
+          elif [ "$RELEASE_TYPE" = "beta" ]; then
+            TITLE="🎯 Beta Release $VERSION"
+          else
+            TITLE="🎉 Stable Release $VERSION"
+          fi
+          
+          # Create release using GitHub CLI
+          PRERELEASE_FLAG=""
+          if [ "$IS_PRERELEASE" = "true" ]; then
+            PRERELEASE_FLAG="--prerelease"
+          fi
+          
+          # Get release notes from previous job
+          RELEASE_NOTES="${{ needs.generate-changelog.outputs.release_notes }}"
+          
+          # Create the release
+          gh release create "$VERSION" \
+            --title "$TITLE" \
+            --notes "$RELEASE_NOTES" \
+            $PRERELEASE_FLAG
 
   update-changelog:
     name: 📝 Update Changelog
