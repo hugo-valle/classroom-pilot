@@ -240,6 +240,17 @@ load_configuration() {
     if [[ -z "${SECRETS+x}" ]]; then
         SECRETS=()
     fi
+    
+    # Parse SECRETS_CONFIG into SECRETS array if provided
+    if [[ -n "${SECRETS_CONFIG:-}" ]]; then
+        # Parse multiline SECRETS_CONFIG into array
+        while IFS= read -r line; do
+            # Skip empty lines and comments
+            if [[ -n "$line" ]] && [[ ! "$line" =~ ^[[:space:]]*# ]] && [[ ! "$line" =~ ^[[:space:]]*$ ]]; then
+                SECRETS+=("$line")
+            fi
+        done <<< "$SECRETS_CONFIG"
+    fi
     SECRET_MAX_AGE_DAYS="${SECRET_MAX_AGE_DAYS:-90}"
     SECRET_FORCE_UPDATE="${SECRET_FORCE_UPDATE:-false}"
     OUTPUT_DIR="${OUTPUT_DIR:-scripts}"
@@ -447,8 +458,8 @@ step_manage_secrets() {
     
     local batch_file="$REPO_ROOT/$OUTPUT_DIR/$STUDENT_REPOS_FILE"
     if [[ ! -f "$batch_file" ]]; then
-        log_error "Batch file not found: $batch_file"
-        log_error "Repository discovery must be run first"
+        log_warning "Batch file not found: $batch_file"
+        log_info "Repository discovery must be run first to manage secrets"
         return 1
     fi
     
@@ -573,21 +584,36 @@ execute_workflow() {
     
     # Execute full workflow
     local failed_steps=()
+    local repos_discovered=false
     
+    # Step 1: Template synchronization (independent)
     if ! step_sync_template; then
         failed_steps+=("sync")
     fi
     
-    if ! step_discover_repositories; then
-        failed_steps+=("discover")
+    # Step 2: Repository discovery (can fail if no student repos exist)
+    if step_discover_repositories; then
+        repos_discovered=true
+    else
+        log_warning "Repository discovery failed - continuing with remaining steps that don't require student repositories"
     fi
     
-    if ! step_manage_secrets; then
-        failed_steps+=("secrets")
+    # Step 3: Secret management (only if repositories were discovered)
+    if [[ "$repos_discovered" == "true" ]]; then
+        if ! step_manage_secrets; then
+            failed_steps+=("secrets")
+        fi
+    else
+        log_info "Skipping secret management (no student repositories discovered)"
     fi
     
-    if ! step_assist_students; then
-        failed_steps+=("assist")
+    # Step 4: Student assistance (only if repositories were discovered)
+    if [[ "$repos_discovered" == "true" ]]; then
+        if ! step_assist_students; then
+            failed_steps+=("assist")
+        fi
+    else
+        log_info "Skipping student assistance (no student repositories discovered)"
     fi
     
     local end_time
