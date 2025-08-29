@@ -10,7 +10,16 @@ This repository provides a complete set of tools for instructors to automate Git
 - **Automated repository discovery** from GitHub Classroom assignments with smart filtering
 - **Batch secret management** across multiple student repositories  
 - **Template synchronization** with GitHub Classroom repositories
-- **Automated cron scheduling** for hands-off assignment management
+- **Automated cron scheduling** for hands-off assi## 📚 Documentation
+
+Comprehensive documentation is provided for all tools and workflows:
+
+- **[Automation Suite Guide](docs/AUTOMATION-SUITE.md)** - Complete feature overview
+- **[Assignment Orchestrator](docs/ASSIGNMENT-ORCHESTRATOR.md)** - Master workflow documentation
+- **[Cron Automation](docs/CRON-AUTOMATION.md)** - Automated scheduling and background sync
+- **[Classroom URL Integration](docs/CLASSROOM-URL-INTEGRATION.md)** - GitHub Classroom features
+- **[System Summary](docs/ORCHESTRATION-SYSTEM-SUMMARY.md)** - Architecture overview
+- **[Secrets Management](docs/SECRETS-MANAGEMENT.md)** - Token and secret handlingnagement
 - **Student assistance tools** for common workflow issues
 - **Master workflow orchestration** through configuration files
 - **Instructor repository filtering** to focus on student repositories only
