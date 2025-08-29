@@ -8,6 +8,11 @@ on:
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+permissions:
+  contents: write      # Required to create releases
+  issues: read         # Required for security scanning
+  pull-requests: read  # Required for workflow context
+
 jobs:
   validate:
     name: 🔍 Validate Release

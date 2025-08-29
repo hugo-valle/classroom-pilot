@@ -6,6 +6,11 @@ on:
     - cron: '0 2 * * 0'
   workflow_dispatch:  # Allow manual triggering
 
+permissions:
+  contents: write      # Required to create PRs and update files
+  pull-requests: write # Required to create pull requests
+  issues: write        # Required to create issues for updates
+
 jobs:
   update-dependencies:
     name: 📦 Update Dependencies
