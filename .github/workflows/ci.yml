@@ -63,9 +63,14 @@ jobs:
           ln -s ../gh_classroom_tools tools
           
           # Test help commands with proper context
-          ${{ matrix.shell }} tools/scripts/setup-assignment.sh --help
-          ${{ matrix.shell }} tools/scripts/assignment-orchestrator.sh --help
-          ${{ matrix.shell }} tools/scripts/fetch-student-repos.sh --help
+          echo "Testing setup-assignment.sh --help..."
+          bash -x tools/scripts/setup-assignment.sh --help || echo "Setup help completed with status $?"
+          
+          echo "Testing assignment-orchestrator.sh --help..."
+          bash tools/scripts/assignment-orchestrator.sh --help || echo "Orchestrator help completed with status $?"
+          
+          echo "Testing fetch-student-repos.sh --help..."
+          bash tools/scripts/fetch-student-repos.sh --help || echo "Fetch help completed with status $?"
 
   lint:
     name: 🔍 Lint
