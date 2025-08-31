@@ -464,8 +464,13 @@ step_manage_secrets() {
     local batch_file="$REPO_ROOT/$OUTPUT_DIR/$STUDENT_REPOS_FILE"
     if [[ ! -f "$batch_file" ]]; then
         log_warning "Batch file not found: $batch_file"
-        log_info "Repository discovery must be run first to manage secrets"
-        return 1
+        if [[ "$DRY_RUN" == "true" ]]; then
+            log_info "DRY RUN: Would manage secrets for student repositories (batch file would be created by repository discovery)"
+            return 0
+        else
+            log_info "Repository discovery must be run first to manage secrets"
+            return 1
+        fi
     fi
     
     for secret_config in "${SECRETS[@]}"; do
