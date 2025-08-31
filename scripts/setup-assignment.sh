@@ -29,6 +29,7 @@ TOKEN_FILE="$REPO_ROOT/instructor_token.txt"
 # Setup wizard data
 declare -A CONFIG_VALUES
 declare -A TOKEN_FILES
+declare -A TOKEN_VALIDATION  # Store validation choices for each secret
 PROMPT_RESULT=""  # Global variable for prompt results
 
 # Progress tracking
@@ -266,13 +267,15 @@ EOF
 # Use this when you have a separate private instructor repository with tests
 # that students need access to via GitHub secrets.
 SECRETS_CONFIG="
-INSTRUCTOR_TESTS_TOKEN:Token for accessing instructor test repository:instructor_token.txt:90:true
+INSTRUCTOR_TESTS_TOKEN:Token for accessing instructor test repository:instructor_token.txt:90:${TOKEN_VALIDATION[INSTRUCTOR_TESTS_TOKEN]}
 EOF
 
         # Add additional secrets if configured
         for secret_name in "${!TOKEN_FILES[@]}"; do
             if [ "$secret_name" != "INSTRUCTOR_TESTS_TOKEN" ]; then
-                echo "${secret_name}:${secret_name} for assignment functionality:${TOKEN_FILES[$secret_name]}:90:true" >> "$CONFIG_FILE"
+                local validation_choice="${TOKEN_VALIDATION[$secret_name]}"
+                local description="${CONFIG_VALUES[${secret_name}_DESCRIPTION]}"
+                echo "${secret_name}:${description}:${TOKEN_FILES[$secret_name]}:90:${validation_choice}" >> "$CONFIG_FILE"
             fi
         done
 
@@ -683,6 +686,24 @@ main() {
             "This token will be securely stored in instructor_token.txt"
         CONFIG_VALUES[INSTRUCTOR_TESTS_TOKEN_VALUE]="$PROMPT_RESULT"
         
+        # Ask if this token should be validated as a GitHub token
+        echo -e "\n${BLUE}Should this token be validated as a GitHub token (starts with 'ghp_')? (Y/n)${NC}"
+        echo -e "${GRAY}  - Choose 'Y' for GitHub personal access tokens${NC}"
+        echo -e "${GRAY}  - Choose 'n' for database passwords or other non-GitHub secrets${NC}"
+        # Only read input if we have a TTY (interactive terminal)
+        if [[ -t 0 ]]; then
+            read -r validate_instructor_token
+        else
+            # In non-interactive mode, read from stdin
+            read -r validate_instructor_token || validate_instructor_token="Y"
+        fi
+        
+        if [[ "$validate_instructor_token" =~ ^[Nn]$ ]]; then
+            TOKEN_VALIDATION[INSTRUCTOR_TESTS_TOKEN]="false"
+        else
+            TOKEN_VALIDATION[INSTRUCTOR_TESTS_TOKEN]="true"
+        fi
+        
         TOKEN_FILES[INSTRUCTOR_TESTS_TOKEN]="instructor_token.txt"
         
         # Ask for additional tokens
@@ -711,11 +732,48 @@ main() {
                 fi
                 
                 if validate_non_empty "$secret_name" && [[ "$secret_name" =~ ^[A-Z_][A-Z0-9_]*$ ]]; then
+                    # Ask for description
+                    echo -e "\n${GREEN}Enter a description for '$secret_name':${NC}"
+                    echo -e "${GRAY}(e.g., 'Database password for student submissions', 'API key for external service')${NC}"
+                    # Only read input if we have a TTY (interactive terminal)
+                    if [[ -t 0 ]]; then
+                        read -r secret_description
+                    else
+                        # In non-interactive mode, read from stdin
+                        read -r secret_description || secret_description="$secret_name for assignment functionality"
+                    fi
+                    
+                    # Use default description if empty
+                    if [ -z "$secret_description" ]; then
+                        secret_description="$secret_name for assignment functionality"
+                    fi
+                    
                     local token_file="${secret_name,,}_token.txt"  # lowercase filename
                     prompt_secure \
                         "Token value for $secret_name" \
                         "This will be stored in $token_file"
                     CONFIG_VALUES[${secret_name}_VALUE]="$PROMPT_RESULT"
+                    
+                    # Ask if this secret should be validated as a GitHub token
+                    echo -e "\n${BLUE}Should '$secret_name' be validated as a GitHub token (starts with 'ghp_')? (Y/n)${NC}"
+                    echo -e "${GRAY}  - Choose 'Y' for GitHub personal access tokens${NC}"
+                    echo -e "${GRAY}  - Choose 'n' for database passwords or other non-GitHub secrets${NC}"
+                    # Only read input if we have a TTY (interactive terminal)
+                    if [[ -t 0 ]]; then
+                        read -r validate_secret
+                    else
+                        # In non-interactive mode, read from stdin
+                        read -r validate_secret || validate_secret="Y"
+                    fi
+                    
+                    if [[ "$validate_secret" =~ ^[Nn]$ ]]; then
+                        TOKEN_VALIDATION[$secret_name]="false"
+                    else
+                        TOKEN_VALIDATION[$secret_name]="true"
+                    fi
+                    
+                    # Store the description for later use
+                    CONFIG_VALUES[${secret_name}_DESCRIPTION]="$secret_description"
                     TOKEN_FILES[$secret_name]="$token_file"
                 else
                     print_error "Secret name must be uppercase with underscores (e.g., API_KEY, DATABASE_TOKEN)"
