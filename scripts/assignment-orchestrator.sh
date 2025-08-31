@@ -474,8 +474,11 @@ step_manage_secrets() {
     fi
     
     for secret_config in "${SECRETS[@]}"; do
-        # Parse secret configuration: SECRET_NAME:TOKEN_FILE:DESCRIPTION
-        IFS=':' read -r secret_name token_file description <<< "$secret_config"
+        # Parse secret configuration: SECRET_NAME:description:token_file_path:max_age_days:validate_format
+        IFS=':' read -r secret_name description token_file max_age_days validate_format <<< "$secret_config"
+        
+        # Default validate_format to true if not specified (backward compatibility)
+        validate_format="${validate_format:-true}"
         
         if [[ -z "$secret_name" ]] || [[ -z "$token_file" ]]; then
             log_warning "Invalid secret configuration: $secret_config"
@@ -491,6 +494,11 @@ step_manage_secrets() {
             "--token-file" "$token_file"
             "--max-age" "$SECRET_MAX_AGE_DAYS"
         )
+        
+        # Add validation flag if specified
+        if [[ "$validate_format" == "false" ]]; then
+            args+=("--no-validate")
+        fi
         
         if [[ "$SECRET_FORCE_UPDATE" == "true" ]]; then
             args+=("--force-update")

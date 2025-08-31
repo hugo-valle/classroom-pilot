@@ -40,6 +40,7 @@ PARAMETERS:
     --token-file      Path to file containing the token value (default: instructor_token.txt)
     --max-age         Maximum age in days before updating existing secrets (default: 90)
     --force-update    Always update secrets regardless of age
+    --no-validate     Skip GitHub token format validation (for non-GitHub secrets like passwords)
 
 EXAMPLES:
     # Add INSTRUCTOR_TESTS_TOKEN to a specific student (using default token file)
@@ -59,6 +60,9 @@ EXAMPLES:
 
     # Force update all secrets regardless of age
     ./scripts/add-secrets-to-students.sh INSTRUCTOR_TESTS_TOKEN --force-update --batch student-repos.txt
+
+    # Add a database password (skip GitHub token validation)
+    ./scripts/add-secrets-to-students.sh DB_PASSWORD --token-file db_password.txt --no-validate --batch student-repos.txt
 
     # Check if your GitHub token has the necessary permissions
     ./scripts/add-secrets-to-students.sh --check-token
@@ -164,6 +168,7 @@ check_token_permissions() {
 # Function to get the instructor tests token value from file
 get_instructor_token() {
     local token_file="${1:-$DEFAULT_TOKEN_FILE}"
+    local validate_token_format="${2:-true}"
     
     print_status "Reading token from file: $token_file" >&2
     
@@ -183,25 +188,30 @@ get_instructor_token() {
         return 1
     fi
     
-    # Validate token format - GitHub personal access tokens start with "ghp_"
-    if [[ ! "$token_value" =~ ^ghp_ ]]; then
-        print_error "Invalid token format in $token_file" >&2
-        print_error "GitHub personal access tokens must start with 'ghp_'" >&2
-        print_error "Current token: ${token_value:0:10}..." >&2
-        print_error "Please verify your token is correct" >&2
-        return 1
+    # Conditionally validate token format based on validate_token_format flag
+    if [[ "$validate_token_format" == "true" ]]; then
+        # Validate token format - GitHub personal access tokens start with "ghp_"
+        if [[ ! "$token_value" =~ ^ghp_ ]]; then
+            print_error "Invalid token format in $token_file" >&2
+            print_error "GitHub personal access tokens must start with 'ghp_'" >&2
+            print_error "Current token: ${token_value:0:10}..." >&2
+            print_error "Please verify your token is correct" >&2
+            return 1
+        fi
+        
+        # Validate token length - GitHub tokens are typically 40+ characters
+        if [ ${#token_value} -lt 40 ]; then
+            print_error "Token appears too short in $token_file" >&2
+            print_error "GitHub personal access tokens are typically 40+ characters" >&2
+            print_error "Current length: ${#token_value} characters" >&2
+            print_error "Please verify your token is complete" >&2
+            return 1
+        fi
+        
+        print_success "Token loaded and validated from $token_file" >&2
+    else
+        print_success "Token loaded from $token_file (validation skipped)" >&2
     fi
-    
-    # Validate token length - GitHub tokens are typically 40+ characters
-    if [ ${#token_value} -lt 40 ]; then
-        print_error "Token appears too short in $token_file" >&2
-        print_error "GitHub personal access tokens are typically 40+ characters" >&2
-        print_error "Current length: ${#token_value} characters" >&2
-        print_error "Please verify your token is complete" >&2
-        return 1
-    fi
-    
-    print_success "Token loaded and validated from $token_file" >&2
     echo "$token_value"
 }
 
@@ -267,6 +277,7 @@ add_secret_to_student() {
     local repo_url="$2"
     local token_value="$3"
     local max_age_days="${4:-90}"
+    local validate_token_format="${5:-true}"
     local student_name
     student_name=$(get_student_name "$repo_url")
     local repo_name
@@ -317,10 +328,13 @@ add_secret_to_student() {
         return 1
     fi
     
-    if [[ ! "$token_value" =~ ^ghp_ ]]; then
-        print_error "Invalid token format for secret value"
-        print_error "Token should start with 'ghp_' but starts with: ${token_value:0:10}..."
-        return 1
+    # Only validate GitHub token format if validation is enabled
+    if [[ "$validate_token_format" == "true" ]]; then
+        if [[ ! "$token_value" =~ ^ghp_ ]]; then
+            print_error "Invalid token format for secret value"
+            print_error "Token should start with 'ghp_' but starts with: ${token_value:0:10}..."
+            return 1
+        fi
     fi
     
     print_status "Adding/updating $secret_name secret..."
@@ -356,6 +370,7 @@ process_batch() {
     local file_path="$2"
     local token_file="$3"
     local max_age_days="${4:-90}"
+    local validate_token_format="${5:-true}"
     
     if [ ! -f "$file_path" ]; then
         print_error "File not found: $file_path"
@@ -368,7 +383,7 @@ process_batch() {
     
     # Get the token value once for all students
     local token_value
-    if ! token_value=$(get_instructor_token "$token_file"); then
+    if ! token_value=$(get_instructor_token "$token_file" "$validate_token_format"); then
         return 1
     fi
     
@@ -393,7 +408,7 @@ process_batch() {
         total_count=$((total_count + 1))
         
         echo
-        if add_secret_to_student "$secret_name" "$repo_url" "$token_value" "$max_age_days"; then
+        if add_secret_to_student "$secret_name" "$repo_url" "$token_value" "$max_age_days" "$validate_token_format"; then
             success_count=$((success_count + 1))
         else
             error_count=$((error_count + 1))
@@ -422,6 +437,7 @@ process_single_student() {
     local repo_url="$2"
     local token_file="$3"
     local max_age_days="${4:-90}"
+    local validate_token_format="${5:-true}"
     
     print_status "Secret: $secret_name"
     print_status "Repository: $repo_url"
@@ -429,7 +445,7 @@ process_single_student() {
     
     # Get the token value
     local token_value
-    if ! token_value=$(get_instructor_token "$token_file"); then
+    if ! token_value=$(get_instructor_token "$token_file" "$validate_token_format"); then
         return 1
     fi
     
@@ -438,7 +454,7 @@ process_single_student() {
         return 1
     fi
     
-    add_secret_to_student "$secret_name" "$repo_url" "$token_value" "$max_age_days"
+    add_secret_to_student "$secret_name" "$repo_url" "$token_value" "$max_age_days" "$validate_token_format"
 }
 
 # Main function
@@ -479,6 +495,7 @@ main() {
     local secret_name="$DEFAULT_SECRET_NAME"
     local token_file="$DEFAULT_TOKEN_FILE"
     local max_age_days="90"
+    local validate_token_format="true"
     local action=""
     local target=""
     
@@ -511,6 +528,10 @@ main() {
                 ;;
             "--force-update")
                 max_age_days="0"  # Force update by setting age to 0
+                shift
+                ;;
+            "--no-validate")
+                validate_token_format="false"
                 shift
                 ;;
             "--batch")
@@ -557,11 +578,11 @@ main() {
     # Execute the action
     case "$action" in
         "single")
-            process_single_student "$secret_name" "$target" "$token_file" "$max_age_days"
+            process_single_student "$secret_name" "$target" "$token_file" "$max_age_days" "$validate_token_format"
             exit $?
             ;;
         "batch")
-            process_batch "$secret_name" "$target" "$token_file" "$max_age_days"
+            process_batch "$secret_name" "$target" "$token_file" "$max_age_days" "$validate_token_format"
             exit $?
             ;;
         *)

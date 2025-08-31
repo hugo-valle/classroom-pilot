@@ -260,18 +260,19 @@ EOF
     if [[ "${CONFIG_VALUES[USE_SECRETS]}" == "true" ]]; then
         cat >> "$CONFIG_FILE" << EOF
 # Secrets to add to student repositories
-# Format: SECRET_NAME:description:token_file_path:max_age_days
+# Format: SECRET_NAME:description:token_file_path:max_age_days:validate_format
+# validate_format: true for GitHub tokens (ghp_), false for other secrets like passwords
 # 
 # Use this when you have a separate private instructor repository with tests
 # that students need access to via GitHub secrets.
 SECRETS_CONFIG="
-INSTRUCTOR_TESTS_TOKEN:Token for accessing instructor test repository:instructor_token.txt:90
+INSTRUCTOR_TESTS_TOKEN:Token for accessing instructor test repository:instructor_token.txt:90:true
 EOF
 
         # Add additional secrets if configured
         for secret_name in "${!TOKEN_FILES[@]}"; do
             if [ "$secret_name" != "INSTRUCTOR_TESTS_TOKEN" ]; then
-                echo "${secret_name}:${secret_name} for assignment functionality:${TOKEN_FILES[$secret_name]}:90" >> "$CONFIG_FILE"
+                echo "${secret_name}:${secret_name} for assignment functionality:${TOKEN_FILES[$secret_name]}:90:true" >> "$CONFIG_FILE"
             fi
         done
 
@@ -281,7 +282,8 @@ EOF
     else
         cat >> "$CONFIG_FILE" << EOF
 # Secrets to add to student repositories
-# Format: SECRET_NAME:description:token_file_path:max_age_days
+# Format: SECRET_NAME:description:token_file_path:max_age_days:validate_format
+# validate_format: true for GitHub tokens (ghp_), false for other secrets like passwords
 # 
 # Use this when you have a separate private instructor repository with tests
 # that students need access to via GitHub secrets.
