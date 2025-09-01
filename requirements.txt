@@ -1,0 +1,16 @@
+# Core dependencies for classroom-pilot
+# Generated from pyproject.toml for pip installation
+
+# Main CLI framework with all extras (rich, shell completion, etc.)
+typer[all]>=0.9.0,<1.0.0
+
+# YAML configuration file parsing
+PyYAML>=6.0.1,<7.0.0
+
+# HTTP requests for GitHub API interactions
+requests>=2.31.0,<3.0.0
+
+# Python version compatibility packages
+pathlib2>=2.3.7,<3.0.0; python_version < "3.8"
+importlib-resources>=6.0.0,<7.0.0; python_version < "3.9"
+typing-extensions>=4.0.0,<5.0.0; python_version < "3.9"

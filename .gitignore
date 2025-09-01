@@ -3,6 +3,7 @@
 # Generated files from tool execution
 generated/
 *.txt
+!requirements*.txt
 student-repos-*.txt
 repos-*.txt
 
