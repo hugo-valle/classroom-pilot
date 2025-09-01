@@ -1,0 +1,28 @@
+name: Enforce Branch Protection
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  protect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Protect main branch
+        run: |
+          gh api \
+            -X PUT \
+            -H "Accept: application/vnd.github+json" \
+            /repos/${{ github.repository }}/branches/main/protection \
+            -f required_pull_request_reviews.required_approving_review_count=2 \
+            -f enforce_admins=true \
+            -f required_status_checks.strict=true \
+            -F required_status_checks.contexts[]="test" \
+            -F required_status_checks.contexts[]="lint" \
+            -F required_status_checks.contexts[]="security"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

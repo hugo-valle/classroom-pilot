@@ -7,27 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Note**: This tools package is designed to be used as a Git submodule in assignment template repositories.
 
-## [Unreleased] - v1.1.0-alpha.1
+## [Unreleased] - v1.2.0
 
-### Added
-- **Automated Release Pipeline**: Complete GitHub Actions workflows for CI/CD
-  - **Release Workflow**: Automatically builds, tests, and publishes releases when tags are pushed
-  - **CI Workflow**: Continuous integration testing on PRs and pushes
-  - **Auto Update Workflow**: Weekly health checks and dependency monitoring
-- **Multi-Shell Testing**: Automated testing across bash and zsh environments
-- **Security Automation**: Integrated Shellcheck linting and secret scanning
-- **Smart Release Notes**: Automatic generation of contextual release notes based on version type
-- **Flexible Secret Management Configuration**: Setup wizard now asks users whether they have tests in a separate private instructor repository or in the template repository
-- **Conditional Secret Management**: STEP_MANAGE_SECRETS can be disabled when tests are included in the template repository
-- **Enhanced Setup Wizard**: New Step 5 in setup-assignment.sh provides guided configuration for secret management scenarios
-- **Improved Workflow Independence**: Template synchronization now works independently of repository discovery status
-- **Graceful Error Handling**: Repository discovery failures no longer block template synchronization
-- **Enhanced Configuration Documentation**: assignment.conf now includes comprehensive comments explaining both secret management scenarios
+### Planning
+- **Phase 2**: Go-based CLI rewrite for enhanced performance
+- **RESTful API**: Server component for web-based management
+- **React Dashboard**: Web interface for visual assignment management
+
+## [Released] - v1.1.0-alpha.3 - 2025-09-01
+
+### Added - Phase 1 Completion: Complete Bash Implementation
+- **🤖 Comprehensive GitHub Actions Workflow Suite**:
+  - **Automated Release**: Quick releases from feature branches (`auto-release.yml`)
+  - **Official Release**: Production releases with full validation (`release.yml`)
+  - **Branch Name Check**: Enforce naming conventions (`branch-name-check.yml`)
+  - **Branch Protection**: Apply security rules (`branch-protection.yml`)
+  - **Continuous Integration**: Multi-platform testing (`ci.yml`)
+  - **Auto Updates**: Dependency management (`auto-update.yml`)
+- **📚 Consolidated Documentation**: Single comprehensive workflow guide in `.github/README.md`
+- **🎯 Phase 1 Status Documentation**: Clear roadmap and current implementation status
+- **🔄 Dual Release Strategy**: Both development (auto) and production (tagged) release workflows
+- **🛡️ Enhanced Security**: Branch protection, security scanning, and validation
+- **🧪 Multi-Platform Testing**: Ubuntu, macOS, Windows compatibility
+- **📊 Workflow Monitoring**: Comprehensive troubleshooting and usage guides
 
 ### Changed
-- **Release Process**: Now fully automated via GitHub Actions - simply push a tag to trigger release
-- **Version Validation**: Automatic validation of semantic version tag formats
-- **Quality Assurance**: All releases now include automated testing and security scanning
+- **Documentation Structure**: Merged workflow docs into single authoritative source
+- **Release Management**: Now supports both automated and manual release processes
+- **Branch Strategy**: Enforced naming conventions with automated validation
+- **Project Status**: Added clear Phase 1 completion markers and future roadmap
+
+### Phase 1 Goals Achieved ✅
+- ✅ **Finalized Bash-based CLI** as stable, production-ready foundation
+- ✅ **Comprehensive documentation** for installation, usage, and troubleshooting
+- ✅ **Contribution guidelines** and complete development workflow
+- ✅ **Full CI/CD pipeline** with automated testing, linting, and releases
+- ✅ **Security & quality gates** with multi-shell testing and validation
+- ✅ **Branch protection** and development workflow enforcement
+
+**Phase 1 Complete**: The Bash implementation is now production-ready with comprehensive automation, testing, and documentation. Ready for classroom deployment and beta testing.
+
+## [Pre-released] - v1.1.0-alpha.2 - 2025-08-29
 - **Assignment Orchestrator Workflow**: Secret management and student assistance steps now only run when student repositories are successfully discovered
 - **Setup Wizard Flow**: Increased total steps from 7 to 8 to accommodate new secret management configuration
 - **Configuration File Generation**: create_config_file() now generates different SECRETS_CONFIG sections based on user choice
