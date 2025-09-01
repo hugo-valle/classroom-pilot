@@ -1,4 +1,8 @@
-name: 🚀 Release
+name: 🚀 Official Release (Tagged)
+
+# This workflow creates comprehensive, production-ready releases with full validation
+# Triggered by git tags (v*.*.*) for major releases
+# For quick automated releases from feature branches, see auto-release.yml
 
 on:
   push:
