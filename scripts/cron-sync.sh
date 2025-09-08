@@ -1,15 +1,23 @@
 #!/bin/bash
 #
-# Automated Sync Cron Job for GitHub Classroom Assignment
+# Automated Workflow Cron Job for GitHub Classroom Assignment
 #
-# This script is designed to run as a cron job to automatically sync
-# the template repository with GitHub Classroom and push tokens to
-# student repositories as they accept assignments.
+# This script is designed to run as a cron job to automatically execute
+# specific workflow steps like template sync, secret management, or 
+# repository access cycling.
 #
-# Usage: ./scripts/cron-sync.sh [config-file]
+# Usage: ./scripts/cron-sync.sh [config-file] [step1] [step2] [...]
 #
-# Cron Example (every 4 hours):
-# 0 */4 * * * /path/to/assignment/tools/scripts/cron-sync.sh >/dev/null 2>&1
+# Examples:
+# ./scripts/cron-sync.sh assignment.conf sync
+# ./scripts/cron-sync.sh assignment.conf secrets cycle
+# ./scripts/cron-sync.sh assignment.conf sync secrets cycle discover
+#
+# Cron Example (every 4 hours for sync only):
+# 0 */4 * * * /path/to/assignment/tools/scripts/cron-sync.sh assignment.conf sync >/dev/null 2>&1
+#
+# Cron Example (daily for secrets management):
+# 0 2 * * * /path/to/assignment/tools/scripts/cron-sync.sh assignment.conf secrets >/dev/null 2>&1
 #
 
 set -euo pipefail
@@ -23,9 +31,19 @@ DEFAULT_CONFIG="$REPO_ROOT/assignment.conf"
 # Source shared logging utility
 source "$TOOLS_ROOT/utils/logging.sh"
 
-# Configuration
+# Parse command line arguments
 CONFIG_FILE="${1:-$DEFAULT_CONFIG}"
-LOG_FILE="$REPO_ROOT/tools/generated/cron-sync.log"
+shift || true  # Remove first argument (config file)
+
+# Remaining arguments are the steps to execute
+STEPS=("$@")
+
+# If no steps specified, default to sync for backward compatibility
+if [[ ${#STEPS[@]} -eq 0 ]]; then
+    STEPS=("sync")
+fi
+
+LOG_FILE="$REPO_ROOT/tools/generated/cron-workflow.log"
 
 # Logging function for cron jobs
 log_cron() {
@@ -42,7 +60,7 @@ rotate_log() {
     fi
 }
 
-# Main cron sync function
+# Main cron workflow function
 main() {
     # Ensure log directory exists
     mkdir -p "$(dirname "$LOG_FILE")"
@@ -50,8 +68,9 @@ main() {
     # Rotate log if needed
     rotate_log
     
-    log_cron "INFO: Starting automated sync job"
+    log_cron "INFO: Starting automated workflow job"
     log_cron "INFO: Using config file: $CONFIG_FILE"
+    log_cron "INFO: Executing steps: ${STEPS[*]}"
     
     # Change to repository root
     cd "$REPO_ROOT"
@@ -75,27 +94,53 @@ main() {
         exit 1
     fi
     
-    # Run the orchestrator with sync step only, non-interactive mode
-    local orchestrator_cmd="$TOOLS_ROOT/scripts/assignment-orchestrator.sh"
-    local orchestrator_args=(
-        "$CONFIG_FILE"
-        "--step" "sync"
-        "--yes"
-        "--verbose"
-    )
+    # Execute each step
+    local overall_success=true
+    for step in "${STEPS[@]}"; do
+        log_cron "INFO: Executing step: $step"
+        
+        # Validate step name
+        case "$step" in
+            sync|discover|secrets|assist|cycle)
+                # Valid step
+                ;;
+            *)
+                log_cron "ERROR: Invalid step name: $step"
+                log_cron "ERROR: Valid steps are: sync, discover, secrets, assist, cycle"
+                overall_success=false
+                continue
+                ;;
+        esac
+        
+        # Run the orchestrator for this step
+        local orchestrator_cmd="$TOOLS_ROOT/scripts/assignment-orchestrator.sh"
+        local orchestrator_args=(
+            "$CONFIG_FILE"
+            "--step" "$step"
+            "--yes"
+            "--verbose"
+        )
+        
+        log_cron "INFO: Executing: $orchestrator_cmd ${orchestrator_args[*]}"
+        
+        # Capture both stdout and stderr for logging
+        if "$orchestrator_cmd" "${orchestrator_args[@]}" >> "$LOG_FILE" 2>&1; then
+            log_cron "SUCCESS: Step '$step' completed successfully"
+        else
+            local exit_code=$?
+            log_cron "ERROR: Step '$step' failed with exit code: $exit_code"
+            overall_success=false
+        fi
+    done
     
-    log_cron "INFO: Executing: $orchestrator_cmd ${orchestrator_args[*]}"
-    
-    # Capture both stdout and stderr for logging
-    if "$orchestrator_cmd" "${orchestrator_args[@]}" >> "$LOG_FILE" 2>&1; then
-        log_cron "SUCCESS: Sync completed successfully"
+    if [[ "$overall_success" == "true" ]]; then
+        log_cron "SUCCESS: All workflow steps completed successfully"
     else
-        local exit_code=$?
-        log_cron "ERROR: Sync failed with exit code: $exit_code"
-        exit $exit_code
+        log_cron "WARNING: Some workflow steps failed - check log for details"
+        exit 1
     fi
     
-    log_cron "INFO: Automated sync job completed"
+    log_cron "INFO: Automated workflow job completed"
 }
 
 # Error handling for cron environment

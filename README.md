@@ -9,6 +9,7 @@ This repository provides a complete set of tools for instructors to automate Git
 - **Universal assignment file support** - Works with any file type (.py, .cpp, .sql, .md, .html, .ipynb, etc.)
 - **Automated repository discovery** from GitHub Classroom assignments with smart filtering
 - **Batch secret management** across multiple student repositories  
+- **Repository access management** with intelligent permission cycling for GitHub Classroom issues
 - **Template synchronization** with GitHub Classroom repositories
 - **Automated cron scheduling** for hands-off assignment management
 - **Student assistance tools** for common workflow issues
@@ -31,6 +32,7 @@ This repository provides a complete set of tools for instructors to automate Git
 - **🔍 Branch Naming Enforcement**: Automated validation of development workflows
 - **🚀 Universal File Type Support**: Works with any assignment file type
 - **📦 Batch Operations**: Repository discovery, secret management, template sync
+- **🔧 Repository Access Management**: Intelligent permission cycling for GitHub Classroom issues
 - **⏰ Automated Scheduling**: Cron-based background synchronization
 - **🎯 Submodule Integration**: Easy deployment to assignment repositories
 
@@ -72,6 +74,7 @@ Comprehensive documentation is provided for all tools and workflows:
 
 - **[Automation Suite Guide](docs/AUTOMATION-SUITE.md)** - Complete feature overview
 - **[Assignment Orchestrator](docs/ASSIGNMENT-ORCHESTRATOR.md)** - Master workflow documentation
+- **[Cycle Collaborator](docs/CYCLE-COLLABORATOR.md)** - Repository access fix guide
 - **[Cron Automation](docs/CRON-AUTOMATION.md)** - Automated scheduling and background sync
 - **[Classroom URL Integration](docs/CLASSROOM-URL-INTEGRATION.md)** - GitHub Classroom features
 - **[System Summary](docs/ORCHESTRATION-SYSTEM-SUMMARY.md)** - Architecture overview
@@ -318,7 +321,7 @@ git status
 
 # Verify the tools are accessible
 ls tools/scripts/
-# Should show: assignment-orchestrator.sh, fetch-student-repos.sh, etc.
+# Should show: assignment-orchestrator.sh, fetch-student-repos.sh, cycle-collaborator.sh, etc.
 
 # Test the submodule setup
 ./tools/scripts/assignment-orchestrator.sh --help
@@ -444,10 +447,12 @@ gh_classroom_tools/
 │   ├── add-secrets-to-students.sh    # Batch secret management
 │   ├── push-to-classroom.sh          # Template synchronization
 │   ├── student-update-helper.sh      # Student assistance tools
+│   ├── cycle-collaborator.sh         # Repository access fix tool
 │   └── SECRETS-MANAGEMENT.md         # Secret management documentation
 ├── docs/                             # Comprehensive documentation
 │   ├── AUTOMATION-SUITE.md           # Complete automation guide
 │   ├── ASSIGNMENT-ORCHESTRATOR.md    # Orchestrator documentation
+│   ├── CYCLE-COLLABORATOR.md         # Repository access fix guide
 │   ├── CLASSROOM-URL-INTEGRATION.md  # Classroom URL features
 │   └── ORCHESTRATION-SYSTEM-SUMMARY.md # System overview
 ├── assignment.conf                   # Main configuration template
@@ -587,6 +592,34 @@ ASSIGNMENT_NOTEBOOK="test.ipynb" ./tools/scripts/push-to-classroom.sh --force
 - **Universal assignment compatibility** through variable-driven configuration
 - **Advanced repository root detection** for submodule environments
 
+### 6. Repository Access Fix (`cycle-collaborator.sh`)
+**Intelligent repository access management** for fixing GitHub Classroom permission issues.
+
+```bash
+# Configuration mode (recommended) - fix access for all students
+./tools/scripts/cycle-collaborator.sh --config assignment.conf --batch tools/generated/student-repos-students-only.txt --repo-urls
+
+# Preview what would be done without making changes
+./tools/scripts/cycle-collaborator.sh --config assignment.conf --batch tools/generated/student-repos-students-only.txt --repo-urls --dry-run
+
+# Force cycling even when access appears correct
+./tools/scripts/cycle-collaborator.sh --config assignment.conf --batch tools/generated/student-repos-students-only.txt --repo-urls --force
+
+# Traditional mode - fix specific student
+./tools/scripts/cycle-collaborator.sh assignment1 student-username organization
+
+# List repository status without making changes
+./tools/scripts/cycle-collaborator.sh --list assignment1 student-username organization
+```
+
+**Key Features:**
+- **Intelligent cycling logic** - only cycles when access issues are detected
+- **Force mode override** for troubleshooting persistent issues
+- **Configuration-based integration** with assignment orchestrator (Step 5)
+- **Repository URL batch processing** for seamless workflow integration
+- **Comprehensive access verification** and detailed status reporting
+- **Safe permission cycling** with pre-flight checks and validation
+
 ## ⚙️ Configuration System
 
 ### Main Configuration File
@@ -703,6 +736,7 @@ vim assignment.conf  # Set ASSIGNMENT_NOTEBOOK="your_assignment.ipynb"
 # 5. Ongoing maintenance
 ./tools/scripts/assignment-orchestrator.sh assignment.conf --step secrets  # Update secrets
 ./tools/scripts/assignment-orchestrator.sh assignment.conf --step assist   # Help students
+./tools/scripts/assignment-orchestrator.sh assignment.conf --step cycle    # Fix repository access
 ```
 
 ### Integration with Assignment Repositories
@@ -861,6 +895,7 @@ CLASSROOM_URL="https://classroom.github.com/test" ./tools/scripts/fetch-student-
 
 # Weekly maintenance  
 ./tools/scripts/add-secrets-to-students.sh INSTRUCTOR_TESTS_TOKEN --batch tools/generated/student-repos-students-only.txt --max-age 7  # Refresh old secrets
+./tools/scripts/cycle-collaborator.sh --config assignment.conf --batch tools/generated/student-repos-students-only.txt --repo-urls  # Fix any access issues
 
 # Individual student help (when classroom repo has issues)
 ./tools/scripts/student-update-helper.sh --one-student https://github.com/ORG/student-repo  # Direct template-to-student update
@@ -880,9 +915,10 @@ Comprehensive documentation is provided for all tools and workflows:
 
 - **[Automation Suite Guide](docs/AUTOMATION-SUITE.md)** - Complete feature overview
 - **[Assignment Orchestrator](docs/ASSIGNMENT-ORCHESTRATOR.md)** - Master workflow documentation
+- **[Cycle Collaborator](docs/CYCLE-COLLABORATOR.md)** - Repository access fix guide
 - **[Classroom URL Integration](docs/CLASSROOM-URL-INTEGRATION.md)** - GitHub Classroom features
 - **[System Summary](docs/ORCHESTRATION-SYSTEM-SUMMARY.md)** - Architecture overview
-- **[Secrets Management](scripts/SECRETS-MANAGEMENT.md)** - Token and secret handling
+- **[Secrets Management](docs/SECRETS-MANAGEMENT.md)** - Token and secret handling
 
 ## 🚀 Advanced Usage
 
