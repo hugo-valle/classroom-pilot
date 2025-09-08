@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - v1.2.0
 
+### Added
+- **🔄 Intelligent Repository Access Management**:
+  - **cycle-collaborator.sh**: New script for fixing GitHub Classroom permission issues
+  - **Smart Cycling Logic**: Only cycles permissions when access issues are detected
+  - **Force Mode**: Override capability for manual troubleshooting (`--force` flag)
+  - **Configuration Integration**: Seamless integration with assignment.conf
+  - **Repository URL Processing**: Support for batch processing from repository URLs
+  - **Assignment Orchestrator Integration**: Added as Step 5 in workflow orchestration
+
+### Enhanced
+- **Assignment Orchestrator**: Extended to support 5-step workflow including collaborator cycling
+- **Documentation Suite**: Updated all docs to reflect new cycle-collaborator functionality
+- **Automation Workflows**: Enhanced workflow examples to include access management
+
 ### Planning
 - **Phase 2**: Go-based CLI rewrite for enhanced performance
 - **RESTful API**: Server component for web-based management

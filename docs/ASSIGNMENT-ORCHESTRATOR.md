@@ -10,6 +10,7 @@ Instead of running multiple scripts manually, the orchestrator reads a configura
 2. **Repository Discovery** - Finds all student repositories from the classroom
 3. **Secret Management** - Adds/updates secrets across all student repositories
 4. **Student Assistance** - Optionally runs student help tools
+5. **Collaborator Cycling** - Fixes student repository access issues by cycling permissions
 
 ## 📁 Files
 
@@ -74,6 +75,7 @@ STEP_SYNC_TEMPLATE=true
 STEP_DISCOVER_REPOS=true  
 STEP_MANAGE_SECRETS=true
 STEP_ASSIST_STUDENTS=false
+STEP_CYCLE_COLLABORATORS=false
 ```
 
 ### Output Settings
@@ -101,6 +103,9 @@ DRY_RUN=false
 
 # Skip specific step  
 ./scripts/assignment-orchestrator.sh --skip sync
+
+# Run collaborator cycling step
+./scripts/assignment-orchestrator.sh --step cycle
 
 # Preview mode
 ./scripts/assignment-orchestrator.sh --dry-run
@@ -142,6 +147,13 @@ DRY_RUN=false
 - Provides automated assistance for common student issues
 - Optional step (disabled by default)
 
+### Step 5: Collaborator Cycling (`cycle`)
+- Executes `scripts/cycle-collaborator.sh` with configuration mode
+- Fixes repository access issues by cycling collaborator permissions
+- Intelligently detects when cycling is needed vs when access is already correct
+- Optional step (disabled by default)
+- Useful for resolving GitHub Classroom permission glitches
+
 ## 🎛️ Advanced Usage
 
 ### Multiple Assignments
@@ -168,6 +180,9 @@ Run only specific parts of the workflow:
 # Only manage secrets (for token updates)
 ./scripts/assignment-orchestrator.sh --step secrets
 
+# Only fix repository access issues
+./scripts/assignment-orchestrator.sh --step cycle
+
 # Everything except student assistance
 ./scripts/assignment-orchestrator.sh --skip assist
 ```
@@ -192,6 +207,7 @@ The orchestrator is designed to work seamlessly with existing scripts:
 - **`fetch-student-repos.sh`** - Called with `--classroom-url` parameter
 - **`add-secrets-to-students.sh`** - Called with `--batch` mode for each secret
 - **`student-update-helper.sh`** - Called with `--batch` mode for assistance
+- **`cycle-collaborator.sh`** - Called with `--config` and `--repo-urls` for access fixes
 
 All scripts maintain their individual functionality and can still be used standalone.
 

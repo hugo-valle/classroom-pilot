@@ -2,9 +2,10 @@
 #
 # Cron Job Management Helper for GitHub Classroom Assignment
 #
-# This script helps install, remove, and manage the automated sync cron job.
+# This script helps install, remove, and manage automated workflow cron jobs
+# for different assignment management steps.
 #
-# Usage: ./scripts/manage-cron.sh [install|remove|status|logs]
+# Usage: ./scripts/manage-cron.sh [command] [options]
 #
 
 set -euo pipefail
@@ -25,10 +26,17 @@ log_error() { print_error "$@"; }
 
 # Configuration
 CRON_SCRIPT="$TOOLS_ROOT/scripts/cron-sync.sh"
-LOG_FILE="$REPO_ROOT/tools/generated/cron-sync.log"
-CRON_COMMENT="# GitHub Classroom Assignment Auto-Sync"
-CRON_SCHEDULE="0 */4 * * *"  # Every 4 hours
-CRON_COMMAND="$CRON_SCRIPT '$REPO_ROOT/assignment.conf' >/dev/null 2>&1"
+LOG_FILE="$REPO_ROOT/tools/generated/cron-workflow.log"
+CRON_COMMENT_PREFIX="# GitHub Classroom Assignment Auto"
+
+# Default schedules for different workflow types
+declare -A DEFAULT_SCHEDULES=(
+    ["sync"]="0 */4 * * *"      # Every 4 hours
+    ["secrets"]="0 2 * * *"     # Daily at 2 AM
+    ["cycle"]="0 6 * * 0"       # Weekly on Sunday at 6 AM
+    ["discover"]="0 1 * * *"    # Daily at 1 AM
+    ["assist"]="0 3 * * 0"      # Weekly on Sunday at 3 AM
+)
 
 # Help function
 show_help() {
@@ -36,44 +44,131 @@ show_help() {
 Cron Job Management Helper
 
 USAGE:
-    ./scripts/manage-cron.sh [command]
+    ./scripts/manage-cron.sh [command] [options]
 
 COMMANDS:
-    install     Install the auto-sync cron job (runs every 4 hours)
-    remove      Remove the auto-sync cron job
-    status      Check if the cron job is installed
-    logs        Show recent sync log entries
-    help        Show this help
+    install [steps] [schedule]  Install cron job for specified steps
+    remove [steps|all]          Remove cron job(s)
+    status                      Check installed cron jobs
+    logs                        Show recent workflow log entries
+    list-schedules             Show default schedules for each step
+    help                       Show this help
 
-CRON JOB DETAILS:
-    Schedule:   Every 4 hours (at minute 0 of hours 0, 4, 8, 12, 16, 20)
-    Command:    $CRON_COMMAND
-    Log file:   $LOG_FILE
+INSTALL EXAMPLES:
+    # Install sync job (every 4 hours)
+    ./scripts/manage-cron.sh install sync
 
-EXAMPLES:
-    # Install the cron job
-    ./scripts/manage-cron.sh install
-    
-    # Check if it's running
-    ./scripts/manage-cron.sh status
-    
-    # View recent logs
-    ./scripts/manage-cron.sh logs
-    
-    # Remove the cron job
-    ./scripts/manage-cron.sh remove
+    # Install secrets management (daily at 2 AM)
+    ./scripts/manage-cron.sh install secrets
+
+    # Install cycle job (weekly on Sunday at 6 AM)
+    ./scripts/manage-cron.sh install cycle
+
+    # Install multiple steps together (daily at 1 AM)
+    ./scripts/manage-cron.sh install "sync secrets" "0 1 * * *"
+
+    # Install with custom schedule
+    ./scripts/manage-cron.sh install sync "0 */2 * * *"
+
+REMOVE EXAMPLES:
+    # Remove specific step cron job
+    ./scripts/manage-cron.sh remove sync
+
+    # Remove all assignment-related cron jobs
+    ./scripts/manage-cron.sh remove all
+
+WORKFLOW STEPS:
+    sync        Template synchronization with GitHub Classroom
+    discover    Repository discovery and batch file generation
+    secrets     Secret management across student repositories
+    assist      Student assistance and conflict resolution
+    cycle       Repository access fix through permission cycling
+
+DEFAULT SCHEDULES:
+    sync:       Every 4 hours (0 */4 * * *)
+    secrets:    Daily at 2 AM (0 2 * * *)
+    cycle:      Weekly on Sunday at 6 AM (0 6 * * 0)
+    discover:   Daily at 1 AM (0 1 * * *)
+    assist:     Weekly on Sunday at 3 AM (0 3 * * 0)
+
+LOG FILE: $LOG_FILE
 
 EOF
 }
 
-# Function to check if cron job exists
+# Function to check if specific cron job exists
 cron_exists() {
-    crontab -l 2>/dev/null | grep -F "$CRON_SCRIPT" >/dev/null 2>&1
+    local steps="${1:-sync}"
+    local comment="$CRON_COMMENT_PREFIX-${steps// /-}"
+    crontab -l 2>/dev/null | grep -F "$comment" >/dev/null 2>&1
+}
+
+# Function to get cron job command for given steps
+get_cron_command() {
+    local steps="$1"
+    echo "$CRON_SCRIPT '$REPO_ROOT/assignment.conf' $steps >/dev/null 2>&1"
+}
+
+# Function to get cron job comment for given steps
+get_cron_comment() {
+    local steps="$1"
+    echo "$CRON_COMMENT_PREFIX-${steps// /-}"
+}
+
+# Function to validate step names
+validate_steps() {
+    local steps="$1"
+    local valid_steps=("sync" "discover" "secrets" "assist" "cycle")
+    
+    for step in $steps; do
+        local found=false
+        for valid_step in "${valid_steps[@]}"; do
+            if [[ "$step" == "$valid_step" ]]; then
+                found=true
+                break
+            fi
+        done
+        
+        if [[ "$found" == "false" ]]; then
+            log_error "Invalid step: $step"
+            log_error "Valid steps are: ${valid_steps[*]}"
+            return 1
+        fi
+    done
+    return 0
+}
+
+# Function to get default schedule for steps
+get_default_schedule() {
+    local steps="$1"
+    
+    # If multiple steps, use a common daily schedule
+    if [[ "$steps" == *" "* ]]; then
+        echo "0 1 * * *"  # Daily at 1 AM for multiple steps
+        return
+    fi
+    
+    # Single step - use specific schedule
+    echo "${DEFAULT_SCHEDULES[$steps]:-0 */4 * * *}"
 }
 
 # Install cron job
 install_cron() {
-    log_info "Installing auto-sync cron job..."
+    local steps="${1:-sync}"
+    local schedule="$2"
+    
+    log_info "Installing cron job for steps: $steps"
+    
+    # Validate steps
+    if ! validate_steps "$steps"; then
+        exit 1
+    fi
+    
+    # Get default schedule if not provided
+    if [[ -z "$schedule" ]]; then
+        schedule=$(get_default_schedule "$steps")
+        log_info "Using default schedule: $schedule"
+    fi
     
     # Check if script exists and is executable
     if [[ ! -x "$CRON_SCRIPT" ]]; then
@@ -89,15 +184,18 @@ install_cron() {
     fi
     
     # Check if cron job already exists
-    if cron_exists; then
-        log_warning "Cron job already exists. Remove it first if you want to reinstall."
+    if cron_exists "$steps"; then
+        log_warning "Cron job for steps '$steps' already exists. Remove it first if you want to reinstall."
         log_info "Current cron job:"
-        crontab -l | grep -A1 -B1 "$CRON_SCRIPT" || true
+        local comment=$(get_cron_comment "$steps")
+        crontab -l | grep -A1 -F "$comment" || true
         return 0
     fi
     
     # Create the cron job entry
-    local cron_entry="$CRON_COMMENT"$'\n'"$CRON_SCHEDULE $CRON_COMMAND"
+    local comment=$(get_cron_comment "$steps")
+    local command=$(get_cron_command "$steps")
+    local cron_entry="$comment"$'\n'"$schedule $command"
     
     # Add to existing crontab or create new one
     if crontab -l >/dev/null 2>&1; then
@@ -109,8 +207,9 @@ install_cron() {
     fi
     
     log_success "Cron job installed successfully!"
-    log_info "Schedule: $CRON_SCHEDULE (every 4 hours)"
-    log_info "Command: $CRON_COMMAND"
+    log_info "Steps: $steps"
+    log_info "Schedule: $schedule"
+    log_info "Command: $command"
     log_info "Logs will be written to: $LOG_FILE"
     
     echo
@@ -120,50 +219,89 @@ install_cron() {
 
 # Remove cron job
 remove_cron() {
-    log_info "Removing auto-sync cron job..."
+    local steps="${1:-sync}"
     
-    if ! cron_exists; then
-        log_warning "Cron job not found. Nothing to remove."
+    log_info "Removing cron job..."
+    
+    if [[ "$steps" == "all" ]]; then
+        log_info "Removing all assignment-related cron jobs..."
+        
+        # Remove all cron jobs with our comment prefix
+        local temp_cron
+        temp_cron=$(mktemp)
+        if crontab -l >/dev/null 2>&1; then
+            crontab -l | grep -v -F "$CRON_COMMENT_PREFIX" > "$temp_cron" || true
+            if [[ -s "$temp_cron" ]]; then
+                crontab "$temp_cron"
+            else
+                crontab -r 2>/dev/null || true
+            fi
+        fi
+        rm -f "$temp_cron"
+        
+        log_success "All assignment cron jobs removed successfully!"
         return 0
     fi
     
-    # Remove the cron job and its comment
-    crontab -l | grep -v -F "$CRON_SCRIPT" | grep -v -F "$CRON_COMMENT" | crontab -
+    if ! cron_exists "$steps"; then
+        log_warning "Cron job for steps '$steps' not found. Nothing to remove."
+        return 0
+    fi
     
-    log_success "Cron job removed successfully!"
+    # Remove the specific cron job and its comment
+    local comment
+    comment=$(get_cron_comment "$steps")
+    local temp_cron
+    temp_cron=$(mktemp)
+    
+    if crontab -l >/dev/null 2>&1; then
+        crontab -l | grep -v -F "$comment" | grep -v -F "$(get_cron_command "$steps")" > "$temp_cron" || true
+        if [[ -s "$temp_cron" ]]; then
+            crontab "$temp_cron"
+        else
+            crontab -r 2>/dev/null || true
+        fi
+    fi
+    rm -f "$temp_cron"
+    
+    log_success "Cron job for steps '$steps' removed successfully!"
 }
 
 # Show cron job status
 show_status() {
     log_info "Checking cron job status..."
     
-    if cron_exists; then
-        log_success "Auto-sync cron job is installed"
-        echo
-        echo "Current cron job:"
-        crontab -l | grep -A1 -B1 "$CRON_SCRIPT" || true
+    # Check for any assignment-related cron jobs
+    if crontab -l >/dev/null 2>&1; then
+        local found_jobs
+        found_jobs=$(crontab -l | grep -F "$CRON_COMMENT_PREFIX" || true)
         
-        echo
-        echo "Next scheduled runs:"
-        # Show next few scheduled times (requires 'at' or we can calculate manually)
-        echo "Every 4 hours: 00:00, 04:00, 08:00, 12:00, 16:00, 20:00"
-        
-        # Check if log file exists and show last activity
-        if [[ -f "$LOG_FILE" ]]; then
+        if [[ -n "$found_jobs" ]]; then
+            log_success "Assignment cron jobs are installed:"
             echo
-            echo "Last log activity:"
-            tail -n 3 "$LOG_FILE" 2>/dev/null || echo "No recent log entries"
+            echo "$found_jobs"
+            
+            # Check if log file exists and show last activity
+            if [[ -f "$LOG_FILE" ]]; then
+                echo
+                echo "Last log activity:"
+                tail -n 3 "$LOG_FILE" 2>/dev/null || echo "No recent log entries"
+            fi
+        else
+            log_warning "No assignment cron jobs are installed"
+            echo
+            log_info "To install one, run: ./scripts/manage-cron.sh install [steps]"
         fi
     else
-        log_warning "Auto-sync cron job is not installed"
+        log_warning "No crontab exists for current user"
         echo
-        log_info "To install it, run: ./scripts/manage-cron.sh install"
+        log_info "To install a cron job, run: ./scripts/manage-cron.sh install [steps]"
     fi
 }
 
 # Show recent logs
 show_logs() {
-    log_info "Showing recent sync logs..."
+    log_info "Showing recent workflow logs..."
     
     if [[ ! -f "$LOG_FILE" ]]; then
         log_warning "Log file not found: $LOG_FILE"
@@ -172,8 +310,8 @@ show_logs() {
     fi
     
     echo
-    echo "=== Recent Sync Log Entries ==="
-    tail -n 20 "$LOG_FILE"
+    echo "=== Recent Workflow Log Entries ==="
+    tail -n 30 "$LOG_FILE"
     
     echo
     echo "=== Log File Info ==="
@@ -182,22 +320,45 @@ show_logs() {
     echo "Last modified: $(ls -l "$LOG_FILE" | awk '{print $6, $7, $8}')"
 }
 
+# Show default schedules
+list_schedules() {
+    log_info "Default schedules for workflow steps:"
+    echo
+    for step in sync discover secrets assist cycle; do
+        local schedule="${DEFAULT_SCHEDULES[$step]}"
+        printf "  %-10s %s\n" "$step:" "$schedule"
+    done
+    
+    echo
+    echo "Schedule format: minute hour day_of_month month day_of_week"
+    echo "Examples:"
+    echo "  0 */4 * * *   - Every 4 hours"
+    echo "  0 2 * * *     - Daily at 2 AM"
+    echo "  0 6 * * 0     - Weekly on Sunday at 6 AM"
+}
+
 # Main function
 main() {
     local command="${1:-help}"
     
     case "$command" in
         "install")
-            install_cron
+            local steps="${2:-sync}"
+            local schedule="${3:-}"
+            install_cron "$steps" "$schedule"
             ;;
         "remove")
-            remove_cron
+            local steps="${2:-sync}"
+            remove_cron "$steps"
             ;;
         "status")
             show_status
             ;;
         "logs")
             show_logs
+            ;;
+        "list-schedules")
+            list_schedules
             ;;
         "help"|"--help"|"-h")
             show_help

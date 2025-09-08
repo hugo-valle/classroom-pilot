@@ -72,7 +72,7 @@ OPTIONS:
     --dry-run           Show what would be done without executing
     --verbose           Enable verbose output
     --yes              Skip confirmation prompts
-    --step [step]       Run only specific step (sync|discover|secrets|assist)
+    --step [step]       Run only specific step (sync|discover|secrets|assist|cycle)
     --skip [step]       Skip specific step
     --help             Show this help
 
@@ -88,6 +88,7 @@ WORKFLOW STEPS:
     2. discover  - Discover and list student repositories
     3. secrets   - Add/update secrets in student repositories
     4. assist    - Run student assistance tools (optional)
+    5. cycle     - Fix student repository access by cycling collaborator permissions (optional)
 
 EXAMPLES:
     # Run complete workflow with default config
@@ -156,6 +157,7 @@ parse_arguments() {
                     discover) STEP_DISCOVER_REPOS=false ;;
                     secrets) STEP_MANAGE_SECRETS=false ;;
                     assist) STEP_ASSIST_STUDENTS=false ;;
+                    cycle) STEP_CYCLE_COLLABORATORS=false ;;
                     *) log_error "Unknown step: $2"; exit 1 ;;
                 esac
                 shift 2
@@ -262,6 +264,7 @@ load_configuration() {
     STEP_DISCOVER_REPOS="${STEP_DISCOVER_REPOS:-true}"
     STEP_MANAGE_SECRETS="${STEP_MANAGE_SECRETS:-true}"
     STEP_ASSIST_STUDENTS="${STEP_ASSIST_STUDENTS:-false}"
+    STEP_CYCLE_COLLABORATORS="${STEP_CYCLE_COLLABORATORS:-false}"
     
     # Override dry run from config if set via command line
     if [[ "$CLI_DRY_RUN" == "true" ]]; then
@@ -293,6 +296,7 @@ show_configuration_summary() {
     echo "  2. Discover Repos: $STEP_DISCOVER_REPOS" >&2
     echo "  3. Manage Secrets: $STEP_MANAGE_SECRETS" >&2
     echo "  4. Assist Students: $STEP_ASSIST_STUDENTS" >&2
+    echo "  5. Cycle Collaborators: $STEP_CYCLE_COLLABORATORS" >&2
 }
 
 # Check prerequisites
@@ -313,12 +317,28 @@ check_prerequisites() {
         "tools/scripts/add-secrets-to-students.sh"
     )
     
+    # Optional scripts (don't fail if missing, just warn)
+    local optional_scripts=(
+        "tools/scripts/cycle-collaborator.sh"
+    )
+    
     for script in "${required_scripts[@]}"; do
         if [[ ! -f "$REPO_ROOT/$script" ]]; then
             log_error "Required script not found: $script"
             exit 1
         fi
         if [[ ! -x "$REPO_ROOT/$script" ]]; then
+            log_warning "Making script executable: $script"
+            chmod +x "$REPO_ROOT/$script"
+        fi
+    done
+    
+    # Check optional scripts (warn if missing but don't fail)
+    for script in "${optional_scripts[@]}"; do
+        if [[ ! -f "$REPO_ROOT/$script" ]]; then
+            log_warning "Optional script not found: $script"
+            log_warning "Some features may not be available"
+        elif [[ ! -x "$REPO_ROOT/$script" ]]; then
             log_warning "Making script executable: $script"
             chmod +x "$REPO_ROOT/$script"
         fi
@@ -559,6 +579,67 @@ step_assist_students() {
     log_success "Student assistance completed"
 }
 
+# Step 5: Cycle collaborator access (fix repository permissions)
+step_cycle_collaborators() {
+    if [[ "${STEP_CYCLE_COLLABORATORS:-false}" != "true" ]]; then
+        log_info "Skipping collaborator cycling (disabled in config)"
+        return 0
+    fi
+    
+    log_header "Step 5: Cycling Collaborator Access"
+    
+    local students_file="$REPO_ROOT/$OUTPUT_DIR/$STUDENTS_ONLY_FILE"
+    if [[ ! -f "$students_file" ]]; then
+        log_warning "Students-only file not found: $students_file"
+        log_warning "Using full batch file instead"
+        students_file="$REPO_ROOT/$OUTPUT_DIR/$STUDENT_REPOS_FILE"
+    fi
+    
+    if [[ ! -f "$students_file" ]]; then
+        log_error "No repository file found for collaborator cycling"
+        return 1
+    fi
+    
+    # Count repositories to process
+    local repo_count
+    repo_count=$(grep -c "^https://" "$students_file" || echo "0")
+    log_info "Found $repo_count student repositories to process"
+    
+    if [[ "$repo_count" -eq 0 ]]; then
+        log_warning "No student repositories found to cycle - skipping"
+        return 0
+    fi
+    
+    local cmd="$REPO_ROOT/tools/scripts/cycle-collaborator.sh"
+    local args=(
+        "--config" "$CONFIG_FILE"
+        "--batch" "$students_file"
+        "--repo-urls"
+    )
+    
+    if [[ "$DRY_RUN" == "true" ]]; then
+        args+=("--dry-run")
+    fi
+    
+    if [[ "$VERBOSE" == "true" ]]; then
+        args+=("--verbose")
+    fi
+    
+    if [[ "$DRY_RUN" == "true" ]]; then
+        log_info "DRY RUN: Would execute: $cmd ${args[*]}"
+        log_info "This would cycle collaborator access for all student repositories"
+        return 0
+    fi
+    
+    log_info "Executing: $cmd ${args[*]}"
+    if ! "$cmd" "${args[@]}"; then
+        log_error "Collaborator cycling failed"
+        return 1
+    fi
+    
+    log_success "Collaborator cycling completed"
+}
+
 # Execute specific step
 execute_step() {
     local step="$1"
@@ -574,6 +655,9 @@ execute_step() {
             ;;
         assist)
             step_assist_students
+            ;;
+        cycle)
+            step_cycle_collaborators
             ;;
         *)
             log_error "Unknown step: $step"
@@ -633,7 +717,16 @@ execute_workflow() {
     else
         log_info "Skipping student assistance (no student repositories discovered)"
     fi
-    
+
+    # Step 5: Cycle collaborator access (only if repositories were discovered)
+    if [[ "$repos_discovered" == "true" ]]; then
+        if ! step_cycle_collaborators; then
+            failed_steps+=("cycle")
+        fi
+    else
+        log_info "Skipping collaborator cycling (no student repositories discovered)"
+    fi
+
     local end_time
     end_time=$(date +%s)
     local duration=$((end_time - start_time))
