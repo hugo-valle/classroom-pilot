@@ -82,6 +82,9 @@ CONFIGURATION FILE:
     - Secret tokens and management settings
     - Workflow step controls
     - Output and logging preferences
+    
+    If no assignment.conf file is found, the orchestrator will offer to run
+    the setup wizard automatically to create the configuration file.
 
 WORKFLOW STEPS:
     1. sync      - Synchronize template repository with GitHub Classroom
@@ -181,6 +184,62 @@ parse_arguments() {
 }
 
 # Load and validate configuration
+check_initial_setup() {
+    if [[ ! -f "$CONFIG_FILE" ]]; then
+        echo -e "\n${YELLOW}⚠️  Assignment Configuration Missing${NC}"
+        echo -e "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo -e "No ${CYAN}assignment.conf${NC} file found in the current directory."
+        echo -e "This file is required to configure your GitHub Classroom assignment.\n"
+        
+        echo -e "${PURPLE}Would you like to run the initial setup wizard now?${NC}"
+        echo -e "The setup wizard will guide you through creating the configuration file.\n"
+        
+        if [[ "$FORCE_YES" == "true" ]]; then
+            echo -e "${GREEN}Auto-confirming setup (--yes flag detected)${NC}"
+            run_setup=true
+        else
+            read -p "Run setup wizard? [y/N]: " -n 1 -r
+            echo
+            if [[ $REPLY =~ ^[Yy]$ ]]; then
+                run_setup=true
+            else
+                run_setup=false
+            fi
+        fi
+        
+        if [[ "$run_setup" == "true" ]]; then
+            echo -e "\n${BLUE}🚀 Launching Assignment Setup Wizard...${NC}"
+            echo -e "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+            
+            # Run the setup script
+            if [[ -f "$TOOLS_ROOT/scripts/setup-assignment.sh" ]]; then
+                "$TOOLS_ROOT/scripts/setup-assignment.sh"
+                
+                # Check if setup was successful
+                if [[ -f "$CONFIG_FILE" ]]; then
+                    echo -e "\n${GREEN}✅ Setup completed successfully!${NC}"
+                    echo -e "Configuration file created: ${CYAN}$CONFIG_FILE${NC}\n"
+                    log_info "Continuing with assignment orchestrator..."
+                else
+                    log_error "Setup did not create configuration file. Exiting."
+                    exit 1
+                fi
+            else
+                log_error "Setup script not found: $TOOLS_ROOT/scripts/setup-assignment.sh"
+                log_error "Please run the setup script manually or create assignment.conf"
+                exit 1
+            fi
+        else
+            echo -e "\n${YELLOW}Setup cancelled.${NC}"
+            echo -e "To proceed, you can:"
+            echo -e "  ${CYAN}1.${NC} Run the setup wizard: $TOOLS_ROOT/scripts/setup-assignment.sh"
+            echo -e "  ${CYAN}2.${NC} Create assignment.conf manually in: $REPO_ROOT"
+            echo -e "  ${CYAN}3.${NC} Use a custom config file: ./assignment-orchestrator.sh /path/to/config\n"
+            exit 0
+        fi
+    fi
+}
+
 load_configuration() {
     log_info "Loading configuration from: $CONFIG_FILE"
     
@@ -761,6 +820,7 @@ main() {
     cd "$REPO_ROOT"
     
     parse_arguments "$@"
+    check_initial_setup
     load_configuration
     show_configuration_summary
     check_prerequisites

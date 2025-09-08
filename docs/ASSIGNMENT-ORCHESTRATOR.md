@@ -19,8 +19,21 @@ Instead of running multiple scripts manually, the orchestrator reads a configura
 
 ## 🚀 Quick Start
 
-### 1. Configure Your Assignment
-Edit `assignment.conf` with your assignment details:
+### 1. Automatic Setup (First Time)
+If you don't have an `assignment.conf` file, the orchestrator will detect this and offer to run the setup wizard:
+
+```bash
+# Run orchestrator - it will prompt for setup if needed
+./scripts/assignment-orchestrator.sh
+
+# Or force setup with --yes flag
+./scripts/assignment-orchestrator.sh --yes
+```
+
+The setup wizard will guide you through creating the configuration file interactively.
+
+### 2. Manual Configuration (Alternative)
+You can also configure manually by editing `assignment.conf` with your assignment details:
 
 ```bash
 # GitHub Classroom assignment URL
@@ -36,7 +49,7 @@ SECRETS=(
 )
 ```
 
-### 2. Run the Complete Workflow
+### 3. Run the Complete Workflow
 ```bash
 # Full workflow with confirmation
 ./scripts/assignment-orchestrator.sh
@@ -122,6 +135,26 @@ DRY_RUN=false
 # Combined options
 ./scripts/assignment-orchestrator.sh --dry-run --verbose
 ```
+
+## ✨ Key Features
+
+### Automatic Setup Integration
+- **Smart detection**: Automatically detects missing `assignment.conf` file
+- **Interactive setup**: Offers to run setup wizard when configuration is missing
+- **Seamless workflow**: Integrates setup as the first step in the orchestration process
+- **Automation friendly**: Supports `--yes` flag to auto-confirm setup for CI/CD pipelines
+
+### Intelligent Workflow Management
+- **Step-by-step execution**: Runs all automation tools in the correct order
+- **Flexible control**: Run individual steps or skip specific steps as needed
+- **Preview mode**: Dry-run capability to preview actions before execution
+- **Error handling**: Stops on errors to prevent cascade failures
+
+### Configuration-Driven
+- **Single source of truth**: All assignment settings in one configuration file
+- **Universal file support**: Works with any file type (.py, .cpp, .sql, .md, etc.)
+- **Multi-secret support**: Manage multiple tokens and secrets across repositories
+- **Customizable workflows**: Enable/disable specific steps based on assignment needs
 
 ## 📋 Workflow Steps
 
