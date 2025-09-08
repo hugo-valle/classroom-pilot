@@ -10,8 +10,9 @@
 #
 # Usage: 
 #   ./scripts/student-update-helper.sh [student-repo-url]
-#   ./scripts/student-update-helper.sh --batch [file-with-repo-urls]
+#   ./scripts/student-update-helper.sh --batch [file-with-repo-urls] [--yes]
 #   ./scripts/student-update-helper.sh --status [student-repo-url]
+#   ./scripts/student-update-helper.sh --yes  # Auto-confirm all prompts
 # =============================================================================
 
 set -e  # Exit on any error
@@ -19,10 +20,13 @@ set -e  # Exit on any error
 # Configuration
 TEMPLATE_REMOTE="origin"
 CLASSROOM_REMOTE="classroom"
-# NOTE: CLASSROOM_URL is now loaded from assignment.conf
+# NOTE: CLASSROOM_REPO_URL is now loaded from assignment.conf
 # The classroom repository URL will be determined automatically or from configuration
 BRANCH="main"
 TEMP_DIR="/tmp/student-helper"
+
+# Auto-confirm flag for automated execution
+AUTO_CONFIRM=false
 
 # Source shared utilities
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -45,7 +49,11 @@ USAGE:
     $0 --batch [file-with-urls]             # Help multiple students
     $0 --status [student-repo-url]          # Check student's update status
     $0 --check-classroom                    # Verify classroom repo is ready
+    $0 --yes                                # Auto-confirm all prompts (for automation)
     $0 --help                               # Show this help
+
+OPTIONS:
+    --yes                                   # Automatically answer 'yes' to all prompts
 
 EXAMPLES:
     # Help a specific student using classroom repository
@@ -56,6 +64,9 @@ EXAMPLES:
 
     # Check multiple students from a file
     $0 --batch student-repos.txt
+
+    # Automated batch processing (no prompts)
+    $0 --batch student-repos.txt --yes
 
     # Check if a student needs updates
     $0 --status https://github.com/${GITHUB_ORGANIZATION}/${DEFAULT_ASSIGNMENT_PREFIX}-student123
@@ -82,6 +93,26 @@ STUDENT REPOS FILE FORMAT (for --batch):
     https://github.com/${GITHUB_ORGANIZATION}/${DEFAULT_ASSIGNMENT_PREFIX}-student3
 
 EOF
+}
+
+# Function to handle confirmations with auto-confirm support
+confirm_action() {
+    local prompt="$1"
+    local default="${2:-N}"
+    
+    if [ "$AUTO_CONFIRM" = true ]; then
+        echo "$prompt [auto-confirmed: Y]"
+        return 0
+    fi
+    
+    read -p "$prompt [y/N] " -n 1 -r
+    echo
+    
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        return 0
+    else
+        return 1
+    fi
 }
 
 # Function to extract student name from repo URL
@@ -111,8 +142,8 @@ check_classroom_ready() {
     print_header "Checking Classroom Repository Status"
     
     print_status "Fetching classroom repository..."
-    if ! git ls-remote "$CLASSROOM_URL" &>/dev/null; then
-        print_error "Cannot access classroom repository: $CLASSROOM_URL"
+    if ! git ls-remote "$CLASSROOM_REPO_URL" &>/dev/null; then
+        print_error "Cannot access classroom repository: $CLASSROOM_REPO_URL"
         print_error "Please check the URL and your access permissions"
         return 1
     fi
@@ -120,7 +151,7 @@ check_classroom_ready() {
     print_success "Classroom repository is accessible"
     
     # Get latest commit info
-    local classroom_commit=$(git ls-remote "$CLASSROOM_URL" refs/heads/main | cut -f1)
+    local classroom_commit=$(git ls-remote "$CLASSROOM_REPO_URL" refs/heads/main | cut -f1)
     local local_commit=$(git rev-parse HEAD)
     
     echo "  Classroom commit: ${classroom_commit:0:8}"
@@ -142,7 +173,7 @@ check_student_status() {
     local student_name
     student_name=$(get_student_name "$repo_url")
     
-    print_header "Checking Status for Student: $student_name"
+    print_header "Checking Status for Student: $repo_url"
     
     # Check if repository is accessible
     print_status "Checking repository access..."
@@ -160,7 +191,7 @@ check_student_status() {
     local local_commit
     
     student_commit=$(git ls-remote "$repo_url" refs/heads/main | cut -f1)
-    classroom_commit=$(git ls-remote "$CLASSROOM_URL" refs/heads/main | cut -f1)
+    classroom_commit=$(git ls-remote "$CLASSROOM_REPO_URL" refs/heads/main | cut -f1)
     local_commit=$(git rev-parse HEAD)
     
     echo
@@ -213,10 +244,7 @@ help_single_student() {
     # Ask for confirmation to proceed
     echo
     print_warning "This will clone the student's repository and apply template updates"
-    read -p "Do you want to proceed? [y/N] " -n 1 -r
-    echo
-    
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    if ! confirm_action "Do you want to proceed?"; then
         print_status "Operation cancelled"
         return 0
     fi
@@ -345,10 +373,7 @@ help_student() {
     # Ask for confirmation to proceed
     echo
     print_warning "This will clone the student's repository and apply updates"
-    read -p "Do you want to proceed? [y/N] " -n 1 -r
-    echo
-    
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    if ! confirm_action "Do you want to proceed?"; then
         print_status "Operation cancelled"
         return 0
     fi
@@ -369,8 +394,8 @@ help_student() {
     
     # Add classroom as remote
     print_status "Adding classroom remote..."
-    git remote add upstream "$CLASSROOM_URL"
-    
+    git remote add upstream "$CLASSROOM_REPO_URL"
+
     # Fetch updates
     print_status "Fetching updates from classroom..."
     git fetch upstream
@@ -490,6 +515,10 @@ batch_help_students() {
     
     print_header "Batch Processing Students"
     
+    if [ "$AUTO_CONFIRM" = true ]; then
+        print_status "Auto-confirm mode enabled - all prompts will be automatically accepted"
+    fi
+    
     # Count total repositories
     local total_repos=$(grep -c "^https://" "$repo_file" || echo "0")
     print_status "Found $total_repos student repositories to process"
@@ -501,10 +530,7 @@ batch_help_students() {
     
     # Ask for confirmation
     echo
-    read -p "Process all $total_repos repositories? [y/N] " -n 1 -r
-    echo
-    
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    if ! confirm_action "Process all $total_repos repositories?"; then
         print_status "Batch processing cancelled"
         return 0
     fi
@@ -515,16 +541,44 @@ batch_help_students() {
     local skip_count=0
     local error_count=0
     
-    while IFS= read -r repo_url; do
+    # echo "DEBUG: Starting to read from file: $repo_file" >&2
+    
+    # Read entire file into array to avoid I/O conflicts during processing
+    local repo_urls=()
+    while IFS= read -r line; do
+        # echo "DEBUG: Read line from file: '$line'" >&2
         # Skip empty lines and comments
-        [[ "$repo_url" =~ ^[[:space:]]*$ ]] && continue
-        [[ "$repo_url" =~ ^[[:space:]]*# ]] && continue
+        [[ "$line" =~ ^[[:space:]]*$ ]] && continue
+        [[ "$line" =~ ^[[:space:]]*# ]] && continue
+        
+        # Clean input more carefully - only remove known problematic characters
+        # Remove carriage returns first
+        line=$(echo "$line" | tr -d '\r')
+        # Remove leading/trailing whitespace
+        line=$(echo "$line" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+        # Remove BOM if present (only at very beginning)
+        if [[ "$line" =~ ^\xEF\xBB\xBF ]]; then
+            line="${line#???}"  # Remove first 3 bytes (BOM)
+        fi
+        
+        # Add to array if it looks like a URL
+        if [[ "$line" =~ ^https:// ]]; then
+            repo_urls+=("$line")
+            # echo "DEBUG: Added to array: '$line'" >&2
+        fi
+    done < "$repo_file"
+    
+    # echo "DEBUG: Total URLs found: ${#repo_urls[@]}" >&2
+    
+    # Now process each URL from the array
+    for repo_url in "${repo_urls[@]}"; do
+        # echo "DEBUG: Processing from array: '$repo_url'" >&2
         
         count=$((count + 1))
         local student_name=$(get_student_name "$repo_url")
         
         echo
-        print_status "Processing $count/$total_repos: $student_name"
+        print_status "Processing $count/${#repo_urls[@]}: $repo_url"
         
         # Check status first
         local status_result=0
@@ -545,7 +599,7 @@ batch_help_students() {
             fi
         fi
         
-    done < "$repo_file"
+    done
     
     # Summary
     echo
@@ -586,7 +640,7 @@ OPTION 2 - Manual Process:
    git commit -m "Save work before template update"
 
 2. Add the template as a remote (one-time setup):
-   git remote add upstream $CLASSROOM_URL
+   git remote add upstream $CLASSROOM_REPO_URL
 
 3. Get the updates:
    git fetch upstream
@@ -640,60 +694,119 @@ main() {
     fi
     
     # Parse arguments
-    case "${1:-}" in
-        --help|-h)
-            show_help
-            exit 0
-            ;;
-        --check-classroom)
+    local command=""
+    local target=""
+    
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --help|-h)
+                show_help
+                exit 0
+                ;;
+            --yes)
+                AUTO_CONFIRM=true
+                shift
+                ;;
+            --check-classroom)
+                command="check-classroom"
+                shift
+                ;;
+            --status)
+                command="status"
+                target="$2"
+                if [ -z "$target" ]; then
+                    print_error "Student repository URL required for --status"
+                    print_error "Usage: $0 --status [student-repo-url]"
+                    exit 1
+                fi
+                shift 2
+                ;;
+            --one-student)
+                command="one-student"
+                target="$2"
+                if [ -z "$target" ]; then
+                    print_error "Student repository URL required for --one-student"
+                    print_error "Usage: $0 --one-student [student-repo-url]"
+                    exit 1
+                fi
+                shift 2
+                ;;
+            --batch)
+                command="batch"
+                target="$2"
+                if [ -z "$target" ]; then
+                    print_error "Repository file required for --batch"
+                    print_error "Usage: $0 --batch [file-with-repo-urls] [--yes]"
+                    exit 1
+                fi
+                shift 2
+                ;;
+            --instructions)
+                command="instructions"
+                target="$2"
+                if [ -z "$target" ]; then
+                    print_error "Student repository URL required for --instructions"
+                    exit 1
+                fi
+                shift 2
+                ;;
+            "")
+                if [ -z "$command" ]; then
+                    print_error "Student repository URL required"
+                    echo
+                    show_help
+                    exit 1
+                fi
+                break
+                ;;
+            -*)
+                print_error "Unknown option: $1"
+                echo
+                show_help
+                exit 1
+                ;;
+            *)
+                if [ -z "$command" ]; then
+                    # Single student repository URL
+                    command="single"
+                    target="$1"
+                fi
+                shift
+                ;;
+        esac
+    done
+    
+    # Execute the command
+    case "$command" in
+        "check-classroom")
             check_classroom_ready
             exit $?
             ;;
-        --status)
-            if [ -z "$2" ]; then
-                print_error "Student repository URL required for --status"
-                print_error "Usage: $0 --status [student-repo-url]"
-                exit 1
-            fi
-            check_student_status "$2"
+        "status")
+            check_student_status "$target"
             exit $?
             ;;
-        --one-student)
-            if [ -z "$2" ]; then
-                print_error "Student repository URL required for --one-student"
-                print_error "Usage: $0 --one-student [student-repo-url]"
-                exit 1
-            fi
-            help_single_student "$2"
+        "one-student")
+            help_single_student "$target"
             exit $?
             ;;
-        --batch)
-            if [ -z "$2" ]; then
-                print_error "Repository file required for --batch"
-                print_error "Usage: $0 --batch [file-with-repo-urls]"
-                exit 1
-            fi
-            batch_help_students "$2"
+        "batch")
+            batch_help_students "$target"
             exit $?
             ;;
-        --instructions)
-            if [ -z "$2" ]; then
-                print_error "Student repository URL required for --instructions"
-                exit 1
-            fi
-            generate_instructions "$2"
+        "instructions")
+            generate_instructions "$target"
             exit 0
             ;;
+        "single")
+            help_student "$target"
+            exit $?
+            ;;
         "")
-            print_error "Student repository URL required"
+            print_error "No command specified"
             echo
             show_help
             exit 1
-            ;;
-        *)
-            # Single student repository URL
-            help_student "$1"
-            exit $?
             ;;
     esac
 }

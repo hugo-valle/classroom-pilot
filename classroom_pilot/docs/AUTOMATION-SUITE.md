@@ -8,6 +8,7 @@ The automation suite provides instructors with powerful tools to:
 - Automatically discover student repositories from GitHub Classroom
 - Manage GitHub secrets across multiple student repositories
 - Assist students with repository updates and conflict resolution
+- Fix repository access issues through intelligent permission cycling
 - Handle template repository updates and deployment
 
 ## 📋 Quick Start
@@ -52,6 +53,15 @@ echo "your_github_token_here" > instructor_token.txt
 
 # Help all students from discovered list
 ./scripts/student-update-helper.sh --batch student-repos-batch.txt
+```
+
+### 5. Fix Repository Access Issues
+```bash
+# Check and fix repository access for all students
+./scripts/cycle-collaborator.sh --config assignment.conf --batch student-repos-batch.txt --repo-urls
+
+# Preview what would be done first
+./scripts/cycle-collaborator.sh --config assignment.conf --batch student-repos-batch.txt --repo-urls --dry-run
 ```
 
 ## 🛠️ Complete Automation Scripts
@@ -170,7 +180,45 @@ https://github.com/WSU-ML-DL/cs6600-m1-homework1-instructor-tests
 ./scripts/student-update-helper.sh --template https://github.com/CUSTOM/template-repo student-repo-url
 ```
 
-### 4. Template Deployment Script
+### 4. Collaborator Cycling Script
+
+**File:** `scripts/cycle-collaborator.sh`
+
+**Purpose:** Fixes student repository access issues by cycling collaborator permissions.
+
+**Key Features:**
+- Intelligent detection of repository access problems
+- Smart cycling logic (only cycles when needed)
+- Force mode for manual override when troubleshooting
+- Configuration-based integration with orchestrator
+- Repository URL processing for batch operations
+- Comprehensive access verification and reporting
+
+**Usage Examples:**
+```bash
+# Check and fix access for specific student (traditional mode)
+./scripts/cycle-collaborator.sh assignment1 student-username organization
+
+# Configuration mode with batch processing (recommended)
+./scripts/cycle-collaborator.sh --config assignment.conf --batch student-repos.txt --repo-urls
+
+# Force cycling even when access appears correct
+./scripts/cycle-collaborator.sh --config assignment.conf --batch student-repos.txt --repo-urls --force
+
+# Dry run to preview actions
+./scripts/cycle-collaborator.sh --config assignment.conf --batch student-repos.txt --repo-urls --dry-run
+
+# List repository status without making changes
+./scripts/cycle-collaborator.sh --list assignment1 student-username organization
+```
+
+**Intelligent Cycling Logic:**
+- **Normal Mode:** Only cycles permissions when repository access issues are detected
+- **Force Mode:** Cycles permissions anyway when `--force` flag is used
+- **Smart Detection:** Verifies collaborator status before taking action
+- **Clear Reporting:** Explains why cycling is or isn't performed
+
+### 5. Template Deployment Script
 
 **File:** `scripts/push-to-classroom.sh`
 
@@ -197,6 +245,9 @@ git pull origin main
 
 # 4. Add secrets to all students
 ./scripts/add-secrets-to-students.sh INSTRUCTOR_TESTS_TOKEN --batch student-repos-batch.txt
+
+# 5. Fix any repository access issues (optional)
+./scripts/cycle-collaborator.sh --config assignment.conf --batch student-repos-batch.txt --repo-urls
 ```
 
 ### Workflow 2: Mid-Semester Updates
@@ -209,6 +260,9 @@ git pull origin main
 
 # 3. Help students with any update issues
 ./scripts/student-update-helper.sh --batch student-repos-batch.txt
+
+# 4. Fix any repository access issues that may have developed
+./scripts/cycle-collaborator.sh --config assignment.conf --batch student-repos-batch.txt --repo-urls
 ```
 
 ### Workflow 3: Emergency Secret Update
@@ -230,6 +284,21 @@ git pull origin main
 
 # 3. Assist students with final project updates
 ./scripts/student-update-helper.sh --batch final-repos.txt
+```
+
+### Workflow 5: Repository Access Troubleshooting
+```bash
+# 1. Discover student repositories
+./scripts/fetch-student-repos.sh
+
+# 2. Check repository access status
+./scripts/cycle-collaborator.sh --config assignment.conf --batch student-repos-batch.txt --repo-urls --list
+
+# 3. Fix any detected access issues
+./scripts/cycle-collaborator.sh --config assignment.conf --batch student-repos-batch.txt --repo-urls
+
+# 4. Force cycling for persistent issues
+./scripts/cycle-collaborator.sh --config assignment.conf --batch student-repos-batch.txt --repo-urls --force
 ```
 
 ## 🔐 Security Features

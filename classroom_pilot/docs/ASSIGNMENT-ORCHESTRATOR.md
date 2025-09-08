@@ -10,6 +10,7 @@ Instead of running multiple scripts manually, the orchestrator reads a configura
 2. **Repository Discovery** - Finds all student repositories from the classroom
 3. **Secret Management** - Adds/updates secrets across all student repositories
 4. **Student Assistance** - Optionally runs student help tools
+5. **Collaborator Cycling** - Fixes student repository access issues by cycling permissions
 
 ## 📁 Files
 
@@ -18,8 +19,21 @@ Instead of running multiple scripts manually, the orchestrator reads a configura
 
 ## 🚀 Quick Start
 
-### 1. Configure Your Assignment
-Edit `assignment.conf` with your assignment details:
+### 1. Automatic Setup (First Time)
+If you don't have an `assignment.conf` file, the orchestrator will detect this and offer to run the setup wizard:
+
+```bash
+# Run orchestrator - it will prompt for setup if needed
+./scripts/assignment-orchestrator.sh
+
+# Or force setup with --yes flag
+./scripts/assignment-orchestrator.sh --yes
+```
+
+The setup wizard will guide you through creating the configuration file interactively.
+
+### 2. Manual Configuration (Alternative)
+You can also configure manually by editing `assignment.conf` with your assignment details:
 
 ```bash
 # GitHub Classroom assignment URL
@@ -35,7 +49,7 @@ SECRETS=(
 )
 ```
 
-### 2. Run the Complete Workflow
+### 3. Run the Complete Workflow
 ```bash
 # Full workflow with confirmation
 ./scripts/assignment-orchestrator.sh
@@ -74,6 +88,7 @@ STEP_SYNC_TEMPLATE=true
 STEP_DISCOVER_REPOS=true  
 STEP_MANAGE_SECRETS=true
 STEP_ASSIST_STUDENTS=false
+STEP_CYCLE_COLLABORATORS=false
 ```
 
 ### Output Settings
@@ -102,6 +117,9 @@ DRY_RUN=false
 # Skip specific step  
 ./scripts/assignment-orchestrator.sh --skip sync
 
+# Run collaborator cycling step
+./scripts/assignment-orchestrator.sh --step cycle
+
 # Preview mode
 ./scripts/assignment-orchestrator.sh --dry-run
 ```
@@ -117,6 +135,26 @@ DRY_RUN=false
 # Combined options
 ./scripts/assignment-orchestrator.sh --dry-run --verbose
 ```
+
+## ✨ Key Features
+
+### Automatic Setup Integration
+- **Smart detection**: Automatically detects missing `assignment.conf` file
+- **Interactive setup**: Offers to run setup wizard when configuration is missing
+- **Seamless workflow**: Integrates setup as the first step in the orchestration process
+- **Automation friendly**: Supports `--yes` flag to auto-confirm setup for CI/CD pipelines
+
+### Intelligent Workflow Management
+- **Step-by-step execution**: Runs all automation tools in the correct order
+- **Flexible control**: Run individual steps or skip specific steps as needed
+- **Preview mode**: Dry-run capability to preview actions before execution
+- **Error handling**: Stops on errors to prevent cascade failures
+
+### Configuration-Driven
+- **Single source of truth**: All assignment settings in one configuration file
+- **Universal file support**: Works with any file type (.py, .cpp, .sql, .md, etc.)
+- **Multi-secret support**: Manage multiple tokens and secrets across repositories
+- **Customizable workflows**: Enable/disable specific steps based on assignment needs
 
 ## 📋 Workflow Steps
 
@@ -141,6 +179,13 @@ DRY_RUN=false
 - Executes `scripts/student-update-helper.sh`
 - Provides automated assistance for common student issues
 - Optional step (disabled by default)
+
+### Step 5: Collaborator Cycling (`cycle`)
+- Executes `scripts/cycle-collaborator.sh` with configuration mode
+- Fixes repository access issues by cycling collaborator permissions
+- Intelligently detects when cycling is needed vs when access is already correct
+- Optional step (disabled by default)
+- Useful for resolving GitHub Classroom permission glitches
 
 ## 🎛️ Advanced Usage
 
@@ -168,6 +213,9 @@ Run only specific parts of the workflow:
 # Only manage secrets (for token updates)
 ./scripts/assignment-orchestrator.sh --step secrets
 
+# Only fix repository access issues
+./scripts/assignment-orchestrator.sh --step cycle
+
 # Everything except student assistance
 ./scripts/assignment-orchestrator.sh --skip assist
 ```
@@ -192,6 +240,7 @@ The orchestrator is designed to work seamlessly with existing scripts:
 - **`fetch-student-repos.sh`** - Called with `--classroom-url` parameter
 - **`add-secrets-to-students.sh`** - Called with `--batch` mode for each secret
 - **`student-update-helper.sh`** - Called with `--batch` mode for assistance
+- **`cycle-collaborator.sh`** - Called with `--config` and `--repo-urls` for access fixes
 
 All scripts maintain their individual functionality and can still be used standalone.
 
