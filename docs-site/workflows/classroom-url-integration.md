@@ -252,7 +252,7 @@ classroom-pilot --verbose assignments orchestrate --config assignment.conf
 ## 📚 Related Documentation
 
 - **[Main CLI Reference](../README.md)** - Complete command documentation
-- **[Assignment Orchestrator](ASSIGNMENT-ORCHESTRATOR.md)** - Workflow automation
+- **[Assignment Orchestrator](assignment-orchestrator.md)** - Workflow automation
 - **[Repository Operations](../README.md#repository-operations)** - Repository management
 - **[Configuration Guide](../README.md#configuration)** - Configuration setup
 

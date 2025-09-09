@@ -5,7 +5,34 @@ All notable changes to Classroom Pilot are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [3.0.1-alpha.2] - 2024-01-XX
+## [3.1.0-alpha.1] - 2025-09-09
+
+### Added
+- Complete MkDocs documentation structure with Material theme
+- Professional documentation site organization with comprehensive navigation
+- Detailed CLI reference documentation for all command groups:
+  - Assignment Commands: Complete lifecycle management
+  - Repository Commands: Student repository operations
+  - Secret Management: Secure credential distribution
+  - Automation Commands: Scheduling and batch processing
+- GitHub Pages deployment workflow for automated documentation publishing
+- Configuration guide with examples for all environments
+- Comprehensive workflow documentation for all major operations
+- Development documentation including contributing, architecture, and testing guides
+
+### Changed
+- Enhanced documentation organization with logical grouping and navigation
+- Improved cross-references and internal linking throughout documentation
+- Updated all CLI examples to use modern Python commands
+- Modernized installation and setup instructions for better user experience
+
+### Fixed
+- Documentation consistency across all workflow guides
+- Internal link references throughout the documentation site
+- CLI command examples and usage patterns
+- Integration examples with modern Python packaging ecosystem
+
+## [3.0.1-alpha.2] - 2025-09-05
 
 ### Added
 - Complete MkDocs documentation structure with Material theme
@@ -24,7 +51,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLI command examples and usage patterns
 - Integration with modern Python packaging ecosystem
 
-## [3.0.1-alpha.1] - 2024-01-XX
+## [3.0.1-alpha.1] - 2025-09-01
 
 ### Added
 - Complete Python CLI implementation using Typer framework
@@ -155,7 +182,7 @@ Classroom Pilot was created to solve the challenges of managing GitHub Classroom
 
 ## Contributing
 
-We welcome contributions! See our [Contributing Guide](contributing.md) for details on:
+We welcome contributions! See our [Contributing Guide](../development/contributing.md) for details on:
 
 - Development setup
 - Coding standards

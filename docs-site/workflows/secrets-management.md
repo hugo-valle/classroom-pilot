@@ -343,9 +343,9 @@ classroom-pilot --dry-run --verbose secrets add --config assignment.conf
 
 ## 📚 Related Documentation
 
-- **[Assignment Orchestrator](ASSIGNMENT-ORCHESTRATOR.md)** - Complete workflow automation
-- **[Automation Suite](AUTOMATION-SUITE.md)** - Comprehensive automation capabilities
-- **[Cron Automation](CRON-AUTOMATION.md)** - Scheduled secret management
+- **[Assignment Orchestrator](assignment-orchestrator.md)** - Complete workflow automation
+- **[Automation Suite](automation-suite.md)** - Complete automation capabilities
+- **[Cron Automation](cron-automation.md)** - Scheduled automation
 - **[Main CLI Reference](../README.md)** - Complete command documentation
 
 ## 💡 Examples & Use Cases

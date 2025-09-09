@@ -255,7 +255,7 @@ classroom-pilot --dry-run --verbose assignments orchestrate --config assignment.
 ## 📚 Related Documentation
 
 - **[Main CLI Reference](../README.md#command-reference)** - Complete command documentation
-- **[Secrets Management](SECRETS-MANAGEMENT.md)** - Detailed secret handling guide
+- **[Secrets Management](secrets-management.md)** - Detailed secret handling guide
 - **[Repository Operations](../README.md#repository-operations)** - Repository management commands
 - **[Configuration Guide](../README.md#configuration)** - Configuration file setup
 

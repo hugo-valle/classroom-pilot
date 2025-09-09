@@ -10,13 +10,13 @@
       
       
       
-        <link rel="canonical" href="https://hugo-valle.github.io/classroom-pilot/cli/overview/">
+        <link rel="canonical" href="https://hugo-valle.github.io/classroom-pilot/cli/assignments/">
       
       
-        <link rel="prev" href="../../getting-started/configuration/">
+        <link rel="prev" href="../overview/">
       
       
-        <link rel="next" href="../assignments/">
+        <link rel="next" href="../repositories/">
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
@@ -24,7 +24,7 @@
     
     
       
-        <title>Overview - Classroom Pilot</title>
+        <title>Assignment Commands - Classroom Pilot</title>
       
     
     
@@ -76,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#cli-overview" class="md-skip">
+        <a href="#assignment-commands" class="md-skip">
           Skip to content
         </a>
       
@@ -114,7 +114,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Overview
+              Assignment Commands
             
           </span>
         </div>
@@ -275,7 +275,7 @@
     
     
       <li class="md-tabs__item md-tabs__item--active">
-        <a href="./" class="md-tabs__link">
+        <a href="../overview/" class="md-tabs__link">
           
   
   
@@ -581,6 +581,29 @@
                 
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Overview
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
     
   
   
@@ -598,7 +621,7 @@
   
   
   <span class="md-ellipsis">
-    Overview
+    Assignment Commands
     
   </span>
   
@@ -611,7 +634,7 @@
   
   
   <span class="md-ellipsis">
-    Overview
+    Assignment Commands
     
   </span>
   
@@ -636,88 +659,55 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#command-structure" class="md-nav__link">
+  <a href="#overview" class="md-nav__link">
     <span class="md-ellipsis">
-      🏗️ Command Structure
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="🏗️ Command Structure">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#command-groups" class="md-nav__link">
-    <span class="md-ellipsis">
-      Command Groups
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#legacy-commands" class="md-nav__link">
-    <span class="md-ellipsis">
-      Legacy Commands
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#global-options" class="md-nav__link">
-    <span class="md-ellipsis">
-      ⚙️ Global Options
+      Overview
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#quick-reference" class="md-nav__link">
+  <a href="#commands" class="md-nav__link">
     <span class="md-ellipsis">
-      📋 Quick Reference
+      Commands
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="📋 Quick Reference">
+    <nav class="md-nav" aria-label="Commands">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#assignment-management" class="md-nav__link">
+  <a href="#classroom-pilot-assignments-setup" class="md-nav__link">
     <span class="md-ellipsis">
-      Assignment Management
+      classroom-pilot assignments setup
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#repository-operations" class="md-nav__link">
+  <a href="#classroom-pilot-assignments-orchestrate" class="md-nav__link">
     <span class="md-ellipsis">
-      Repository Operations
+      classroom-pilot assignments orchestrate
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#secret-management" class="md-nav__link">
+  <a href="#classroom-pilot-assignments-status" class="md-nav__link">
     <span class="md-ellipsis">
-      Secret Management
+      classroom-pilot assignments status
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#automation-scheduling" class="md-nav__link">
+  <a href="#classroom-pilot-assignments-validate" class="md-nav__link">
     <span class="md-ellipsis">
-      Automation &amp; Scheduling
+      classroom-pilot assignments validate
     </span>
   </a>
   
@@ -731,26 +721,44 @@
         <li class="md-nav__item">
   <a href="#configuration" class="md-nav__link">
     <span class="md-ellipsis">
-      🔧 Configuration
+      Configuration
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="🔧 Configuration">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#integration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Integration
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      Examples
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Examples">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#configuration-file-example" class="md-nav__link">
+  <a href="#complete-assignment-setup" class="md-nav__link">
     <span class="md-ellipsis">
-      Configuration File Example
+      Complete Assignment Setup
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#environment-variable-overrides" class="md-nav__link">
+  <a href="#automated-assignment-management" class="md-nav__link">
     <span class="md-ellipsis">
-      Environment Variable Overrides
+      Automated Assignment Management
     </span>
   </a>
   
@@ -762,56 +770,23 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#usage-patterns" class="md-nav__link">
+  <a href="#troubleshooting" class="md-nav__link">
     <span class="md-ellipsis">
-      💡 Usage Patterns
+      Troubleshooting
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="💡 Usage Patterns">
+    <nav class="md-nav" aria-label="Troubleshooting">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#development-testing" class="md-nav__link">
+  <a href="#common-issues" class="md-nav__link">
     <span class="md-ellipsis">
-      Development &amp; Testing
+      Common Issues
     </span>
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
-  <a href="#production-workflows" class="md-nav__link">
-    <span class="md-ellipsis">
-      Production Workflows
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#batch-operations" class="md-nav__link">
-    <span class="md-ellipsis">
-      Batch Operations
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#help-system" class="md-nav__link">
-    <span class="md-ellipsis">
-      🆘 Help System
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="🆘 Help System">
-      <ul class="md-nav__list">
         
           <li class="md-nav__item">
   <a href="#getting-help" class="md-nav__link">
@@ -822,57 +797,24 @@
   
 </li>
         
-          <li class="md-nav__item">
-  <a href="#error-messages" class="md-nav__link">
-    <span class="md-ellipsis">
-      Error Messages
-    </span>
-  </a>
-  
-</li>
-        
       </ul>
     </nav>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#debugging" class="md-nav__link">
+  <a href="#best-practices" class="md-nav__link">
     <span class="md-ellipsis">
-      🔍 Debugging
+      Best Practices
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="🔍 Debugging">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#verbose-mode" class="md-nav__link">
-    <span class="md-ellipsis">
-      Verbose Mode
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#log-information" class="md-nav__link">
-    <span class="md-ellipsis">
-      Log Information
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#related-documentation" class="md-nav__link">
+  <a href="#see-also" class="md-nav__link">
     <span class="md-ellipsis">
-      📚 Related Documentation
+      See Also
     </span>
   </a>
   
@@ -882,29 +824,6 @@
   
 </nav>
       
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../assignments/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    Assignment Commands
-    
-  </span>
-  
-
-      </a>
     </li>
   
 
@@ -1389,88 +1308,55 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#command-structure" class="md-nav__link">
+  <a href="#overview" class="md-nav__link">
     <span class="md-ellipsis">
-      🏗️ Command Structure
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="🏗️ Command Structure">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#command-groups" class="md-nav__link">
-    <span class="md-ellipsis">
-      Command Groups
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#legacy-commands" class="md-nav__link">
-    <span class="md-ellipsis">
-      Legacy Commands
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#global-options" class="md-nav__link">
-    <span class="md-ellipsis">
-      ⚙️ Global Options
+      Overview
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#quick-reference" class="md-nav__link">
+  <a href="#commands" class="md-nav__link">
     <span class="md-ellipsis">
-      📋 Quick Reference
+      Commands
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="📋 Quick Reference">
+    <nav class="md-nav" aria-label="Commands">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#assignment-management" class="md-nav__link">
+  <a href="#classroom-pilot-assignments-setup" class="md-nav__link">
     <span class="md-ellipsis">
-      Assignment Management
+      classroom-pilot assignments setup
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#repository-operations" class="md-nav__link">
+  <a href="#classroom-pilot-assignments-orchestrate" class="md-nav__link">
     <span class="md-ellipsis">
-      Repository Operations
+      classroom-pilot assignments orchestrate
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#secret-management" class="md-nav__link">
+  <a href="#classroom-pilot-assignments-status" class="md-nav__link">
     <span class="md-ellipsis">
-      Secret Management
+      classroom-pilot assignments status
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#automation-scheduling" class="md-nav__link">
+  <a href="#classroom-pilot-assignments-validate" class="md-nav__link">
     <span class="md-ellipsis">
-      Automation &amp; Scheduling
+      classroom-pilot assignments validate
     </span>
   </a>
   
@@ -1484,26 +1370,44 @@
         <li class="md-nav__item">
   <a href="#configuration" class="md-nav__link">
     <span class="md-ellipsis">
-      🔧 Configuration
+      Configuration
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="🔧 Configuration">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#integration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Integration
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      Examples
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Examples">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#configuration-file-example" class="md-nav__link">
+  <a href="#complete-assignment-setup" class="md-nav__link">
     <span class="md-ellipsis">
-      Configuration File Example
+      Complete Assignment Setup
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#environment-variable-overrides" class="md-nav__link">
+  <a href="#automated-assignment-management" class="md-nav__link">
     <span class="md-ellipsis">
-      Environment Variable Overrides
+      Automated Assignment Management
     </span>
   </a>
   
@@ -1515,56 +1419,23 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#usage-patterns" class="md-nav__link">
+  <a href="#troubleshooting" class="md-nav__link">
     <span class="md-ellipsis">
-      💡 Usage Patterns
+      Troubleshooting
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="💡 Usage Patterns">
+    <nav class="md-nav" aria-label="Troubleshooting">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#development-testing" class="md-nav__link">
+  <a href="#common-issues" class="md-nav__link">
     <span class="md-ellipsis">
-      Development &amp; Testing
+      Common Issues
     </span>
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
-  <a href="#production-workflows" class="md-nav__link">
-    <span class="md-ellipsis">
-      Production Workflows
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#batch-operations" class="md-nav__link">
-    <span class="md-ellipsis">
-      Batch Operations
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#help-system" class="md-nav__link">
-    <span class="md-ellipsis">
-      🆘 Help System
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="🆘 Help System">
-      <ul class="md-nav__list">
         
           <li class="md-nav__item">
   <a href="#getting-help" class="md-nav__link">
@@ -1575,57 +1446,24 @@
   
 </li>
         
-          <li class="md-nav__item">
-  <a href="#error-messages" class="md-nav__link">
-    <span class="md-ellipsis">
-      Error Messages
-    </span>
-  </a>
-  
-</li>
-        
       </ul>
     </nav>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#debugging" class="md-nav__link">
+  <a href="#best-practices" class="md-nav__link">
     <span class="md-ellipsis">
-      🔍 Debugging
+      Best Practices
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="🔍 Debugging">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#verbose-mode" class="md-nav__link">
-    <span class="md-ellipsis">
-      Verbose Mode
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#log-information" class="md-nav__link">
-    <span class="md-ellipsis">
-      Log Information
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#related-documentation" class="md-nav__link">
+  <a href="#see-also" class="md-nav__link">
     <span class="md-ellipsis">
-      📚 Related Documentation
+      See Also
     </span>
   </a>
   
@@ -1647,7 +1485,7 @@
 
 
   
-    <a href="https://github.com/hugo-valle/classroom-pilot/edit/master/docs/cli/overview.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/hugo-valle/classroom-pilot/edit/master/docs/cli/assignments.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -1656,261 +1494,244 @@
     
       
     
-    <a href="https://github.com/hugo-valle/classroom-pilot/raw/master/docs/cli/overview.md" title="View source of this page" class="md-content__button md-icon">
+    <a href="https://github.com/hugo-valle/classroom-pilot/raw/master/docs/cli/assignments.md" title="View source of this page" class="md-content__button md-icon">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 18c.56 0 1 .44 1 1s-.44 1-1 1-1-.44-1-1 .44-1 1-1m0-3c-2.73 0-5.06 1.66-6 4 .94 2.34 3.27 4 6 4s5.06-1.66 6-4c-.94-2.34-3.27-4-6-4m0 6.5a2.5 2.5 0 0 1-2.5-2.5 2.5 2.5 0 0 1 2.5-2.5 2.5 2.5 0 0 1 2.5 2.5 2.5 2.5 0 0 1-2.5 2.5M9.27 20H6V4h7v5h5v4.07c.7.08 1.36.25 2 .49V8l-6-6H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h4.5a8.2 8.2 0 0 1-1.23-2"/></svg>
     </a>
   
 
 
-<h1 id="cli-overview">CLI Overview<a class="headerlink" href="#cli-overview" title="Permanent link">&para;</a></h1>
-<p>Classroom Pilot provides a comprehensive command-line interface organized into logical command groups.</p>
-<h2 id="command-structure">🏗️ Command Structure<a class="headerlink" href="#command-structure" title="Permanent link">&para;</a></h2>
-<p>The CLI is organized into four main command groups:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>classroom-pilot<span class="w"> </span><span class="o">[</span>GLOBAL_OPTIONS<span class="o">]</span><span class="w"> </span>COMMAND<span class="w"> </span><span class="o">[</span>ARGS<span class="o">]</span>...
+<h1 id="assignment-commands">Assignment Commands<a class="headerlink" href="#assignment-commands" title="Permanent link">&para;</a></h1>
+<p>The assignment commands provide comprehensive tools for managing GitHub Classroom assignments throughout their lifecycle.</p>
+<h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
+<p>Assignment management in Classroom Pilot covers the complete workflow from initial setup through ongoing maintenance and automation.</p>
+<h2 id="commands">Commands<a class="headerlink" href="#commands" title="Permanent link">&para;</a></h2>
+<h3 id="classroom-pilot-assignments-setup"><code>classroom-pilot assignments setup</code><a class="headerlink" href="#classroom-pilot-assignments-setup" title="Permanent link">&para;</a></h3>
+<p>Initialize a new assignment with proper configuration and repository structure.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># Basic assignment setup</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>classroom-pilot<span class="w"> </span>assignments<span class="w"> </span>setup
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1"># Setup with specific configuration</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>classroom-pilot<span class="w"> </span>assignments<span class="w"> </span>setup<span class="w"> </span>--config<span class="w"> </span>assignment.conf
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="c1"># Dry run to preview changes</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>classroom-pilot<span class="w"> </span>assignments<span class="w"> </span>setup<span class="w"> </span>--dry-run
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="c1"># Verbose output for debugging</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>classroom-pilot<span class="w"> </span>assignments<span class="w"> </span>setup<span class="w"> </span>--verbose
 </code></pre></div>
-<h3 id="command-groups">Command Groups<a class="headerlink" href="#command-groups" title="Permanent link">&para;</a></h3>
-<table>
-<thead>
-<tr>
-<th>Group</th>
-<th>Purpose</th>
-<th>Commands</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>assignments</code></td>
-<td>Assignment setup and orchestration</td>
-<td><code>setup</code>, <code>orchestrate</code>, <code>manage</code></td>
-</tr>
-<tr>
-<td><code>repos</code></td>
-<td>Repository operations</td>
-<td><code>fetch</code>, <code>collaborator</code></td>
-</tr>
-<tr>
-<td><code>secrets</code></td>
-<td>Secret and token management</td>
-<td><code>add</code>, <code>remove</code>, <code>list</code></td>
-</tr>
-<tr>
-<td><code>automation</code></td>
-<td>Scheduling and batch processing</td>
-<td><code>scheduler</code>, <code>batch</code></td>
-</tr>
-</tbody>
-</table>
-<h3 id="legacy-commands">Legacy Commands<a class="headerlink" href="#legacy-commands" title="Permanent link">&para;</a></h3>
-<p>For backward compatibility:</p>
-<table>
-<thead>
-<tr>
-<th>Command</th>
-<th>Purpose</th>
-<th>Modern Equivalent</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>setup</code></td>
-<td>Interactive assignment setup</td>
-<td><code>assignments setup</code></td>
-</tr>
-<tr>
-<td><code>run</code></td>
-<td>Complete workflow execution</td>
-<td><code>assignments orchestrate</code></td>
-</tr>
-<tr>
-<td><code>version</code></td>
-<td>Show version information</td>
-<td><code>version</code></td>
-</tr>
-</tbody>
-</table>
-<h2 id="global-options">⚙️ Global Options<a class="headerlink" href="#global-options" title="Permanent link">&para;</a></h2>
-<p>Global options apply to all commands:</p>
-<table>
-<thead>
-<tr>
-<th>Option</th>
-<th>Short</th>
-<th>Description</th>
-<th>Example</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>--dry-run</code></td>
-<td></td>
-<td>Preview actions without executing</td>
-<td><code>classroom-pilot --dry-run assignments orchestrate</code></td>
-</tr>
-<tr>
-<td><code>--verbose</code></td>
-<td></td>
-<td>Enable detailed logging</td>
-<td><code>classroom-pilot --verbose repos fetch</code></td>
-</tr>
-<tr>
-<td><code>--config FILE</code></td>
-<td></td>
-<td>Use custom configuration file</td>
-<td><code>classroom-pilot --config my.conf secrets add</code></td>
-</tr>
-<tr>
-<td><code>--help</code></td>
-<td></td>
-<td>Show help information</td>
-<td><code>classroom-pilot --help</code></td>
-</tr>
-</tbody>
-</table>
-<h2 id="quick-reference">📋 Quick Reference<a class="headerlink" href="#quick-reference" title="Permanent link">&para;</a></h2>
-<h3 id="assignment-management">Assignment Management<a class="headerlink" href="#assignment-management" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># Interactive setup</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>classroom-pilot<span class="w"> </span>assignments<span class="w"> </span>setup
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="c1"># Run complete workflow</span>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>classroom-pilot<span class="w"> </span>assignments<span class="w"> </span>orchestrate<span class="w"> </span><span class="o">[</span>--config<span class="w"> </span>FILE<span class="o">]</span>
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
-<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="c1"># Manage templates</span>
-<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>classroom-pilot<span class="w"> </span>assignments<span class="w"> </span>manage<span class="w"> </span><span class="o">[</span>--config<span class="w"> </span>FILE<span class="o">]</span>
-</code></pre></div>
-<h3 id="repository-operations">Repository Operations<a class="headerlink" href="#repository-operations" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># Discover student repositories</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>classroom-pilot<span class="w"> </span>repos<span class="w"> </span>fetch<span class="w"> </span><span class="o">[</span>--config<span class="w"> </span>FILE<span class="o">]</span>
+<p><strong>Options:</strong>
+- <code>--config PATH</code>: Specify custom configuration file
+- <code>--dry-run</code>: Show what would be done without making changes
+- <code>--verbose</code>: Enable detailed output
+- <code>--help</code>: Show command help</p>
+<p><strong>Example:</strong>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># Setup assignment with custom config</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>classroom-pilot<span class="w"> </span>assignments<span class="w"> </span>setup<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span>--config<span class="w"> </span>assignments/hw01-config.yaml<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span>--verbose
+</code></pre></div></p>
+<h3 id="classroom-pilot-assignments-orchestrate"><code>classroom-pilot assignments orchestrate</code><a class="headerlink" href="#classroom-pilot-assignments-orchestrate" title="Permanent link">&para;</a></h3>
+<p>Execute the complete assignment workflow including repository creation, secret distribution, and collaboration setup.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># Run full orchestration</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>classroom-pilot<span class="w"> </span>assignments<span class="w"> </span>orchestrate
 <a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="c1"># Add collaborators</span>
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>classroom-pilot<span class="w"> </span>repos<span class="w"> </span>collaborator<span class="w"> </span>add<span class="w"> </span><span class="o">[</span>--config<span class="w"> </span>FILE<span class="o">]</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="c1"># Orchestrate specific assignment</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>classroom-pilot<span class="w"> </span>assignments<span class="w"> </span>orchestrate<span class="w"> </span>--assignment<span class="w"> </span><span class="s2">&quot;homework-01&quot;</span>
 <a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>
-<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="c1"># Remove collaborators</span>
-<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>classroom-pilot<span class="w"> </span>repos<span class="w"> </span>collaborator<span class="w"> </span>remove<span class="w"> </span><span class="o">[</span>--config<span class="w"> </span>FILE<span class="o">]</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="c1"># Skip specific steps</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>classroom-pilot<span class="w"> </span>assignments<span class="w"> </span>orchestrate<span class="w"> </span>--skip-secrets
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="c1"># Run with custom timing</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>classroom-pilot<span class="w"> </span>assignments<span class="w"> </span>orchestrate<span class="w"> </span>--delay<span class="w"> </span><span class="m">30</span>
 </code></pre></div>
-<h3 id="secret-management">Secret Management<a class="headerlink" href="#secret-management" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># Add secrets to repositories</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>classroom-pilot<span class="w"> </span>secrets<span class="w"> </span>add<span class="w"> </span><span class="o">[</span>--config<span class="w"> </span>FILE<span class="o">]</span><span class="w"> </span><span class="o">[</span>--secrets<span class="w"> </span>LIST<span class="o">]</span>
+<p><strong>Options:</strong>
+- <code>--assignment NAME</code>: Target specific assignment
+- <code>--skip-secrets</code>: Skip secret distribution
+- <code>--skip-collaborators</code>: Skip collaborator management
+- <code>--delay SECONDS</code>: Delay between operations (default: 10)
+- <code>--max-retries COUNT</code>: Maximum retry attempts (default: 3)
+- <code>--dry-run</code>: Preview operations without execution</p>
+<p><strong>Workflow Steps:</strong>
+1. <strong>Repository Discovery</strong>: Find student repositories
+2. <strong>Secret Distribution</strong>: Add repository secrets
+3. <strong>Collaborator Management</strong>: Configure access permissions
+4. <strong>Validation</strong>: Verify setup completion
+5. <strong>Reporting</strong>: Generate operation summary</p>
+<h3 id="classroom-pilot-assignments-status"><code>classroom-pilot assignments status</code><a class="headerlink" href="#classroom-pilot-assignments-status" title="Permanent link">&para;</a></h3>
+<p>Check the current status of assignments and their repositories.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># Check all assignments</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>classroom-pilot<span class="w"> </span>assignments<span class="w"> </span>status
 <a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="c1"># Remove secrets</span>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>classroom-pilot<span class="w"> </span>secrets<span class="w"> </span>remove<span class="w"> </span><span class="o">[</span>--config<span class="w"> </span>FILE<span class="o">]</span><span class="w"> </span><span class="o">[</span>--secrets<span class="w"> </span>LIST<span class="o">]</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="c1"># Check specific assignment</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>classroom-pilot<span class="w"> </span>assignments<span class="w"> </span>status<span class="w"> </span>--assignment<span class="w"> </span><span class="s2">&quot;homework-01&quot;</span>
 <a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>
-<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="c1"># List existing secrets</span>
-<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>classroom-pilot<span class="w"> </span>secrets<span class="w"> </span>list<span class="w"> </span><span class="o">[</span>--config<span class="w"> </span>FILE<span class="o">]</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="c1"># Detailed status report</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>classroom-pilot<span class="w"> </span>assignments<span class="w"> </span>status<span class="w"> </span>--detailed
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="c1"># Export status to file</span>
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>classroom-pilot<span class="w"> </span>assignments<span class="w"> </span>status<span class="w"> </span>--output<span class="w"> </span>status-report.json
 </code></pre></div>
-<h3 id="automation-scheduling">Automation &amp; Scheduling<a class="headerlink" href="#automation-scheduling" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># Setup automated scheduling</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>classroom-pilot<span class="w"> </span>automation<span class="w"> </span>scheduler<span class="w"> </span>setup<span class="w"> </span><span class="o">[</span>--config<span class="w"> </span>FILE<span class="o">]</span>
+<p><strong>Options:</strong>
+- <code>--assignment NAME</code>: Check specific assignment
+- <code>--detailed</code>: Include repository-level details
+- <code>--output FILE</code>: Save report to file
+- <code>--format FORMAT</code>: Output format (table, json, yaml)</p>
+<h3 id="classroom-pilot-assignments-validate"><code>classroom-pilot assignments validate</code><a class="headerlink" href="#classroom-pilot-assignments-validate" title="Permanent link">&para;</a></h3>
+<p>Validate assignment configuration and repository state.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># Validate current configuration</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>classroom-pilot<span class="w"> </span>assignments<span class="w"> </span>validate
 <a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="c1"># Check scheduler status</span>
-<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>classroom-pilot<span class="w"> </span>automation<span class="w"> </span>scheduler<span class="w"> </span>status
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="c1"># Validate specific assignment</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>classroom-pilot<span class="w"> </span>assignments<span class="w"> </span>validate<span class="w"> </span>--assignment<span class="w"> </span><span class="s2">&quot;homework-01&quot;</span>
 <a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>
-<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="c1"># Run batch operations</span>
-<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>classroom-pilot<span class="w"> </span>automation<span class="w"> </span>batch<span class="w"> </span><span class="o">[</span>--config<span class="w"> </span>FILE<span class="o">]</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="c1"># Validate with strict checking</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>classroom-pilot<span class="w"> </span>assignments<span class="w"> </span>validate<span class="w"> </span>--strict
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="c1"># Generate validation report</span>
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>classroom-pilot<span class="w"> </span>assignments<span class="w"> </span>validate<span class="w"> </span>--report<span class="w"> </span>validation.html
 </code></pre></div>
-<h2 id="configuration">🔧 Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
-<p>All commands support configuration via:</p>
-<ol>
-<li><strong>Configuration file</strong> (default: <code>assignment.conf</code>)</li>
-<li><strong>Environment variables</strong></li>
-<li><strong>Command-line options</strong></li>
-</ol>
-<h3 id="configuration-file-example">Configuration File Example<a class="headerlink" href="#configuration-file-example" title="Permanent link">&para;</a></h3>
+<p><strong>Options:</strong>
+- <code>--assignment NAME</code>: Validate specific assignment
+- <code>--strict</code>: Enable strict validation rules
+- <code>--report FILE</code>: Generate HTML validation report
+- <code>--fix</code>: Automatically fix detected issues</p>
+<h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
+<p>Assignment commands use configuration files to define:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># assignment.conf</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="nv">CLASSROOM_URL</span><span class="o">=</span><span class="s2">&quot;https://classroom.github.com/classrooms/123/assignments/homework1&quot;</span>
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="nv">TEMPLATE_REPO_URL</span><span class="o">=</span><span class="s2">&quot;https://github.com/instructor/homework1-template&quot;</span>
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="nv">ASSIGNMENT_FILE</span><span class="o">=</span><span class="s2">&quot;homework1.py&quot;</span>
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="nv">GITHUB_TOKEN_FILE</span><span class="o">=</span><span class="s2">&quot;github_token.txt&quot;</span>
-<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="nv">SECRETS_LIST</span><span class="o">=</span><span class="s2">&quot;API_KEY,GRADING_TOKEN&quot;</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="nt">assignment</span><span class="p">:</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;homework-01&quot;</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">  </span><span class="nt">prefix</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;hw01-&quot;</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">  </span><span class="nt">template_repo</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;classroom-template&quot;</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="nt">github</span><span class="p">:</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="w">  </span><span class="nt">organization</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-class-org&quot;</span>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="w">  </span><span class="nt">token</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;${GITHUB_TOKEN}&quot;</span>
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="nt">automation</span><span class="p">:</span>
+<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="w">  </span><span class="nt">retry_count</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span>
+<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a><span class="w">  </span><span class="nt">delay_seconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10</span>
+<a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a>
+<a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a><span class="nt">validation</span><span class="p">:</span>
+<a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a><span class="w">  </span><span class="nt">required_files</span><span class="p">:</span>
+<a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;README.md&quot;</span>
+<a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;src/&quot;</span>
+<a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;.github/workflows/&quot;</span>
 </code></pre></div>
-<h3 id="environment-variable-overrides">Environment Variable Overrides<a class="headerlink" href="#environment-variable-overrides" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># Override configuration</span>
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="nb">export</span><span class="w"> </span><span class="nv">GITHUB_TOKEN</span><span class="o">=</span><span class="s2">&quot;ghp_your_token&quot;</span>
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="nb">export</span><span class="w"> </span><span class="nv">ASSIGNMENT_FILE</span><span class="o">=</span><span class="s2">&quot;main.cpp&quot;</span>
+<h2 id="integration">Integration<a class="headerlink" href="#integration" title="Permanent link">&para;</a></h2>
+<p>Assignment commands integrate seamlessly with:</p>
+<ul>
+<li><strong><a href="../repositories/">Repository Operations</a></strong>: Manage student repositories</li>
+<li><strong><a href="../secrets/">Secret Management</a></strong>: Distribute assignment secrets</li>
+<li><strong><a href="../automation/">Automation</a></strong>: Schedule assignment workflows</li>
+</ul>
+<h2 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">&para;</a></h2>
+<h3 id="complete-assignment-setup">Complete Assignment Setup<a class="headerlink" href="#complete-assignment-setup" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># 1. Setup assignment configuration</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>classroom-pilot<span class="w"> </span>assignments<span class="w"> </span>setup<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">  </span>--config<span class="w"> </span>assignments/midterm-project.yaml
 <a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>
-<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="c1"># Run commands</span>
-<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>classroom-pilot<span class="w"> </span>assignments<span class="w"> </span>orchestrate
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="c1"># 2. Orchestrate full workflow</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>classroom-pilot<span class="w"> </span>assignments<span class="w"> </span>orchestrate<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="w">  </span>--assignment<span class="w"> </span><span class="s2">&quot;midterm-project&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="w">  </span>--verbose
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="c1"># 3. Validate setup</span>
+<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>classroom-pilot<span class="w"> </span>assignments<span class="w"> </span>validate<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a><span class="w">  </span>--assignment<span class="w"> </span><span class="s2">&quot;midterm-project&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a><span class="w">  </span>--report<span class="w"> </span>validation.html
+<a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a>
+<a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a><span class="c1"># 4. Check status</span>
+<a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a>classroom-pilot<span class="w"> </span>assignments<span class="w"> </span>status<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a><span class="w">  </span>--assignment<span class="w"> </span><span class="s2">&quot;midterm-project&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a><span class="w">  </span>--detailed
 </code></pre></div>
-<h2 id="usage-patterns">💡 Usage Patterns<a class="headerlink" href="#usage-patterns" title="Permanent link">&para;</a></h2>
-<h3 id="development-testing">Development &amp; Testing<a class="headerlink" href="#development-testing" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># Always preview first</span>
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>classroom-pilot<span class="w"> </span>--dry-run<span class="w"> </span>assignments<span class="w"> </span>orchestrate<span class="w"> </span>--config<span class="w"> </span>assignment.conf
-<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
-<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="c1"># Use verbose for debugging</span>
-<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>classroom-pilot<span class="w"> </span>--verbose<span class="w"> </span>repos<span class="w"> </span>fetch<span class="w"> </span>--config<span class="w"> </span>assignment.conf
+<h3 id="automated-assignment-management">Automated Assignment Management<a class="headerlink" href="#automated-assignment-management" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># Setup automation for ongoing management</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>classroom-pilot<span class="w"> </span>automation<span class="w"> </span>schedule<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">  </span>--command<span class="w"> </span><span class="s2">&quot;assignments orchestrate&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">  </span>--cron<span class="w"> </span><span class="s2">&quot;0 6 * * *&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="w">  </span>--assignment<span class="w"> </span><span class="s2">&quot;weekly-labs&quot;</span>
 <a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>
-<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="c1"># Test with single repository</span>
-<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>classroom-pilot<span class="w"> </span>--dry-run<span class="w"> </span>secrets<span class="w"> </span>add<span class="w"> </span>--config<span class="w"> </span>assignment.conf
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="c1"># Monitor assignment status</span>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>classroom-pilot<span class="w"> </span>assignments<span class="w"> </span>status<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="w">  </span>--output<span class="w"> </span>daily-report.json<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="w">  </span>--format<span class="w"> </span>json
 </code></pre></div>
-<h3 id="production-workflows">Production Workflows<a class="headerlink" href="#production-workflows" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1"># Complete assignment setup</span>
-<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>classroom-pilot<span class="w"> </span>assignments<span class="w"> </span>setup
+<h2 id="troubleshooting">Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permanent link">&para;</a></h2>
+<h3 id="common-issues">Common Issues<a class="headerlink" href="#common-issues" title="Permanent link">&para;</a></h3>
+<p><strong>Configuration Errors:</strong>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1"># Validate configuration</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>classroom-pilot<span class="w"> </span>assignments<span class="w"> </span>validate<span class="w"> </span>--strict
 <a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>
-<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="c1"># Daily orchestration</span>
-<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>classroom-pilot<span class="w"> </span>assignments<span class="w"> </span>orchestrate<span class="w"> </span>--config<span class="w"> </span>assignment.conf
-<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>
-<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="c1"># Emergency secret rotation</span>
-<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>classroom-pilot<span class="w"> </span>secrets<span class="w"> </span>remove<span class="w"> </span>--config<span class="w"> </span>assignment.conf<span class="w"> </span>--secrets<span class="w"> </span><span class="s2">&quot;OLD_TOKEN&quot;</span>
-<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="nv">NEW_TOKEN</span><span class="o">=</span><span class="s2">&quot;value&quot;</span><span class="w"> </span>classroom-pilot<span class="w"> </span>secrets<span class="w"> </span>add<span class="w"> </span>--config<span class="w"> </span>assignment.conf<span class="w"> </span>--secrets<span class="w"> </span><span class="s2">&quot;NEW_TOKEN&quot;</span>
-</code></pre></div>
-<h3 id="batch-operations">Batch Operations<a class="headerlink" href="#batch-operations" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1"># Multiple assignments</span>
-<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="k">for</span><span class="w"> </span>config<span class="w"> </span><span class="k">in</span><span class="w"> </span>assignment-*.conf<span class="p">;</span><span class="w"> </span><span class="k">do</span>
-<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">    </span>classroom-pilot<span class="w"> </span>assignments<span class="w"> </span>orchestrate<span class="w"> </span>--config<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$config</span><span class="s2">&quot;</span>
-<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="k">done</span>
-<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>
-<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="c1"># Specific operations across assignments</span>
-<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>classroom-pilot<span class="w"> </span>secrets<span class="w"> </span>add<span class="w"> </span>--config<span class="w"> </span>hw1.conf
-<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>classroom-pilot<span class="w"> </span>secrets<span class="w"> </span>add<span class="w"> </span>--config<span class="w"> </span>hw2.conf
-<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>classroom-pilot<span class="w"> </span>secrets<span class="w"> </span>add<span class="w"> </span>--config<span class="w"> </span>midterm.conf
-</code></pre></div>
-<h2 id="help-system">🆘 Help System<a class="headerlink" href="#help-system" title="Permanent link">&para;</a></h2>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="c1"># Check configuration syntax</span>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>classroom-pilot<span class="w"> </span>config<span class="w"> </span>validate<span class="w"> </span>--file<span class="w"> </span>assignment.conf
+</code></pre></div></p>
+<p><strong>Repository Access Issues:</strong>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1"># Verify GitHub token permissions</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>classroom-pilot<span class="w"> </span>auth<span class="w"> </span>check
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="c1"># Test repository access</span>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>classroom-pilot<span class="w"> </span>repos<span class="w"> </span>list<span class="w"> </span>--assignment<span class="w"> </span><span class="s2">&quot;homework-01&quot;</span>
+</code></pre></div></p>
+<p><strong>Orchestration Failures:</strong>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="c1"># Run with verbose logging</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>classroom-pilot<span class="w"> </span>assignments<span class="w"> </span>orchestrate<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">  </span>--verbose<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="w">  </span>--max-retries<span class="w"> </span><span class="m">5</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="w">  </span>--delay<span class="w"> </span><span class="m">60</span>
+<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>
+<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="c1"># Check specific step failures</span>
+<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>classroom-pilot<span class="w"> </span>assignments<span class="w"> </span>status<span class="w"> </span>--detailed
+</code></pre></div></p>
 <h3 id="getting-help">Getting Help<a class="headerlink" href="#getting-help" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="c1"># Main help</span>
-<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>classroom-pilot<span class="w"> </span>--help
-<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>
-<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="c1"># Command group help</span>
-<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>classroom-pilot<span class="w"> </span>assignments<span class="w"> </span>--help
-<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>classroom-pilot<span class="w"> </span>repos<span class="w"> </span>--help
-<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>classroom-pilot<span class="w"> </span>secrets<span class="w"> </span>--help
-<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>classroom-pilot<span class="w"> </span>automation<span class="w"> </span>--help
-<a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>
-<a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a><span class="c1"># Specific command help</span>
-<a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a>classroom-pilot<span class="w"> </span>assignments<span class="w"> </span>orchestrate<span class="w"> </span>--help
-<a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a>classroom-pilot<span class="w"> </span>secrets<span class="w"> </span>add<span class="w"> </span>--help
-</code></pre></div>
-<h3 id="error-messages">Error Messages<a class="headerlink" href="#error-messages" title="Permanent link">&para;</a></h3>
-<p>The CLI provides informative error messages:</p>
-<ul>
-<li><strong>Configuration errors</strong>: Invalid file paths, missing required fields</li>
-<li><strong>Authentication errors</strong>: Invalid tokens, insufficient permissions</li>
-<li><strong>API errors</strong>: Rate limiting, repository access issues</li>
-<li><strong>Validation errors</strong>: Invalid URLs, malformed configuration</li>
-</ul>
-<h2 id="debugging">🔍 Debugging<a class="headerlink" href="#debugging" title="Permanent link">&para;</a></h2>
-<h3 id="verbose-mode">Verbose Mode<a class="headerlink" href="#verbose-mode" title="Permanent link">&para;</a></h3>
-<p>Enable detailed logging for troubleshooting:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="c1"># Verbose output</span>
-<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>classroom-pilot<span class="w"> </span>--verbose<span class="w"> </span>assignments<span class="w"> </span>orchestrate<span class="w"> </span>--config<span class="w"> </span>assignment.conf
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="c1"># General help</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>classroom-pilot<span class="w"> </span>assignments<span class="w"> </span>--help
 <a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>
-<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="c1"># Combine with dry-run for detailed preview</span>
-<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>classroom-pilot<span class="w"> </span>--dry-run<span class="w"> </span>--verbose<span class="w"> </span>assignments<span class="w"> </span>orchestrate<span class="w"> </span>--config<span class="w"> </span>assignment.conf
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="c1"># Command-specific help</span>
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>classroom-pilot<span class="w"> </span>assignments<span class="w"> </span>setup<span class="w"> </span>--help
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>classroom-pilot<span class="w"> </span>assignments<span class="w"> </span>orchestrate<span class="w"> </span>--help
+<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>
+<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="c1"># Configuration help</span>
+<a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a>classroom-pilot<span class="w"> </span>config<span class="w"> </span>--help
 </code></pre></div>
-<h3 id="log-information">Log Information<a class="headerlink" href="#log-information" title="Permanent link">&para;</a></h3>
-<p>Verbose mode shows:</p>
+<h2 id="best-practices">Best Practices<a class="headerlink" href="#best-practices" title="Permanent link">&para;</a></h2>
+<ol>
+<li><strong>Configuration Management</strong>:</li>
+<li>Use version control for assignment configurations</li>
+<li>Test configurations with <code>--dry-run</code> before execution</li>
+<li>
+<p>Validate configurations before deployment</p>
+</li>
+<li>
+<p><strong>Automation Setup</strong>:</p>
+</li>
+<li>Schedule regular orchestration runs</li>
+<li>Monitor assignment status daily</li>
+<li>
+<p>Set up alerts for failures</p>
+</li>
+<li>
+<p><strong>Error Handling</strong>:</p>
+</li>
+<li>Always use <code>--verbose</code> for troubleshooting</li>
+<li>Implement retry logic for network operations</li>
+<li>
+<p>Maintain backup configurations</p>
+</li>
+<li>
+<p><strong>Security</strong>:</p>
+</li>
+<li>Store sensitive data in environment variables</li>
+<li>Use GitHub tokens with minimal required permissions</li>
+<li>Regularly rotate access tokens</li>
+</ol>
+<h2 id="see-also">See Also<a class="headerlink" href="#see-also" title="Permanent link">&para;</a></h2>
 <ul>
-<li>Configuration loading and validation</li>
-<li>API calls and responses</li>
-<li>Repository discovery process</li>
-<li>Secret distribution status</li>
-<li>Error details and stack traces</li>
-</ul>
-<h2 id="related-documentation">📚 Related Documentation<a class="headerlink" href="#related-documentation" title="Permanent link">&para;</a></h2>
-<ul>
-<li><a href="../assignments/">Assignments</a> - Assignment management commands</li>
-<li><a href="../repositories/">Repositories</a> - Repository operation commands</li>
-<li><a href="../secrets/">Secrets</a> - Secret management commands</li>
-<li><a href="../automation/">Automation</a> - Automation and scheduling commands</li>
+<li><a href="../repositories/">Repository Operations</a></li>
+<li><a href="../secrets/">Secret Management</a></li>
+<li><a href="../automation/">Automation Commands</a></li>
+<li><a href="../../getting-started/configuration/">Configuration Guide</a></li>
 </ul>
 
 

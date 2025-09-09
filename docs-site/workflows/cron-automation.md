@@ -335,9 +335,9 @@ classroom-pilot --dry-run automation scheduler setup --config assignment.conf
 
 ## 📚 Related Documentation
 
-- **[Automation Suite](AUTOMATION-SUITE.md)** - Complete automation capabilities
-- **[Assignment Orchestrator](ASSIGNMENT-ORCHESTRATOR.md)** - Workflow automation
-- **[Secrets Management](SECRETS-MANAGEMENT.md)** - Automated secret handling
+- **[Automation Suite](automation-suite.md)** - Complete automation capabilities
+- **[Assignment Orchestrator](assignment-orchestrator.md)** - Workflow automation
+- **[Secrets Management](secrets-management.md)** - Automated secret handling
 - **[Main CLI Reference](../README.md)** - Complete command documentation
 
 ## 💡 Tips for Effective Automation

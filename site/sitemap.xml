@@ -13,7 +13,23 @@
          <lastmod>2025-09-09</lastmod>
     </url>
     <url>
+         <loc>https://hugo-valle.github.io/classroom-pilot/cli/assignments/</loc>
+         <lastmod>2025-09-09</lastmod>
+    </url>
+    <url>
+         <loc>https://hugo-valle.github.io/classroom-pilot/cli/automation/</loc>
+         <lastmod>2025-09-09</lastmod>
+    </url>
+    <url>
          <loc>https://hugo-valle.github.io/classroom-pilot/cli/overview/</loc>
+         <lastmod>2025-09-09</lastmod>
+    </url>
+    <url>
+         <loc>https://hugo-valle.github.io/classroom-pilot/cli/repositories/</loc>
+         <lastmod>2025-09-09</lastmod>
+    </url>
+    <url>
+         <loc>https://hugo-valle.github.io/classroom-pilot/cli/secrets/</loc>
          <lastmod>2025-09-09</lastmod>
     </url>
     <url>
@@ -26,6 +42,10 @@
     </url>
     <url>
          <loc>https://hugo-valle.github.io/classroom-pilot/development/testing/</loc>
+         <lastmod>2025-09-09</lastmod>
+    </url>
+    <url>
+         <loc>https://hugo-valle.github.io/classroom-pilot/getting-started/configuration/</loc>
          <lastmod>2025-09-09</lastmod>
     </url>
     <url>
