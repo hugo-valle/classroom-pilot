@@ -44,18 +44,37 @@ class TestBasicCLI:
 
     def test_help_command(self):
         """Test the main help command."""
-        success, stdout, stderr = run_cli_command(
-            "python -m classroom_pilot --help")
+        # First, try to verify the module can be imported
+        try:
+            import classroom_pilot.cli
+            module_importable = True
+        except ImportError as e:
+            module_importable = False
+            print(f"Module import failed: {e}")
+
+        assert module_importable, "classroom_pilot.cli module could not be imported"
+
+        # Use sys.executable to ensure we're using the same Python interpreter
+        cmd = f"{sys.executable} -m classroom_pilot --help"
+        success, stdout, stderr = run_cli_command(cmd)
 
         # Enhanced error reporting for debugging CI issues
         if not success:
             print(f"\n=== DEBUG INFO ===")
-            print(f"Command: python -m classroom_pilot --help")
+            print(f"Command: {cmd}")
             print(f"Return code: NON-ZERO")
             print(f"STDERR:\n{stderr}")
             print(f"STDOUT:\n{stdout}")
             print(f"Working directory: {Path.cwd()}")
             print(f"Python executable: {sys.executable}")
+
+            # Try alternative execution methods
+            try:
+                import classroom_pilot.__main__
+                print("__main__ module exists")
+            except Exception as e:
+                print(f"__main__ import failed: {e}")
+
             print(f"=== END DEBUG ===\n")
 
         assert success, f"Help command failed: {stderr}"
@@ -74,13 +93,24 @@ class TestBasicCLI:
 
     def test_help_without_config(self):
         """Test help works without configuration file."""
-        success, stdout, stderr = run_cli_command(
-            "python -m classroom_pilot --help")
+        # First, try to verify the module can be imported
+        try:
+            import classroom_pilot.cli
+            module_importable = True
+        except ImportError as e:
+            module_importable = False
+            print(f"Module import failed: {e}")
+
+        assert module_importable, "classroom_pilot.cli module could not be imported"
+
+        # Use sys.executable to ensure we're using the same Python interpreter
+        cmd = f"{sys.executable} -m classroom_pilot --help"
+        success, stdout, stderr = run_cli_command(cmd)
 
         # Enhanced error reporting for debugging CI issues
         if not success:
             print(f"\n=== DEBUG INFO ===")
-            print(f"Command: python -m classroom_pilot --help")
+            print(f"Command: {cmd}")
             print(f"Return code: NON-ZERO")
             print(f"STDERR:\n{stderr}")
             print(f"STDOUT:\n{stdout}")
