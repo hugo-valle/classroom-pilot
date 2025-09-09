@@ -234,21 +234,32 @@ jobs:
         # Verify that bash scripts are accessible from the installed package
         python -c "
         from classroom_pilot.bash_wrapper import BashWrapper
-        from classroom_pilot.config import Configuration
+        from classroom_pilot.config import ConfigLoader
+        from pathlib import Path
+        import tempfile
+        import os
         
-        config = Configuration({
-            'CLASSROOM_URL': 'https://classroom.github.com/classrooms/test/assignments/test',
-            'TEMPLATE_REPO_URL': 'https://github.com/test/template',
-            'GITHUB_ORGANIZATION': 'test-org'
-        })
+        # Create a temporary config file for testing
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.conf', delete=False) as f:
+            f.write('''CLASSROOM_URL=https://classroom.github.com/classrooms/test/assignments/test
+TEMPLATE_REPO_URL=https://github.com/test/template
+GITHUB_ORGANIZATION=test-org
+''')
+            config_file = f.name
         
-        wrapper = BashWrapper(config, dry_run=True)
-        
-        # Test that script paths can be resolved
-        script_path = wrapper._get_script_path('assignment-orchestrator.sh')
-        print(f'Script path: {script_path}')
-        assert script_path.exists(), f'Script not found: {script_path}'
-        print('✅ Bash script accessibility test passed')
+        try:
+            config_loader = ConfigLoader(Path(config_file))
+            config_data = config_loader.load()
+            
+            wrapper = BashWrapper(config_data, dry_run=True)
+            
+            # Test that script paths can be resolved
+            script_path = wrapper._get_script_path('assignment-orchestrator.sh')
+            print(f'Script path: {script_path}')
+            assert script_path.exists(), f'Script not found: {script_path}'
+            print('✅ Bash script accessibility test passed')
+        finally:
+            os.unlink(config_file)
         "
 
   integration-test:
