@@ -258,6 +258,199 @@ def assist(ctx: typer.Context) -> None:
 
 
 @app.command()
+def setup(ctx: typer.Context) -> None:
+    """
+    Setup a new assignment configuration.
+
+    Initialize assignment configuration files and prepare the environment
+    for managing a GitHub Classroom assignment.
+    """
+    # Load configuration and create wrapper
+    wrapper = _load_config_and_wrapper(ctx)
+
+    try:
+        logger.info("⚙️ Starting assignment setup")
+
+        success = wrapper.setup_assignment()
+
+        if success:
+            logger.info("✅ Assignment setup completed successfully")
+            raise typer.Exit(code=0)
+        else:
+            logger.error("❌ Assignment setup failed")
+            raise typer.Exit(code=1)
+
+    except typer.Exit:
+        raise  # Re-raise typer.Exit without catching it
+    except Exception as e:
+        logger.error(f"❌ Error setting up assignment: {e}")
+        raise typer.Exit(code=1)
+
+
+@app.command()
+def update(ctx: typer.Context) -> None:
+    """
+    Update assignment configuration and repositories.
+
+    Update existing assignment configuration and synchronize changes
+    across all related repositories and settings.
+    """
+    # Load configuration and create wrapper
+    wrapper = _load_config_and_wrapper(ctx)
+
+    try:
+        logger.info("🔄 Starting assignment update")
+
+        success = wrapper.update_assignment()
+
+        if success:
+            logger.info("✅ Assignment update completed successfully")
+            raise typer.Exit(code=0)
+        else:
+            logger.error("❌ Assignment update failed")
+            raise typer.Exit(code=1)
+
+    except typer.Exit:
+        raise  # Re-raise typer.Exit without catching it
+    except Exception as e:
+        logger.error(f"❌ Error updating assignment: {e}")
+        raise typer.Exit(code=1)
+
+
+@app.command()
+def cron(
+    ctx: typer.Context,
+    action: Annotated[str, typer.Argument(
+        help="Cron action: status, enable, disable, list, etc.")] = "status"
+) -> None:
+    """
+    Manage cron automation jobs.
+
+    Control automated scheduling for classroom operations including
+    status checking, enabling/disabling jobs, and managing schedules.
+
+    Examples:
+        classroom-pilot cron status
+        classroom-pilot cron enable
+        classroom-pilot cron disable
+    """
+    # Load configuration and create wrapper
+    wrapper = _load_config_and_wrapper(ctx)
+
+    try:
+        logger.info(f"⏰ Managing cron automation: {action}")
+
+        success = wrapper.manage_cron(action)
+
+        if success:
+            logger.info("✅ Cron management completed successfully")
+            raise typer.Exit(code=0)
+        else:
+            logger.error("❌ Cron management failed")
+            raise typer.Exit(code=1)
+
+    except typer.Exit:
+        raise  # Re-raise typer.Exit without catching it
+    except Exception as e:
+        logger.error(f"❌ Error managing cron: {e}")
+        raise typer.Exit(code=1)
+
+
+@app.command()
+def cron_sync(ctx: typer.Context) -> None:
+    """
+    Execute scheduled synchronization tasks.
+
+    Run the automated synchronization workflow typically executed
+    by cron jobs for keeping repositories and configurations in sync.
+    """
+    # Load configuration and create wrapper
+    wrapper = _load_config_and_wrapper(ctx)
+
+    try:
+        logger.info("🔄 Starting cron synchronization")
+
+        success = wrapper.cron_sync()
+
+        if success:
+            logger.info("✅ Cron synchronization completed successfully")
+            raise typer.Exit(code=0)
+        else:
+            logger.error("❌ Cron synchronization failed")
+            raise typer.Exit(code=1)
+
+    except typer.Exit:
+        raise  # Re-raise typer.Exit without catching it
+    except Exception as e:
+        logger.error(f"❌ Error running cron sync: {e}")
+        raise typer.Exit(code=1)
+
+
+@app.command()
+def cycle(
+    ctx: typer.Context,
+    assignment_prefix: Annotated[Optional[str], typer.Argument(
+        help="Assignment prefix for repository filtering")] = None,
+    username: Annotated[Optional[str], typer.Argument(
+        help="Single username for individual user mode")] = None,
+    organization: Annotated[Optional[str], typer.Argument(
+        help="GitHub organization name")] = None,
+    batch_file: Annotated[Optional[Path], typer.Option(
+        "--batch", "-b", help="Path to batch file containing multiple operations")] = None,
+    config_file_cycle: Annotated[Optional[Path], typer.Option(
+        "--config", help="Path to configuration file for cycle operations")] = None,
+    list_mode: Annotated[bool, typer.Option(
+        "--list", "-l", help="Only list current collaborators without making changes")] = False,
+    force_cycle: Annotated[bool, typer.Option(
+        "--force", "-f", help="Force permission cycling even if already at target level")] = False,
+    repo_url_mode: Annotated[bool, typer.Option(
+        "--repo-urls", "-r", help="Operate on repository URLs instead of assignment prefix")] = False,
+) -> None:
+    """
+    Cycle repository collaborator permissions.
+
+    Manage collaborator permissions on GitHub repositories, either for a single user
+    or in batch mode. Supports listing current collaborators, forcing permission changes,
+    and operating on repository URLs directly.
+
+    Examples:
+        classroom-pilot cycle --list lab01
+        classroom-pilot cycle --force homework01 student123 cs101
+        classroom-pilot cycle --batch operations.txt --repo-urls
+    """
+    # Load configuration and create wrapper
+    wrapper = _load_config_and_wrapper(ctx)
+
+    try:
+        logger.info("🔄 Starting collaborator permission cycling")
+
+        success = wrapper.cycle_collaborator(
+            assignment_prefix=assignment_prefix,
+            username=username,
+            organization=organization,
+            batch_file=str(batch_file) if batch_file else None,
+            config_file=str(config_file_cycle) if config_file_cycle else None,
+            list_mode=list_mode,
+            force_cycle=force_cycle,
+            repo_url_mode=repo_url_mode
+        )
+
+        if success:
+            logger.info(
+                "✅ Collaborator permission cycling completed successfully")
+            raise typer.Exit(code=0)
+        else:
+            logger.error("❌ Collaborator permission cycling failed")
+            raise typer.Exit(code=1)
+
+    except typer.Exit:
+        raise  # Re-raise typer.Exit without catching it
+    except Exception as e:
+        logger.error(f"❌ Error cycling collaborator permissions: {e}")
+        raise typer.Exit(code=1)
+
+
+@app.command()
 def version() -> None:
     """Show version information."""
     from . import __version__

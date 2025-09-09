@@ -69,3 +69,9 @@ venv.bak/
 test-output/
 debug/
 *.debug
+test_report.json
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+coverage.xml

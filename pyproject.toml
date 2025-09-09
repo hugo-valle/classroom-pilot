@@ -31,6 +31,7 @@ classifiers = [
     "Environment :: Console",
 ]
 packages = [{include = "classroom_pilot"}]
+exclude = ["tests"]
 include = [
     "classroom_pilot/scripts/*.sh",
     "classroom_pilot/utils/*.sh", 

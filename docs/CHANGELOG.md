@@ -1,0 +1,258 @@
+# Changelog
+
+All notable changes to the GitHub Classroom Assignment Management Tools (gh_classroom_tools) will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+**Note**: This tools package is designed to be used as a Git submodule in assignment template repositories.
+
+## [Unreleased] - v1.2.0
+
+### Added
+- **🔄 Intelligent Repository Access Management**:
+  - **cycle-collaborator.sh**: New script for fixing GitHub Classroom permission issues
+  - **Smart Cycling Logic**: Only cycles permissions when access issues are detected
+  - **Force Mode**: Override capability for manual troubleshooting (`--force` flag)
+  - **Configuration Integration**: Seamless integration with assignment.conf
+  - **Repository URL Processing**: Support for batch processing from repository URLs
+  - **Assignment Orchestrator Integration**: Added as Step 5 in workflow orchestration
+
+- **🚀 Enhanced Assignment Orchestrator**:
+  - **Automatic Setup Integration**: Detects missing assignment.conf and offers to run setup wizard
+  - **Seamless First-Time Experience**: Integrates setup-assignment.sh as first workflow step
+  - **Automation-Friendly Setup**: Supports `--yes` flag for automated setup in CI/CD
+  - **Smart Configuration Detection**: Automatically launches setup wizard when needed
+
+- **🤖 Multi-Step Cron Automation System**:
+  - **Flexible Scheduling**: Enhanced manage-cron.sh supports individual step scheduling
+  - **Multi-Step Execution**: cron-sync.sh can run any combination of workflow steps
+  - **Individual Step Control**: Schedule sync, discover, secrets, assist, or cycle independently
+  - **Enhanced Error Handling**: Comprehensive logging and error recovery for cron jobs
+
+### Enhanced
+- **Assignment Orchestrator**: Extended to support 5-step workflow with automatic setup integration
+- **Cron System**: Complete rewrite for flexible multi-step automation scheduling
+- **Documentation Suite**: Updated all docs to reflect new features and setup integration
+- **Automation Workflows**: Enhanced workflow examples to include access management and flexible scheduling
+
+### Planning
+- **Phase 2**: Go-based CLI rewrite for enhanced performance
+- **RESTful API**: Server component for web-based management
+- **React Dashboard**: Web interface for visual assignment management
+
+## [Released] - v1.1.0-alpha.3 - 2025-09-01
+
+### Added - Phase 1 Completion: Complete Bash Implementation
+- **🤖 Comprehensive GitHub Actions Workflow Suite**:
+  - **Automated Release**: Quick releases from feature branches (`auto-release.yml`)
+  - **Official Release**: Production releases with full validation (`release.yml`)
+  - **Branch Name Check**: Enforce naming conventions (`branch-name-check.yml`)
+  - **Branch Protection**: Apply security rules (`branch-protection.yml`)
+  - **Continuous Integration**: Multi-platform testing (`ci.yml`)
+  - **Auto Updates**: Dependency management (`auto-update.yml`)
+- **📚 Consolidated Documentation**: Single comprehensive workflow guide in `.github/README.md`
+- **🎯 Phase 1 Status Documentation**: Clear roadmap and current implementation status
+- **🔄 Dual Release Strategy**: Both development (auto) and production (tagged) release workflows
+- **🛡️ Enhanced Security**: Branch protection, security scanning, and validation
+- **🧪 Multi-Platform Testing**: Ubuntu, macOS, Windows compatibility
+- **📊 Workflow Monitoring**: Comprehensive troubleshooting and usage guides
+
+### Changed
+- **Documentation Structure**: Merged workflow docs into single authoritative source
+- **Release Management**: Now supports both automated and manual release processes
+- **Branch Strategy**: Enforced naming conventions with automated validation
+- **Project Status**: Added clear Phase 1 completion markers and future roadmap
+
+### Phase 1 Goals Achieved ✅
+- ✅ **Finalized Bash-based CLI** as stable, production-ready foundation
+- ✅ **Comprehensive documentation** for installation, usage, and troubleshooting
+- ✅ **Contribution guidelines** and complete development workflow
+- ✅ **Full CI/CD pipeline** with automated testing, linting, and releases
+- ✅ **Security & quality gates** with multi-shell testing and validation
+- ✅ **Branch protection** and development workflow enforcement
+
+**Phase 1 Complete**: The Bash implementation is now production-ready with comprehensive automation, testing, and documentation. Ready for classroom deployment and beta testing.
+
+## [Pre-released] - v1.1.0-alpha.2 - 2025-08-29
+- **Assignment Orchestrator Workflow**: Secret management and student assistance steps now only run when student repositories are successfully discovered
+- **Setup Wizard Flow**: Increased total steps from 7 to 8 to accommodate new secret management configuration
+- **Configuration File Generation**: create_config_file() now generates different SECRETS_CONFIG sections based on user choice
+- **Token File Creation**: Token files are only created when secret management is enabled
+- **Completion Screen**: Shows token files only when they were actually created
+
+### Fixed
+- **Template Sync Independence**: Template synchronization to GitHub Classroom now works even when no student repositories exist
+- **SECRETS_CONFIG Parsing**: Added missing logic to parse multiline SECRETS_CONFIG into SECRETS array
+- **Workflow Success Reporting**: Overall workflow now succeeds when template sync completes, regardless of repository discovery status
+
+### Technical Details
+- Added comprehensive GitHub Actions workflows (.github/workflows/)
+- Automated testing across multiple shell environments
+- Integrated security scanning with TruffleHog and Shellcheck
+- Smart version detection and pre-release handling
+- Automatic CHANGELOG.md maintenance for non-alpha releases
+- Updated `assignment-orchestrator.sh` workflow logic to make steps more independent
+- Enhanced `setup-assignment.sh` with conditional token configuration
+- Improved error messages to be more informative about skipped steps
+- Added support for both "tests in template" and "tests in separate repo" scenarios
+
+---
+
+## [Pre-released] - v1.1.0-alpha.2 - 2025-08-29
+
+### Added
+- **Complete GitHub Classroom Assignment Management Suite**
+- **Assignment Orchestrator**: Central workflow script (`assignment-orchestrator.sh`) that coordinates all assignment management tasks
+- **Student Repository Discovery**: Automated discovery of student repositories using GitHub Classroom patterns
+- **Secret Management**: Automated distribution of GitHub secrets (tokens) to student repositories
+- **Template Synchronization**: Push template changes to GitHub Classroom repository
+- **Interactive Setup Wizard**: Comprehensive setup script (`setup-assignment.sh`) with guided configuration
+- **Batch Operations**: Support for batch processing of multiple student repositories
+- **Configuration Management**: Centralized configuration through `assignment.conf`
+
+### Core Components
+- `assignment-orchestrator.sh` - Main workflow coordinator
+- `setup-assignment.sh` - Interactive assignment setup wizard  
+- `fetch-student-repos.sh` - Student repository discovery
+- `add-secrets-to-students.sh` - Secret distribution to student repos
+- `push-to-classroom.sh` - Template to classroom synchronization
+- `student-update-helper.sh` - Bulk operations on student repositories
+
+### Features
+- **Multi-step Workflow**: Sync template → Discover repos → Manage secrets → Assist students
+- **Dry Run Mode**: Test operations without making actual changes
+- **Flexible Configuration**: Support for various assignment types and organizational structures
+- **Secure Token Management**: Encrypted storage and distribution of API tokens
+- **Progress Tracking**: Visual progress indicators and comprehensive logging
+- **Error Handling**: Graceful error handling with informative messages
+- **GitHub CLI Integration**: Seamless integration with GitHub's official CLI tool
+
+### Installation & Usage
+```bash
+# Add tools as a submodule to your assignment repository
+git submodule add https://github.com/hugo-valle/gh_classroom_tools.git tools
+
+# Initialize and update the submodule
+git submodule update --init --recursive
+
+# Checkout specific version (for this alpha release)
+cd tools
+git checkout tags/v1.0.0-alpha.1
+cd ..
+
+# Run the setup wizard
+./tools/scripts/setup-assignment.sh
+
+# Execute the complete workflow
+./tools/scripts/assignment-orchestrator.sh
+```
+
+### Requirements
+- GitHub CLI (gh) installed and authenticated
+- Bash 4.0 or higher
+- Git
+- Access to GitHub organization containing student repositories
+- Appropriate permissions for repository and secret management
+
+### Known Issues & Limitations
+- ⚠️ Secret management requires repository discovery to succeed first
+- ⚠️ Template synchronization depends on repository discovery workflow
+- ⚠️ Limited error recovery in batch operations
+- ⚠️ Minimal validation of GitHub Classroom URL formats
+- ⚠️ Basic logging (enhanced logging planned for beta)
+
+### Next Steps for v1.1.0-beta.1
+- Enhanced error handling and recovery mechanisms
+- Improved independence between workflow steps
+- Better configuration validation
+- Extended documentation and usage examples
+- Performance optimizations for large batches
+
+---
+
+## Branching & Versioning Strategy
+
+This project follows a Git Flow-inspired approach for release management:
+
+### Branch Structure
+- **`main`**: Production-ready code (tagged releases only)
+- **`develop`**: Active development branch
+- **`feature/*`**: Feature development branches
+- **`release/*`**: Release preparation branches
+- **`hotfix/*`**: Emergency fixes
+
+### Versioning
+We use [Semantic Versioning](https://semver.org/): `MAJOR.MINOR.PATCH`
+
+- **Alpha releases**: `v1.0.0-alpha.1, v1.0.0-alpha.2, ...`
+- **Beta releases**: `v1.0.0-beta.1, v1.0.0-beta.2, ...`
+- **Stable releases**: `v1.0.0, v1.1.0, v2.0.0, ...`
+
+### Release Workflow
+1. Develop features on `feature/xyz` → merge into `develop`
+2. Create `release/vX.Y.Z-alpha.N` from `develop`
+3. Test and finalize release branch
+4. Tag the release: `git tag -a vX.Y.Z-alpha.N -m "Release message"`
+5. Merge release branch into `main` and back into `develop`
+6. Create GitHub Release with pre-release checkbox for alpha/beta versions
+
+### GitHub Release Process
+1. **Prepare Release Branch**:
+   ```bash
+   git checkout develop
+   git pull origin develop
+   git checkout -b release/v1.1.0-alpha.1
+   git push origin release/v1.1.0-alpha.1
+   ```
+
+2. **Tag the Release**:
+   ```bash
+   git tag -a v1.1.0-alpha.1 -m "Alpha release v1.1.0-alpha.1"
+   git push origin v1.1.0-alpha.1
+   ```
+
+3. **Create GitHub Release**:
+   - Go to GitHub → Releases → New Release
+   - Select tag `v1.1.0-alpha.1`
+   - Title: `Alpha Release v1.1.0-alpha.1`
+   - Mark as "Pre-release" for alpha/beta versions
+   - Include comprehensive release notes
+
+4. **Merge Release**:
+   ```bash
+   git checkout main
+   git merge release/v1.1.0-alpha.1
+   git checkout develop  
+   git merge release/v1.1.0-alpha.1
+   git branch -d release/v1.1.0-alpha.1
+   ```
+
+---
+
+## Contributing
+
+When contributing to this project:
+
+1. **Feature Development**: Create feature branches from `develop`
+2. **Bug Fixes**: Create fix branches from `develop` (or `main` for hotfixes)
+3. **Pull Requests**: Target the `develop` branch unless it's a hotfix
+4. **Commit Messages**: Use conventional commit format for automated changelog generation
+5. **Testing**: Ensure all tests pass before submitting PR
+
+### Conventional Commit Format
+```
+feat: add conditional secret management configuration
+fix: resolve template sync dependency on repository discovery  
+docs: update setup wizard documentation
+chore: bump version to v1.1.0-alpha.1
+```
+
+---
+
+## Links
+- [Tools Repository](https://github.com/hugo-valle/gh_classroom_tools)
+- [Issues](https://github.com/hugo-valle/gh_classroom_tools/issues)
+- [Releases](https://github.com/hugo-valle/gh_classroom_tools/releases)
+- [Documentation](./README.md)
+- [Example Assignment Template](https://github.com/WSU-ML-DL/cs6600-m1-homework2-template)

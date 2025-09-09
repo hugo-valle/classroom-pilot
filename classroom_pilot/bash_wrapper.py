@@ -304,3 +304,64 @@ class BashWrapper:
         """
         logger.info("🔄 Running cron sync")
         return self._execute_script("cron-sync.sh")
+
+    def cycle_collaborator(
+        self,
+        assignment_prefix: Optional[str] = None,
+        username: Optional[str] = None,
+        organization: Optional[str] = None,
+        batch_file: Optional[str] = None,
+        config_file: Optional[str] = None,
+        list_mode: bool = False,
+        force_cycle: bool = False,
+        repo_url_mode: bool = False
+    ) -> bool:
+        """
+        Execute the cycle collaborator script to manage repository collaborator permissions.
+
+        This method wraps the cycle-collaborator.sh script which can cycle through
+        collaborators on GitHub repositories, either for a single user or in batch mode.
+        It supports listing current collaborators, forcing permission changes, and
+        operating on repository URLs directly.
+
+        Args:
+            assignment_prefix: Optional assignment prefix for repository filtering
+            username: Optional single username for individual user mode
+            organization: Optional GitHub organization name
+            batch_file: Optional path to batch file containing multiple operations
+            config_file: Optional path to configuration file
+            list_mode: If True, only list current collaborators without making changes
+            force_cycle: If True, force permission cycling even if already at target level
+            repo_url_mode: If True, operate on repository URLs instead of assignment prefix
+
+        Returns:
+            True if successful, False otherwise
+        """
+        logger.info("🔄 Cycling repository collaborator permissions")
+
+        args = []
+
+        # Add flags first
+        if list_mode:
+            args.append("--list")
+        if force_cycle:
+            args.append("--force")
+        if repo_url_mode:
+            args.append("--repo-urls")
+
+        # Add options with values
+        if batch_file:
+            args.extend(["--batch", batch_file])
+        if config_file:
+            args.extend(["--config", config_file])
+
+        # Add positional arguments for single user mode
+        if username and organization:
+            if assignment_prefix:
+                args.append(assignment_prefix)
+            args.append(username)
+            args.append(organization)
+        elif assignment_prefix and not batch_file:
+            args.append(assignment_prefix)
+
+        return self._execute_script("cycle-collaborator.sh", args)
