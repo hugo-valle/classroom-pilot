@@ -241,10 +241,9 @@ jobs:
         
         # Create a temporary config file for testing
         with tempfile.NamedTemporaryFile(mode='w', suffix='.conf', delete=False) as f:
-            f.write('''CLASSROOM_URL=https://classroom.github.com/classrooms/test/assignments/test
-TEMPLATE_REPO_URL=https://github.com/test/template
-GITHUB_ORGANIZATION=test-org
-''')
+            f.write('CLASSROOM_URL=https://classroom.github.com/classrooms/test/assignments/test\\n')
+            f.write('TEMPLATE_REPO_URL=https://github.com/test/template\\n')
+            f.write('GITHUB_ORGANIZATION=test-org\\n')
             config_file = f.name
         
         try:
