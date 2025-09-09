@@ -1,13 +1,10 @@
 name: 🚀 Build and Publish to PyPI
 
 on:
-  # Trigger on tags for releases
+  # Trigger on tags for releases and main branch updates
   push:
     tags:
       - 'v*'
-  
-  # Trigger on main branch when version is updated
-  push:
     branches: [main]
     paths:
       - 'pyproject.toml'
