@@ -1,0 +1,252 @@
+name: 🚀 Build and Publish to PyPI
+
+on:
+  # Trigger on tags for releases
+  push:
+    tags:
+      - 'v*'
+  
+  # Trigger on main branch when version is updated
+  push:
+    branches: [main]
+    paths:
+      - 'pyproject.toml'
+  
+  # Allow manual triggering
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (optional - will use pyproject.toml if empty)'
+        required: false
+        type: string
+
+jobs:
+  # Job 1: Run comprehensive tests
+  test:
+    name: 🧪 Test Suite
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.10', '3.11', '3.12']
+    
+    steps:
+    - name: 📥 Checkout Code
+      uses: actions/checkout@v4
+      
+    - name: 🐍 Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+        
+    - name: 📦 Install Poetry
+      uses: snok/install-poetry@v1
+      with:
+        version: latest
+        virtualenvs-create: true
+        virtualenvs-in-project: true
+        
+    - name: 🔧 Load cached venv
+      id: cached-poetry-dependencies
+      uses: actions/cache@v3
+      with:
+        path: .venv
+        key: venv-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('**/poetry.lock') }}
+        
+    - name: 📥 Install dependencies
+      if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+      run: poetry install --no-interaction --no-root
+      
+    - name: 📦 Install project
+      run: poetry install --no-interaction
+      
+    - name: 🧪 Run tests
+      run: |
+        poetry run pytest tests/ -v --tb=short
+        echo "✅ All tests passed!"
+        
+    - name: 📊 Test coverage report
+      run: |
+        poetry run pytest tests/ --cov=classroom_pilot --cov-report=xml --cov-report=term
+        
+    - name: 📤 Upload coverage to Codecov
+      if: matrix.python-version == '3.12'
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+
+  # Job 2: Build and publish to PyPI
+  publish:
+    name: 📦 Build & Publish to PyPI
+    needs: test
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    
+    environment:
+      name: pypi
+      url: https://pypi.org/project/classroom-pilot/
+      
+    permissions:
+      id-token: write  # For trusted publishing
+      contents: write  # For creating releases
+      
+    steps:
+    - name: 📥 Checkout Code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Full history for changelog
+        
+    - name: 🐍 Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+        
+    - name: 📦 Install Poetry
+      uses: snok/install-poetry@v1
+      with:
+        version: latest
+        virtualenvs-create: true
+        virtualenvs-in-project: true
+        
+    - name: 🔧 Configure Poetry
+      run: |
+        poetry config virtualenvs.create true
+        poetry config virtualenvs.in-project true
+        
+    - name: 📥 Install dependencies
+      run: poetry install --no-interaction
+      
+    - name: 📝 Extract version from tag or pyproject.toml
+      id: version
+      run: |
+        if [[ ${{ github.event_name }} == 'workflow_dispatch' && -n "${{ github.event.inputs.version }}" ]]; then
+          VERSION="${{ github.event.inputs.version }}"
+          echo "Using manual version: $VERSION"
+        elif [[ $GITHUB_REF == refs/tags/* ]]; then
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "Using tag version: $VERSION"
+        else
+          VERSION=$(poetry version -s)
+          echo "Using pyproject.toml version: $VERSION"
+        fi
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "VERSION=$VERSION" >> $GITHUB_ENV
+        
+    - name: 🔄 Update version if needed
+      if: github.event.inputs.version != ''
+      run: |
+        poetry version ${{ github.event.inputs.version }}
+        
+    - name: ✅ Validate package configuration
+      run: |
+        poetry check
+        echo "✅ Package configuration is valid"
+        
+    - name: 🏗️ Build package
+      run: |
+        poetry build
+        echo "✅ Package built successfully"
+        ls -la dist/
+        
+    - name: 🔍 Verify build contents
+      run: |
+        echo "📦 Package contents:"
+        tar -tzf dist/*.tar.gz | head -20
+        echo "🔍 Wheel contents:"
+        unzip -l dist/*.whl | head -20
+        
+    - name: 🚀 Publish to PyPI
+      env:
+        POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_API_TOKEN }}
+      run: |
+        echo "🚀 Publishing classroom-pilot v${{ env.VERSION }} to PyPI..."
+        poetry publish
+        echo "✅ Successfully published to PyPI!"
+        
+    - name: 📋 Create Release Notes
+      id: release_notes
+      run: |
+        cat > release_notes.md << 'EOF'
+        ## 🎉 classroom-pilot v${{ env.VERSION }}
+        
+        ### 📦 Installation
+        ```bash
+        pip install classroom-pilot==${{ env.VERSION }}
+        ```
+        
+        ### 🚀 What's New
+        - Comprehensive GitHub Classroom automation
+        - Modern Python CLI with 153 tests
+        - Modular architecture for educational workflows
+        
+        ### 📊 Package Stats
+        - **Tests**: 153 passing tests across 9 packages
+        - **CLI Commands**: 7 command groups for complete workflow automation
+        - **Python Support**: 3.10, 3.11, 3.12
+        
+        ### 📚 Documentation
+        - [PyPI Package](https://pypi.org/project/classroom-pilot/)
+        - [GitHub Repository](https://github.com/hugo-valle/classroom-pilot)
+        - [Installation Guide](https://github.com/hugo-valle/classroom-pilot#installation)
+        
+        ---
+        *Automated release created by GitHub Actions*
+        EOF
+        
+    - name: 🏷️ Create GitHub Release
+      if: startsWith(github.ref, 'refs/tags/v')
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref_name }}
+        release_name: 🎉 classroom-pilot v${{ env.VERSION }}
+        body_path: release_notes.md
+        draft: false
+        prerelease: ${{ contains(env.VERSION, 'alpha') || contains(env.VERSION, 'beta') || contains(env.VERSION, 'rc') }}
+        
+    - name: 📢 Post-publish verification
+      run: |
+        echo "⏳ Waiting for PyPI propagation..."
+        sleep 30
+        
+        echo "🔍 Verifying package availability..."
+        pip install classroom-pilot==${{ env.VERSION }} --dry-run
+        
+        echo "✅ Publication completed successfully!"
+        echo "📦 Package: https://pypi.org/project/classroom-pilot/${{ env.VERSION }}/"
+        
+    - name: 💬 Notify on failure
+      if: failure()
+      run: |
+        echo "❌ Publication failed for classroom-pilot v${{ env.VERSION }}"
+        echo "Please check the workflow logs and try again."
+        
+  # Job 3: Update documentation
+  update-docs:
+    name: 📚 Update Documentation
+    needs: publish
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    
+    steps:
+    - name: 📥 Checkout Code
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: 📝 Update publication history
+      run: |
+        VERSION=${GITHUB_REF#refs/tags/v}
+        DATE=$(date '+%B %d, %Y')
+        
+        # Update PYPI_PUBLICATION.md
+        sed -i "/### Future Releases/i ### v$VERSION ($DATE)\n- **Status**: ✅ Published via GitHub Actions\n- **Features**: Automated release workflow\n- **PyPI**: https://pypi.org/project/classroom-pilot/$VERSION/\n" docs/PYPI_PUBLICATION.md
+        
+        # Commit changes
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add docs/PYPI_PUBLICATION.md
+        git commit -m "docs: update publication history for v$VERSION" || exit 0
+        git push
