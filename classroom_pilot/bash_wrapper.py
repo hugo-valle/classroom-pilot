@@ -115,7 +115,19 @@ class BashWrapper:
         env = os.environ.copy()
 
         # Add configuration variables
-        config_env = self.config.to_env_dict()
+        if hasattr(self.config, 'to_env_dict'):
+            # Legacy Configuration object
+            config_env = self.config.to_env_dict()
+        else:
+            # Plain dictionary from new ConfigLoader
+            config_env = {}
+            for key, value in self.config.items():
+                if isinstance(value, list):
+                    # Convert arrays to bash array format
+                    config_env[key] = ' '.join(f'"{item}"' for item in value)
+                else:
+                    config_env[key] = str(value)
+
         env.update(config_env)
 
         # Add wrapper-specific variables

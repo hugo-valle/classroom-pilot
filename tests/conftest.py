@@ -11,7 +11,7 @@ from typing import Dict, Any
 
 import pytest
 
-from classroom_pilot.config import Configuration
+from classroom_pilot.config.loader import ConfigLoader
 from classroom_pilot.bash_wrapper import BashWrapper
 
 
@@ -23,6 +23,7 @@ def test_config_data() -> Dict[str, Any]:
         'TEMPLATE_REPO_URL': 'https://github.com/test/template',
         'GITHUB_ORGANIZATION': 'test-org',
         'CLASSROOM_REPO_URL': 'https://github.com/test-org/test-assignment',
+        'ASSIGNMENT_FILE': 'assignment.ipynb',  # Required field
         'SECRETS_JSON': '{"TEST_SECRET": "test-value"}',
         'INSTRUCTOR_HANDLE': 'instructor',
         'ASSIGNMENT_NAME': 'test-assignment',
@@ -31,16 +32,16 @@ def test_config_data() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def test_config(test_config_data) -> Configuration:
-    """Provide a test Configuration instance."""
-    return Configuration(test_config_data)
+def test_config_loader(temp_config_file) -> ConfigLoader:
+    """Provide a test ConfigLoader instance."""
+    return ConfigLoader(temp_config_file)
 
 
 @pytest.fixture
-def test_wrapper(test_config) -> BashWrapper:
+def test_wrapper(test_config_data) -> BashWrapper:
     """Provide a test BashWrapper instance with dry-run enabled."""
     return BashWrapper(
-        config=test_config,
+        config_data=test_config_data,
         dry_run=True,
         verbose=True,
         auto_yes=True
@@ -48,7 +49,7 @@ def test_wrapper(test_config) -> BashWrapper:
 
 
 @pytest.fixture
-def temp_config_file(test_config_data) -> Path:
+def temp_config_file(test_config_data):
     """Create a temporary configuration file for testing."""
     with tempfile.NamedTemporaryFile(mode='w', suffix='.conf', delete=False) as f:
         for key, value in test_config_data.items():
