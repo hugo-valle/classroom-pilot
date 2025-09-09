@@ -20,44 +20,262 @@ app = typer.Typer(
 
 
 @app.callback()
-def main_callback():
+def main_callback(
+    ctx: typer.Context,
+    dry_run: bool = False,
+    verbose: bool = False,
+    config_file: str = None,
+    yes: bool = False,
+):
     """Classroom Pilot - Comprehensive automation suite for managing assignments."""
-    pass
+    # Store global options in context
+    ctx.ensure_object(dict)
+    ctx.obj['dry_run'] = dry_run
+    ctx.obj['verbose'] = verbose
+    ctx.obj['config_file'] = config_file
+    ctx.obj['yes'] = yes
+
+    # Setup logging based on verbose flag
+    setup_logging(verbose)
 
 
 @app.command()
-def run():
+def run(ctx: typer.Context):
     """Run the complete classroom workflow (sync, discover, secrets, assist)."""
-    wrapper = BashWrapper()
-    return wrapper.run_workflow()
+    # Load configuration
+    config = Configuration.load(ctx.obj.get('config_file'))
+
+    wrapper = BashWrapper(
+        config,
+        dry_run=ctx.obj.get('dry_run', False),
+        verbose=ctx.obj.get('verbose', False),
+        auto_yes=ctx.obj.get('yes', False)
+    )
+    success = wrapper.assignment_orchestrator(workflow_type="run")
+
+    if success:
+        logger.info("✅ Workflow completed successfully")
+    else:
+        logger.error("❌ Workflow failed")
+        raise typer.Exit(code=1)
 
 
 @app.command()
-def sync():
+def sync(ctx: typer.Context):
     """Sync template repository to GitHub Classroom."""
-    wrapper = BashWrapper()
-    return wrapper.sync_template()
+    # Load configuration
+    config = Configuration.load(ctx.obj.get('config_file'))
+
+    wrapper = BashWrapper(
+        config,
+        dry_run=ctx.obj.get('dry_run', False),
+        verbose=ctx.obj.get('verbose', False),
+        auto_yes=ctx.obj.get('yes', False)
+    )
+    success = wrapper.push_to_classroom()
+
+    if success:
+        logger.info("✅ Sync completed successfully")
+    else:
+        logger.error("❌ Sync failed")
+        raise typer.Exit(code=1)
 
 
 @app.command()
-def discover():
+def discover(ctx: typer.Context):
     """Discover and fetch student repositories from GitHub Classroom."""
-    wrapper = BashWrapper()
-    return wrapper.discover_repositories()
+    # Load configuration
+    config = Configuration.load(ctx.obj.get('config_file'))
+
+    wrapper = BashWrapper(
+        config,
+        dry_run=ctx.obj.get('dry_run', False),
+        verbose=ctx.obj.get('verbose', False),
+        auto_yes=ctx.obj.get('yes', False)
+    )
+    success = wrapper.fetch_student_repos()
+
+    if success:
+        logger.info("✅ Discovery completed successfully")
+    else:
+        logger.error("❌ Discovery failed")
+        raise typer.Exit(code=1)
 
 
 @app.command()
-def secrets():
+def secrets(ctx: typer.Context):
     """Add or update secrets in student repositories."""
-    wrapper = BashWrapper()
-    return wrapper.add_secrets()
+    # Load configuration
+    config = Configuration.load(ctx.obj.get('config_file'))
+
+    wrapper = BashWrapper(
+        config,
+        dry_run=ctx.obj.get('dry_run', False),
+        verbose=ctx.obj.get('verbose', False),
+        auto_yes=ctx.obj.get('yes', False)
+    )
+    success = wrapper.add_secrets_to_students()
+
+    if success:
+        logger.info("✅ Secrets management completed successfully")
+    else:
+        logger.error("❌ Secrets management failed")
+        raise typer.Exit(code=1)
 
 
 @app.command()
-def assist():
+def assist(ctx: typer.Context):
     """Assist students with common repository issues."""
-    wrapper = BashWrapper()
-    return wrapper.assist_students()
+    # Load configuration
+    config = Configuration.load(ctx.obj.get('config_file'))
+
+    wrapper = BashWrapper(
+        config,
+        dry_run=ctx.obj.get('dry_run', False),
+        verbose=ctx.obj.get('verbose', False),
+        auto_yes=ctx.obj.get('yes', False)
+    )
+    success = wrapper.student_update_helper()
+
+    if success:
+        logger.info("✅ Student assistance completed successfully")
+    else:
+        logger.error("❌ Student assistance failed")
+        raise typer.Exit(code=1)
+
+
+@app.command()
+def setup(ctx: typer.Context):
+    """Setup a new assignment configuration."""
+    # Load configuration
+    config = Configuration.load(ctx.obj.get('config_file'))
+
+    wrapper = BashWrapper(
+        config,
+        dry_run=ctx.obj.get('dry_run', False),
+        verbose=ctx.obj.get('verbose', False),
+        auto_yes=ctx.obj.get('yes', False)
+    )
+    success = wrapper.setup_assignment()
+
+    if success:
+        logger.info("✅ Setup completed successfully")
+    else:
+        logger.error("❌ Setup failed")
+        raise typer.Exit(code=1)
+
+
+@app.command()
+def update(ctx: typer.Context):
+    """Update assignment configuration and repositories."""
+    # Load configuration
+    config = Configuration.load(ctx.obj.get('config_file'))
+
+    wrapper = BashWrapper(
+        config,
+        dry_run=ctx.obj.get('dry_run', False),
+        verbose=ctx.obj.get('verbose', False),
+        auto_yes=ctx.obj.get('yes', False)
+    )
+    success = wrapper.update_assignment()
+
+    if success:
+        logger.info("✅ Update completed successfully")
+    else:
+        logger.error("❌ Update failed")
+        raise typer.Exit(code=1)
+
+
+@app.command()
+def cron(ctx: typer.Context):
+    """Manage cron automation jobs."""
+    import sys
+
+    # Check if an action was provided as a trailing argument
+    # This is a workaround to avoid typer.Argument() for CI compatibility
+    action = "status"  # default
+    if len(sys.argv) > 1:
+        # Look for cron command and check if there's an argument after it
+        try:
+            cron_idx = sys.argv.index("cron")
+            if cron_idx + 1 < len(sys.argv) and not sys.argv[cron_idx + 1].startswith("-"):
+                action = sys.argv[cron_idx + 1]
+        except (ValueError, IndexError):
+            pass
+
+    # Load configuration
+    config = Configuration.load(ctx.obj.get('config_file'))
+
+    wrapper = BashWrapper(
+        config,
+        dry_run=ctx.obj.get('dry_run', False),
+        verbose=ctx.obj.get('verbose', False),
+        auto_yes=ctx.obj.get('yes', False)
+    )
+    success = wrapper.manage_cron(action)
+
+    if success:
+        logger.info("✅ Cron management completed successfully")
+    else:
+        logger.error("❌ Cron management failed")
+        raise typer.Exit(code=1)
+
+
+@app.command(name="cron-sync")
+def cron_sync(ctx: typer.Context):
+    """Execute scheduled synchronization tasks."""
+    # Load configuration
+    config = Configuration.load(ctx.obj.get('config_file'))
+
+    wrapper = BashWrapper(
+        config,
+        dry_run=ctx.obj.get('dry_run', False),
+        verbose=ctx.obj.get('verbose', False),
+        auto_yes=ctx.obj.get('yes', False)
+    )
+    success = wrapper.cron_sync()
+
+    if success:
+        logger.info("✅ Cron sync completed successfully")
+    else:
+        logger.error("❌ Cron sync failed")
+        raise typer.Exit(code=1)
+
+
+@app.command()
+def cycle(
+    ctx: typer.Context,
+    assignment_prefix: str = None,
+    username: str = None,
+    organization: str = None,
+    list: bool = False,
+    force: bool = False,
+    repo_urls: bool = False,
+):
+    """Cycle repository collaborator permissions."""
+    # Load configuration
+    config = Configuration.load(ctx.obj.get('config_file'))
+
+    wrapper = BashWrapper(
+        config,
+        dry_run=ctx.obj.get('dry_run', False),
+        verbose=ctx.obj.get('verbose', False),
+        auto_yes=ctx.obj.get('yes', False)
+    )
+    success = wrapper.cycle_collaborator(
+        assignment_prefix=assignment_prefix,
+        username=username,
+        organization=organization,
+        list_mode=list,
+        force_cycle=force,
+        repo_url_mode=repo_urls
+    )
+
+    if success:
+        logger.info("✅ Collaborator cycling completed successfully")
+    else:
+        logger.error("❌ Collaborator cycling failed")
+        raise typer.Exit(code=1)
 
 
 @app.command()
