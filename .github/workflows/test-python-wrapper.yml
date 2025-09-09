@@ -299,23 +299,20 @@ jobs:
       run: |
         echo "🧪 Running end-to-end workflow test..."
         
-        # Test complete workflow
-        classroom-pilot --dry-run --verbose run
+        # Test complete workflow (legacy command)
+        classroom-pilot run --dry-run --verbose
         
-        # Test individual commands
-        classroom-pilot --dry-run sync
-        classroom-pilot --dry-run discover  
-        classroom-pilot --dry-run secrets
-        classroom-pilot --dry-run assist
+        # Test individual commands with new modular structure
+        classroom-pilot repos push --dry-run
+        classroom-pilot repos fetch --dry-run  
+        classroom-pilot secrets manage --dry-run
+        classroom-pilot assignments orchestrate --dry-run
         
         # Test management commands
-        classroom-pilot --dry-run setup
-        classroom-pilot --dry-run update
-        classroom-pilot --dry-run cron status
-        classroom-pilot --dry-run cron-sync
+        classroom-pilot assignments setup --dry-run
+        classroom-pilot repos update --dry-run
         
         # Test cycle commands
-        classroom-pilot --dry-run cycle --list test-assignment
-        classroom-pilot --dry-run cycle --force homework01 student123 test-org
+        classroom-pilot repos cycle-collaborator --list --dry-run
         
         echo "✅ End-to-end workflow test completed successfully"
