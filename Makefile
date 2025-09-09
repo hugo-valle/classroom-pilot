@@ -36,7 +36,7 @@ test:
 	@echo "Testing BashWrapper import..."
 	@python -c "from classroom_pilot.bash_wrapper import BashWrapper; print('✅ BashWrapper import successful')"
 	@echo "Testing Configuration import..."
-	@python -c "from classroom_pilot.config import Configuration; print('✅ Configuration import successful')"
+	@python -c "from classroom_pilot.config import ConfigLoader; print('✅ ConfigLoader import successful')"
 	@echo "🎉 All basic tests passed!"
 
 # Unit tests with pytest
