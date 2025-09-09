@@ -164,7 +164,7 @@ Tests generate various reports:
 
 Tests are automatically run in CI/CD via:
 - **GitHub Actions**: `.github/workflows/test-python-wrapper.yml`
-- **Multi-Python Testing**: Python 3.8-3.12
+- **Multi-Python Testing**: Python 3.10-3.12
 - **Cross-Platform**: Linux, macOS, Windows (when configured)
 
 ## 🛠️ Development Workflow

@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 
 
-def run_cli_command(cmd: str, cwd: Path = None) -> tuple[bool, str, str]:
+def run_cli_command(cmd: str, cwd: Path | None = None) -> tuple[bool, str, str]:
     """Helper function to run CLI commands."""
     try:
         # Split command and use list form for better cross-platform compatibility

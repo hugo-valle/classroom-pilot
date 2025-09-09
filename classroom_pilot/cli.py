@@ -7,14 +7,9 @@ secrets, and assist operations.
 """
 
 from pathlib import Path
-from typing import Optional
+from typing import Annotated, Optional
 
 import typer
-
-try:
-    from typing import Annotated
-except ImportError:
-    from typing_extensions import Annotated
 
 from .config import Configuration
 from .bash_wrapper import BashWrapper

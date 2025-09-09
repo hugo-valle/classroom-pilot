@@ -27,7 +27,7 @@ Classroom Pilot provides instructors with a powerful command-line interface to a
 - **✅ Type-safe configuration** with comprehensive validation
 - **✅ Modular command structure** for intuitive workflow management
 - **✅ Global options** with dry-run, verbose, and configuration overrides
-- **✅ Cross-platform compatibility** (Python 3.8+ on Windows/macOS/Linux)
+- **✅ Cross-platform compatibility** (Python 3.10+ on Windows/macOS/Linux)
 
 #### 🏗️ Advanced Engineering
 - **✅ Complete BashWrapper implementation** with all script integration
@@ -113,7 +113,7 @@ pip install -r requirements-dev.txt
 
 ### Requirements
 
-- **Python 3.8+** (3.9+ recommended)
+- **Python 3.10+** (3.11+ recommended)
 - **Git** for repository operations
 - **GitHub CLI** (gh) for authentication
 - **Bash/Zsh** shell environment
