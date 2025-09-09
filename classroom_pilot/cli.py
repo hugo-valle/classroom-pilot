@@ -20,10 +20,10 @@ app = typer.Typer(
     name="classroom-pilot",
     help="Classroom Pilot - Comprehensive automation suite for managing assignments",
     add_completion=False,
-    rich_markup_mode="rich",
+    rich_markup_mode=None,  # Disable rich markup for better compatibility
 )
 
-# Global options
+# Global options - simplified for better compatibility
 DryRunOption = Annotated[bool, typer.Option(
     "--dry-run", "-n", help="Show what would be done without executing")]
 VerboseOption = Annotated[bool, typer.Option(
