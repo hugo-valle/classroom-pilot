@@ -38,10 +38,16 @@ def test_config_loader(temp_config_file) -> ConfigLoader:
 
 
 @pytest.fixture
+def test_config(test_config_data) -> Dict[str, str]:
+    """Provide test config data as a dict."""
+    return test_config_data
+
+
+@pytest.fixture
 def test_wrapper(test_config_data) -> BashWrapper:
     """Provide a test BashWrapper instance with dry-run enabled."""
     return BashWrapper(
-        config_data=test_config_data,
+        config=test_config_data,
         dry_run=True,
         verbose=True,
         auto_yes=True

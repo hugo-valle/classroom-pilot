@@ -59,14 +59,15 @@ class RepositoryFetcher:
         try:
             # Extract repository name from URL
             repo_name = repo_url.split("/")[-1].replace(".git", "")
-            local_path = self.path_manager.get_output_dir() / repo_name
+            local_path = self.path_manager.ensure_output_directory(
+                "student-repos") / repo_name
 
             if local_path.exists():
                 # Repository exists, pull latest changes
-                return self.git_manager.pull_repository(local_path)
+                return self.git_manager.pull_repo()
             else:
                 # Clone repository
-                return self.git_manager.clone_repository(repo_url, local_path)
+                return self.git_manager.clone_repo(repo_url, local_path)
 
         except Exception as e:
             logger.error(f"Error fetching repository {repo_url}: {e}")
@@ -96,7 +97,7 @@ class RepositoryFetcher:
         logger.info("Updating all repositories")
 
         results = {}
-        repo_dir = self.path_manager.get_output_dir()
+        repo_dir = self.path_manager.ensure_output_directory("student-repos")
 
         if not repo_dir.exists():
             logger.warning("No repository directory found")
@@ -105,7 +106,9 @@ class RepositoryFetcher:
         for repo_path in repo_dir.iterdir():
             if repo_path.is_dir() and (repo_path / ".git").exists():
                 try:
-                    success = self.git_manager.pull_repository(repo_path)
+                    # Create a GitManager instance for this repo directory
+                    git_manager = GitManager(repo_path)
+                    success = git_manager.pull_repo()
                     results[repo_path.name] = success
                 except Exception as e:
                     logger.error(f"Failed to update {repo_path.name}: {e}")
