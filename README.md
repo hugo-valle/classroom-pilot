@@ -1,186 +1,176 @@
 # Classroom Pilot
 
-A modern Python CLI for automating GitHub Classroom assignment management with comprehensive workflow orchestration, repository discovery, and secret management capabilities.
+A comprehensive Python CLI tool for automating GitHub Classroom assignment management with modular workflow orchestration, repository operations, and secret management.
+
+[![PyPI version](https://badge.fury.io/py/classroom-pilot.svg)](https://badge.fury.io/py/classroom-pilot)
+[![Python Support](https://img.shields.io/pypi/pyversions/classroom-pilot.svg)](https://pypi.org/project/classroom-pilot/)
+[![Tests](https://github.com/hugo-valle/classroom-pilot/workflows/Tests/badge.svg)](https://github.com/hugo-valle/classroom-pilot/actions)
 
 ## 🎯 Overview
 
-Classroom Pilot provides instructors with a powerful command-line interface to automate GitHub Classroom assignment workflows, including:
+Classroom Pilot provides instructors with a powerful, modern CLI to automate GitHub Classroom workflows:
 
-- **🐍 Modern Python CLI** - Type-safe, intuitive command interface with rich output
-- **📁 Universal file type support** - Works with any assignment file type (.py, .cpp, .sql, .md, .html, .ipynb, etc.)
-- **🔍 Automated repository discovery** - Smart filtering and batch operations on student repositories
-- **🔐 Batch secret management** - Secure token and secret distribution across repositories
-- **🔄 Template synchronization** - Keep assignment templates in sync with GitHub Classroom
-- **⚙️ Configuration-driven workflows** - Flexible, reusable assignment configurations
-- **🛡️ Enterprise GitHub support** - Custom GitHub Enterprise and internal Git hosting
-- **🎯 Instructor-focused filtering** - Automatically excludes instructor repositories from batch operations
-
-## 📊 Project Status - Phase 3: Modular Architecture Complete ✅
-
-**Current Release**: `v3.0.0-alpha.1` (Modular Architecture Implementation)
-
-### ✅ Phase 2 Completed Features
-
-#### 🐍 Complete Python CLI Architecture
-- **✅ All 10 CLI commands implemented** with full bash script integration
-- **✅ Typer-based CLI** with rich help output and shell completion
-- **✅ Type-safe configuration** with comprehensive validation
-- **✅ Modular command structure** for intuitive workflow management
-- **✅ Global options** with dry-run, verbose, and configuration overrides
-- **✅ Cross-platform compatibility** (Python 3.10+ on Windows/macOS/Linux)
-
-#### 🏗️ Advanced Engineering
-- **✅ Complete BashWrapper implementation** with all script integration
-- **✅ Comprehensive error handling** with graceful fallbacks
-- **✅ Configuration parsing** with environment variable expansion
-- **✅ Custom GitHub host support** for enterprise environments
-- **✅ Professional test suite** with 92.9% success rate (39/42 tests)
-
-#### 🧪 Testing & Quality Assurance
-- **✅ Comprehensive test coverage** with pytest framework
-- **✅ Unit, integration, and comprehensive testing** 
-- **✅ CI/CD pipeline** with GitHub Actions
-- **✅ Multi-Python version support** (3.8-3.12)
-- **✅ Professional code organization** following Python best practices
-
-### 🎯 Phase 2 Status: COMPLETE ✅
-- ✅ **Complete Python CLI implementation** with all functionality
-- ✅ **Full backward compatibility** with existing bash scripts and configurations
-- ✅ **Enhanced error handling** and user experience improvements
-- ✅ **Cross-platform distribution** ready for production
-- ✅ **Enterprise GitHub support** for custom hosting environments
-- ✅ **Comprehensive documentation** and testing infrastructure
-
-### 🚧 Upcoming Features
-
-#### Phase 2 Completion
-- **Web API foundation** for future dashboard integration
-- **Plugin architecture** for extensible functionality
-- **Enhanced analytics** and reporting capabilities
-- **Integration testing** with real classroom environments
-
-#### Phase 3: Web Interface & Advanced Features
-- **React-based web dashboard** for visual assignment management
-- **Real-time monitoring** and notification systems
-- **Multi-classroom management** with role-based access
-- **Advanced analytics** and student progress tracking
+- **🐍 Modern Python CLI** - Type-safe, intuitive commands with rich help and output
+- **📦 PyPI Package** - Simple installation: `pip install classroom-pilot`
+- **🔧 Modular Architecture** - Organized command structure for different workflow areas
+- **🔍 Smart Repository Discovery** - Automated filtering and batch operations
+- **🔐 Secret Management** - Secure distribution of tokens and credentials
+- **⚙️ Configuration-Driven** - Flexible, reusable assignment setups
+- **🛡️ Enterprise Support** - Custom GitHub hosts and internal Git systems
+- **🎯 Instructor-Focused** - Excludes instructor repos from batch operations automatically
 
 ## 📦 Installation
 
-### Option 1: Install via pip (Recommended)
+### Quick Install (Recommended)
 
 ```bash
-# Install the latest version
+# Install from PyPI
 pip install classroom-pilot
-
-# Or install from source
-pip install git+https://github.com/hugo-valle/classroom-pilot.git
 
 # Verify installation
 classroom-pilot --help
 ```
 
-### Option 2: Install with Poetry
+### Development Installation
 
 ```bash
-# Clone the repository
+# Clone repository
 git clone https://github.com/hugo-valle/classroom-pilot.git
 cd classroom-pilot
 
 # Install with Poetry
 poetry install
-
-# Activate the environment
 poetry shell
 
-# Verify installation
-classroom-pilot --help
-```
-
-### Option 3: Development Installation
-
-```bash
-# Clone and install in development mode
-git clone https://github.com/hugo-valle/classroom-pilot.git
-cd classroom-pilot
-
-# Install in editable mode
+# Or install in development mode
 pip install -e .
-
-# Or install development dependencies
-pip install -r requirements-dev.txt
 ```
 
 ### Requirements
 
 - **Python 3.10+** (3.11+ recommended)
 - **Git** for repository operations
-- **GitHub CLI** (gh) for authentication
-- **Bash/Zsh** shell environment
+- **GitHub CLI** (optional, for enhanced authentication)
 
 ## 🚀 Quick Start
 
-### 1. Configure Your Assignment
+### 1. Basic Configuration
 
 Create an assignment configuration file:
 
 ```bash
 # Create assignment.conf
 cat > assignment.conf << 'EOF'
-# Assignment Configuration
+# GitHub Classroom Configuration
 CLASSROOM_URL="https://classroom.github.com/classrooms/123/assignments/456"
 TEMPLATE_REPO_URL="https://github.com/instructor/assignment-template"
 ASSIGNMENT_FILE="homework.py"
 
-# GitHub Configuration
+# Authentication
 GITHUB_TOKEN_FILE="github_token.txt"
+
+# Optional: Secrets to distribute
 SECRETS_LIST="API_KEY,DATABASE_URL"
 EOF
 ```
 
-### 2. Run Commands
+### 2. Command Structure
+
+Classroom Pilot uses a modular command structure:
 
 ```bash
-# Show all available commands
-classroom-pilot --help
+# Main command groups
+classroom-pilot assignments    # Assignment setup and orchestration
+classroom-pilot repos         # Repository operations and collaboration
+classroom-pilot secrets       # Secret and token management
+classroom-pilot automation    # Scheduling and batch processing
 
-# Sync template to GitHub Classroom (dry-run first)
-classroom-pilot --dry-run sync
+# Legacy commands (for backward compatibility)
+classroom-pilot setup         # Interactive assignment setup
+classroom-pilot run           # Complete workflow execution
+```
+
+### 3. Common Workflows
+
+```bash
+# Setup a new assignment (interactive)
+classroom-pilot assignments setup
 
 # Discover student repositories
-classroom-pilot discover
+classroom-pilot repos fetch --config assignment.conf
 
-# Add secrets to student repositories
-classroom-pilot secrets
+# Add secrets to all student repos
+classroom-pilot secrets add --config assignment.conf
 
-# Run complete workflow
-classroom-pilot run
+# Run orchestrated workflow
+classroom-pilot assignments orchestrate --config assignment.conf
 
-# Get detailed help for any command
-classroom-pilot sync --help
+# Check what would happen (dry-run)
+classroom-pilot --dry-run assignments orchestrate
 ```
 
-### 3. Configuration Options
+## 🔧 Command Reference
+
+### Assignment Management
 
 ```bash
-# Use custom configuration file
-classroom-pilot --config-file my-assignment.conf sync
+# Setup new assignment configuration
+classroom-pilot assignments setup
 
-# Enable verbose logging
-classroom-pilot --verbose discover
+# Orchestrate complete assignment workflow
+classroom-pilot assignments orchestrate [--config FILE] [--dry-run]
 
-# Skip confirmation prompts
-classroom-pilot --yes secrets
-
-# Combine options
-classroom-pilot --config-file assignment.conf --dry-run --verbose run
+# Manage assignment templates
+classroom-pilot assignments manage [--config FILE]
 ```
 
-## 🔧 Configuration
+### Repository Operations
+
+```bash
+# Fetch student repositories
+classroom-pilot repos fetch [--config FILE]
+
+# Manage collaborators
+classroom-pilot repos collaborator add|remove [--config FILE]
+```
+
+### Secret Management
+
+```bash
+# Add secrets to repositories
+classroom-pilot secrets add [--config FILE] [--secrets LIST]
+
+# Remove secrets from repositories  
+classroom-pilot secrets remove [--config FILE] [--secrets LIST]
+
+# List existing secrets
+classroom-pilot secrets list [--config FILE]
+```
+
+### Automation & Scheduling
+
+```bash
+# Setup cron jobs for automation
+classroom-pilot automation scheduler setup [--config FILE]
+
+# Run batch operations
+classroom-pilot automation batch [--config FILE]
+```
+
+### Global Options
+
+| Option | Description | Example |
+|--------|-------------|---------|
+| `--dry-run` | Preview actions without executing | `classroom-pilot --dry-run assignments orchestrate` |
+| `--verbose` | Enable detailed logging | `classroom-pilot --verbose repos fetch` |
+| `--config FILE` | Use custom configuration file | `classroom-pilot --config my.conf assignments setup` |
+| `--help` | Show help for any command | `classroom-pilot assignments --help` |
+
+## ⚙️ Configuration
 
 ### Assignment Configuration File
 
-Create an `assignment.conf` file with your assignment settings:
+The `assignment.conf` file contains all settings for your assignment:
 
 ```bash
 # Required: GitHub Classroom assignment URL
@@ -195,8 +185,10 @@ ASSIGNMENT_FILE="homework.py"
 # Optional: GitHub Enterprise support
 GITHUB_HOSTS="github.enterprise.com,git.company.internal"
 
-# Optional: Secrets management
+# Optional: Authentication
 GITHUB_TOKEN_FILE="github_token.txt"
+
+# Optional: Secrets management
 SECRETS_LIST="API_KEY,DATABASE_URL,SECRET_TOKEN"
 
 # Optional: Repository filtering
@@ -219,83 +211,26 @@ export GITHUB_TOKEN="ghp_your_token_here"
 export ASSIGNMENT_FILE="main.cpp"
 
 # Run with overrides
-classroom-pilot sync
-```
-
-### Multi-line Arrays
-
-Support for complex configuration arrays:
-
-```bash
-# Multi-line secrets list
-SECRETS_LIST=(
-    "API_KEY"
-    "DATABASE_URL" 
-    "SECRET_TOKEN"
-    "WEBHOOK_SECRET"
-)
-
-# Multi-line exclude list
-EXCLUDE_REPOS=(
-    "template"
-    "example" 
-    "demo"
-    "instructor-*"
-)
-```
-
-## 📋 Commands Reference
-
-### Main Commands
-
-| Command | Description | Example |
-|---------|-------------|---------|
-| `run` | Execute complete workflow | `classroom-pilot run` |
-| `sync` | Sync template to classroom | `classroom-pilot sync` |
-| `discover` | Find student repositories | `classroom-pilot discover` |
-| `secrets` | Manage repository secrets | `classroom-pilot secrets` |
-| `assist` | Help students with issues | `classroom-pilot assist` |
-| `version` | Show version information | `classroom-pilot version` |
-
-### Global Options
-
-| Option | Short | Description | Example |
-|--------|-------|-------------|---------|
-| `--dry-run` | `-n` | Preview without executing | `classroom-pilot --dry-run sync` |
-| `--verbose` | `-v` | Enable detailed logging | `classroom-pilot --verbose discover` |
-| `--config-file` | `-c` | Use custom config file | `classroom-pilot -c my.conf sync` |
-| `--yes` | `-y` | Skip confirmation prompts | `classroom-pilot --yes secrets` |
-| `--help` | | Show help information | `classroom-pilot --help` |
-
-### Workflow Examples
-
-```bash
-# Complete assignment setup workflow
-classroom-pilot --config-file assignment.conf run
-
-# Sync template changes only
-classroom-pilot --dry-run sync
-classroom-pilot sync
-
-# Update secrets for all students
-classroom-pilot --verbose secrets
-
-# Help specific students
-classroom-pilot --config-file student-issues.conf assist
-
-# Check what would happen
-classroom-pilot --dry-run --verbose run
+classroom-pilot assignments orchestrate
 ```
 
 ## 💡 Best Practices
 
-### Development Workflow
+### Workflow Recommendations
 
 - **Always test with `--dry-run`** before making changes
 - **Use `--verbose`** for debugging configuration issues
 - **Keep configuration files in version control** with your assignment
 - **Use environment variables** for sensitive information
 - **Test with single student first** using filtered configuration
+
+### Security Guidelines
+
+- **Store GitHub tokens securely** using `GITHUB_TOKEN_FILE`
+- **Use environment variables** for sensitive configuration
+- **Review `--dry-run` output** before executing changes
+- **Limit repository access** with proper filtering
+- **Audit secret distribution** using verbose logging
 
 ### Configuration Management
 
@@ -304,30 +239,36 @@ classroom-pilot --dry-run --verbose run
 - **Document custom GitHub hosts** in your assignment README
 - **Validate URLs** before running batch operations
 
-### Security Considerations
-
-- **Store GitHub tokens securely** using `GITHUB_TOKEN_FILE`
-- **Use environment variables** for sensitive configuration
-- **Review `--dry-run` output** before executing changes
-- **Limit repository access** with proper filtering
-- **Audit secret distribution** using verbose logging
-
 ## 🛠️ Development
 
-### Project Structure
+### Project Architecture
 
 ```
 classroom_pilot/
-├── __init__.py          # Package initialization
-├── __main__.py          # CLI entry point
-├── cli.py               # Typer CLI implementation
-├── config.py            # Configuration management
-├── bash_wrapper.py      # Script execution wrapper
-├── utils.py             # Utility functions
-├── scripts/             # Bash scripts
-│   ├── __init__.py
-│   ├── *.sh             # Individual workflow scripts
-└── docs/                # Documentation
+├── __init__.py              # Package initialization
+├── __main__.py             # CLI entry point
+├── cli.py                  # Main Typer CLI interface
+├── config.py               # Configuration management
+├── bash_wrapper.py         # Legacy script wrapper
+├── utils.py                # Utility functions
+├── assignments/            # Assignment management
+│   ├── setup.py           # Interactive setup
+│   ├── orchestrator.py    # Workflow orchestration
+│   └── manage.py          # Template management
+├── repos/                  # Repository operations
+│   ├── fetch.py           # Repository discovery
+│   └── collaborator.py    # Collaborator management
+├── secrets/                # Secret management
+│   ├── add.py             # Secret distribution
+│   ├── remove.py          # Secret removal
+│   └── list.py            # Secret listing
+├── automation/             # Automation & scheduling
+│   ├── scheduler.py       # Cron job management
+│   └── batch.py           # Batch processing
+└── config/                 # Configuration system
+    ├── loader.py          # Configuration loading
+    ├── validator.py       # Validation logic
+    └── generator.py       # Config generation
 ```
 
 ### Contributing
@@ -337,47 +278,76 @@ classroom_pilot/
 git clone https://github.com/hugo-valle/classroom-pilot.git
 cd classroom-pilot
 
-# Install development dependencies
-pip install -r requirements-dev.txt
-pip install -e .
+# Install with Poetry
+poetry install
+poetry shell
 
 # Run tests
-make test              # Quick functionality tests
-make test-unit         # Full pytest unit tests
-pytest tests/ -v       # Run tests directly
+poetry run pytest tests/ -v
 
-# Run comprehensive tests
-make test-full
-python tests/test_comprehensive.py
+# Test CLI functionality
+poetry run classroom-pilot --help
 
 # Format code
-black classroom_pilot/
-isort classroom_pilot/
+poetry run black classroom_pilot/
+poetry run isort classroom_pilot/
 
 # Type checking
-mypy classroom_pilot/
+poetry run mypy classroom_pilot/
 
 # Create feature branch
 git checkout -b feature/new-feature
 ```
 
-### Architecture
+### Testing
 
-- **Modern Python CLI** built with Typer for rich interaction
-- **Configuration-driven** with validation and environment expansion  
-- **Bash script compatibility** through wrapper execution
-- **Cross-platform support** with proper path handling
-- **Enterprise GitHub support** with custom host validation
-- **Type safety** with comprehensive type annotations
+The project includes comprehensive testing:
 
-## 📞 Support
+- **153+ tests** across all modules
+- **Unit tests** for individual components
+- **Integration tests** for workflow validation
+- **CLI tests** for command-line interface
+- **100% test pass rate** requirement
+
+```bash
+# Run all tests
+poetry run pytest tests/ -v
+
+# Run specific test categories
+poetry run pytest tests/test_assignments.py -v
+poetry run pytest tests/test_cli.py -v
+
+# Test with coverage
+poetry run pytest tests/ --cov=classroom_pilot
+```
+
+## 📚 Documentation
+
+### Key Resources
+
+- **[PyPI Package](https://pypi.org/project/classroom-pilot/)** - Official package page
+- **[GitHub Repository](https://github.com/hugo-valle/classroom-pilot)** - Source code and issues
+- **[CI/CD Documentation](docs/CICD_WORKFLOW.md)** - Automated publishing workflow
+- **[PyPI Publication Guide](docs/PYPI_PUBLICATION.md)** - Release process documentation
+
+### Version Information
+
+- **Current Version**: 3.0.1-alpha.2
+- **Python Support**: 3.10, 3.11, 3.12
+- **Package Distribution**: PyPI with automated CI/CD
+- **Release Cycle**: Semantic versioning with automated publishing
+
+## 🆘 Support
 
 - **Documentation**: [GitHub Repository](https://github.com/hugo-valle/classroom-pilot)
 - **Issues**: [GitHub Issues](https://github.com/hugo-valle/classroom-pilot/issues)
+- **Package**: [PyPI Package](https://pypi.org/project/classroom-pilot/)
 - **Discussions**: [GitHub Discussions](https://github.com/hugo-valle/classroom-pilot/discussions)
 
----
+## 📜 License
+
+MIT License - see [LICENSE](LICENSE) file for details.
 
 ---
 
-**Classroom Pilot** - Streamlining GitHub Classroom assignment management through modern automation.
+**Classroom Pilot** - Modern Python automation for GitHub Classroom assignment management.
