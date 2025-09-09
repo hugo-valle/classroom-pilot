@@ -21,9 +21,9 @@ class TestConfigurationInitialization:
         assert config.data == test_config_data
 
     def test_init_empty(self):
-        """Test Configuration initialization without data."""
-        config = Configuration()
-        assert config.data == {}
+        """Test Configuration initialization without data raises validation error."""
+        with pytest.raises(ValueError, match="Missing required configuration fields"):
+            Configuration()
 
 
 class TestConfigurationValidation:
