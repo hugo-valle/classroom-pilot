@@ -169,11 +169,18 @@ class TestManagementCommands:
     """Test assignment management commands."""
 
     def test_setup_command_dry_run(self):
-        """Test the setup command in dry-run mode."""
+        """Test the setup command in dry-run mode (bash version)."""
         success, stdout, stderr = run_cli_command(
-            "python -m classroom_pilot setup --dry-run --verbose")
+            "python -m classroom_pilot setup-bash --dry-run --verbose")
         assert success, f"Setup command failed: {stderr}"
         assert "DRY RUN" in stdout
+
+    def test_setup_command_help(self):
+        """Test the new Python setup command help."""
+        success, stdout, stderr = run_cli_command(
+            "python -m classroom_pilot setup --help")
+        assert success, f"Setup help command failed: {stderr}"
+        assert "Interactive Python wizard" in stdout
 
     def test_update_command_dry_run(self):
         """Test the update command in dry-run mode."""

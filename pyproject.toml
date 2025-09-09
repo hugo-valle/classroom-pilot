@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "classroom-pilot"
-version = "0.1.0"
+version = "3.0.0-alpha.1"
 description = "Classroom Pilot - Comprehensive automation suite for managing assignments"
 authors = ["Hugo Valle <hugo.valle@example.com>"]
 license = "MIT"

@@ -3,6 +3,8 @@ Utility functions module for Classroom Pilot.
 
 This module provides logging utilities, URL validation, file manipulation helpers,
 and other common operations used throughout the package.
+
+Note: This module is being migrated to the utils/ package for better organization.
 """
 
 import logging
@@ -13,8 +15,13 @@ from pathlib import Path
 from typing import Optional, List, Union
 from urllib.parse import urlparse
 
+# Import from new utils package
+from .utils.logger import setup_logging, get_logger
+from .utils.git import GitManager
+from .utils.paths import PathManager
+
 # Initialize logger
-logger = logging.getLogger("classroom_pilot")
+logger = get_logger("utils")
 
 
 def setup_logging(verbose: bool = False) -> None:
@@ -379,3 +386,36 @@ def shell_escape(arg: str) -> str:
     """
     import shlex
     return shlex.quote(str(arg))
+
+
+def get_script_dir() -> Path:
+    """
+    Get the directory containing the current script.
+
+    Returns:
+        Path to the directory containing the script
+    """
+    return Path(__file__).parent
+
+
+def get_repo_root() -> Path:
+    """
+    Get the repository root directory.
+
+    Returns:
+        Path to the repository root
+    """
+    # Try to get git root first
+    git_root = get_git_root()
+    if git_root:
+        return git_root
+
+    # Fallback: navigate up from script directory
+    current = Path(__file__).parent
+    while current != current.parent:
+        if (current / '.git').exists() or (current / 'pyproject.toml').exists():
+            return current
+        current = current.parent
+
+    # Final fallback: use parent of script directory
+    return Path(__file__).parent.parent
