@@ -20,13 +20,17 @@ def run_cli_command(cmd: str, cwd: Path | None = None) -> tuple[bool, str, str]:
         else:
             cmd_list = cmd
 
+        # Use current environment but ensure Python path is available
+        import os
+        env = os.environ.copy()
+
         result = subprocess.run(
             cmd_list,
             capture_output=True,
             text=True,
             cwd=cwd or Path.cwd(),
             timeout=30,
-            env=None  # Use clean environment
+            env=env
         )
         return result.returncode == 0, result.stdout, result.stderr
     except subprocess.TimeoutExpired:
@@ -45,8 +49,14 @@ class TestBasicCLI:
 
         # Enhanced error reporting for debugging CI issues
         if not success:
-            print(f"Command failed with return code. STDERR: {stderr}")
-            print(f"STDOUT: {stdout}")
+            print(f"\n=== DEBUG INFO ===")
+            print(f"Command: python -m classroom_pilot --help")
+            print(f"Return code: NON-ZERO")
+            print(f"STDERR:\n{stderr}")
+            print(f"STDOUT:\n{stdout}")
+            print(f"Working directory: {Path.cwd()}")
+            print(f"Python executable: {sys.executable}")
+            print(f"=== END DEBUG ===\n")
 
         assert success, f"Help command failed: {stderr}"
 
@@ -69,8 +79,14 @@ class TestBasicCLI:
 
         # Enhanced error reporting for debugging CI issues
         if not success:
-            print(f"Command failed with return code. STDERR: {stderr}")
-            print(f"STDOUT: {stdout}")
+            print(f"\n=== DEBUG INFO ===")
+            print(f"Command: python -m classroom_pilot --help")
+            print(f"Return code: NON-ZERO")
+            print(f"STDERR:\n{stderr}")
+            print(f"STDOUT:\n{stdout}")
+            print(f"Working directory: {Path.cwd()}")
+            print(f"Python executable: {sys.executable}")
+            print(f"=== END DEBUG ===\n")
 
         assert success, f"Help without config failed: {stderr}"
 
