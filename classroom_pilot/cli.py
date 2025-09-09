@@ -312,7 +312,7 @@ def legacy_run(
 @app.command("version")
 def version():
     """Show version information."""
-    typer.echo("Classroom Pilot v3.0.0-alpha.1")
+    typer.echo("Classroom Pilot v3.0.1-alpha.2")
     typer.echo("Modular Python CLI for GitHub Classroom automation")
     typer.echo("https://github.com/hugo-valle/classroom-pilot")
 
