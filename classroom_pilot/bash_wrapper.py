@@ -24,8 +24,10 @@ except ImportError:
         files = None
         as_file = None
 
-from .config import Configuration
-from .utils import logger
+from .config import ConfigLoader
+from .utils import get_logger
+
+logger = get_logger("bash_wrapper")
 
 
 class BashWrapper:
@@ -36,7 +38,7 @@ class BashWrapper:
 
     def __init__(
         self,
-        config: Configuration,
+        config: Dict[str, str],
         dry_run: bool = False,
         verbose: bool = False,
         auto_yes: bool = False
@@ -45,7 +47,7 @@ class BashWrapper:
         Initialize bash wrapper.
 
         Args:
-            config: Configuration instance
+            config: Configuration dictionary
             dry_run: Enable dry-run mode
             verbose: Enable verbose output
             auto_yes: Automatically answer yes to prompts
@@ -113,7 +115,19 @@ class BashWrapper:
         env = os.environ.copy()
 
         # Add configuration variables
-        config_env = self.config.to_env_dict()
+        if hasattr(self.config, 'to_env_dict'):
+            # Legacy Configuration object
+            config_env = self.config.to_env_dict()
+        else:
+            # Plain dictionary from new ConfigLoader
+            config_env = {}
+            for key, value in self.config.items():
+                if isinstance(value, list):
+                    # Convert arrays to bash array format
+                    config_env[key] = ' '.join(f'"{item}"' for item in value)
+                else:
+                    config_env[key] = str(value)
+
         env.update(config_env)
 
         # Add wrapper-specific variables

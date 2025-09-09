@@ -1,425 +1,377 @@
-# CS6600 Instructor Automation Suite
+# Automation Suite - Comprehensive GitHub Classroom Management
 
-This document describes the complete automation suite for managing CS6600 assignments, including repository discovery, secret management, and student assistance tools.
+This document describes the complete automation suite for managing GitHub Classroom assignments through the modern Python CLI interface.
 
 ## 🎯 Overview
 
 The automation suite provides instructors with powerful tools to:
-- Automatically discover student repositories from GitHub Classroom
-- Manage GitHub secrets across multiple student repositories
-- Assist students with repository updates and conflict resolution
-- Fix repository access issues through intelligent permission cycling
-- Handle template repository updates and deployment
 
-## 📋 Quick Start
+- **Automated Repository Discovery** - Find student repositories from GitHub Classroom
+- **Batch Secret Management** - Distribute secrets across multiple repositories
+- **Student Assistance Tools** - Help students with repository issues and conflicts
+- **Permission Management** - Fix access issues through intelligent permission cycling
+- **Template Synchronization** - Keep assignment templates updated across classrooms
+- **Scheduling & Automation** - Set up automated workflows with cron jobs
 
-### 1. Setup Requirements
+## 📦 Installation
+
 ```bash
-# Install GitHub CLI
-# See: https://cli.github.com/
+# Install from PyPI
+pip install classroom-pilot
 
-# Authenticate with GitHub
-gh auth login
-
-# Create token file for secret management
-echo "your_github_token_here" > instructor_token.txt
+# Verify installation
+classroom-pilot --help
 ```
 
-### 2. Discover Student Repositories
+## 🚀 Quick Start
+
+### 1. Setup Assignment Configuration
+
 ```bash
-# Fetch all student repositories (excludes template by default)
-./scripts/fetch-student-repos.sh
+# Interactive setup wizard
+classroom-pilot assignments setup
 
-# Include template repository if needed
-./scripts/fetch-student-repos.sh --include-template
-
-# Custom assignment and organization
-./scripts/fetch-student-repos.sh cs6600-m2-homework2 MY-ORG
+# This creates assignment.conf with your settings
 ```
 
-### 3. Manage Secrets Across All Students
+### 2. Repository Discovery
+
 ```bash
-# Add secrets to all discovered students
-./scripts/add-secrets-to-students.sh INSTRUCTOR_TESTS_TOKEN --batch student-repos-batch.txt
+# Discover all student repositories
+classroom-pilot repos fetch --config assignment.conf
 
-# Force update all secrets (regardless of age)
-./scripts/add-secrets-to-students.sh INSTRUCTOR_TESTS_TOKEN --force-update --batch student-repos-batch.txt
+# Fetch with filtering
+classroom-pilot repos fetch --config assignment.conf --exclude "template,demo"
 ```
 
-### 4. Assist Students with Updates
+### 3. Secret Management
+
 ```bash
-# Help specific student
-./scripts/student-update-helper.sh https://github.com/WSU-ML-DL/cs6600-m1-homework1-student123
+# Add secrets to all student repositories
+classroom-pilot secrets add --config assignment.conf
 
-# Help all students from discovered list
-./scripts/student-update-helper.sh --batch student-repos-batch.txt
+# Remove secrets from repositories
+classroom-pilot secrets remove --config assignment.conf --secrets "OLD_TOKEN"
+
+# List existing secrets
+classroom-pilot secrets list --config assignment.conf
 ```
 
-### 5. Fix Repository Access Issues
+### 4. Complete Automation Workflow
+
 ```bash
-# Check and fix repository access for all students
-./scripts/cycle-collaborator.sh --config assignment.conf --batch student-repos-batch.txt --repo-urls
+# Run complete automated workflow
+classroom-pilot assignments orchestrate --config assignment.conf
 
-# Preview what would be done first
-./scripts/cycle-collaborator.sh --config assignment.conf --batch student-repos-batch.txt --repo-urls --dry-run
+# Preview changes first
+classroom-pilot --dry-run assignments orchestrate --config assignment.conf
 ```
 
-## 🛠️ Complete Automation Scripts
+## 🔧 Automation Commands
 
-### 1. Repository Discovery Script
+### Assignment Management
 
-**File:** `scripts/fetch-student-repos.sh`
-
-**Purpose:** Automatically discover and list all student repositories from GitHub Classroom.
-
-**Key Features:**
-- Auto-detects student repositories with pattern matching
-- Excludes template repositories by default
-- Supports custom organizations and assignment prefixes
-- Generates batch files for other scripts
-- Dry-run support for preview
-
-**Usage Examples:**
 ```bash
-# Basic usage - discover all cs6600-m1-homework1 repositories
-./scripts/fetch-student-repos.sh
+# Setup new assignment
+classroom-pilot assignments setup
 
-# Dry run to preview results
-./scripts/fetch-student-repos.sh --dry-run
+# Orchestrate complete workflow
+classroom-pilot assignments orchestrate [OPTIONS]
 
-# Include template repository
-./scripts/fetch-student-repos.sh --include-template
-
-# Custom assignment
-./scripts/fetch-student-repos.sh cs6600-final-project
-
-# Custom output file
-./scripts/fetch-student-repos.sh --output final-project-repos.txt
-
-# Custom organization and assignment
-./scripts/fetch-student-repos.sh cs6600-m2-homework2 CUSTOM-ORG
+# Manage assignment templates
+classroom-pilot assignments manage [OPTIONS]
 ```
 
-**Output Format:**
-```
-# Student Repository URLs for cs6600-m1-homework1
-# Generated on Mon Aug 18 12:55:41 MDT 2025
-# Organization: WSU-ML-DL
-# Total repositories: 2
-#
-# Use this file with batch scripts:
-# ./scripts/add-secrets-to-students.sh INSTRUCTOR_TESTS_TOKEN --batch student-repos-final.txt
-# ./scripts/student-update-helper.sh --batch student-repos-final.txt
+### Repository Operations
 
-https://github.com/WSU-ML-DL/cs6600-m1-homework1-hugo-wsu
-https://github.com/WSU-ML-DL/cs6600-m1-homework1-instructor-tests
-```
-
-### 2. Secret Management Script
-
-**File:** `scripts/add-secrets-to-students.sh`
-
-**Purpose:** Automated GitHub secrets management with expiration detection and batch processing.
-
-**Key Features:**
-- Token validation (format, permissions, accessibility)
-- Secret age detection and expiration management
-- Batch processing from repository files
-- Force update capabilities
-- Comprehensive error handling and logging
-
-**Usage Examples:**
 ```bash
-# Add secret to specific student
-./scripts/add-secrets-to-students.sh INSTRUCTOR_TESTS_TOKEN https://github.com/WSU-ML-DL/cs6600-m1-homework1-student123
+# Fetch student repositories
+classroom-pilot repos fetch [OPTIONS]
 
-# Batch process all students
-./scripts/add-secrets-to-students.sh INSTRUCTOR_TESTS_TOKEN --batch student-repos-batch.txt
+# Add collaborators to repositories
+classroom-pilot repos collaborator add [OPTIONS]
 
-# Use custom token file
-./scripts/add-secrets-to-students.sh INSTRUCTOR_TESTS_TOKEN --token-file custom_token.txt
-
-# Update secrets older than 30 days
-./scripts/add-secrets-to-students.sh INSTRUCTOR_TESTS_TOKEN --max-age 30 --batch student-repos-batch.txt
-
-# Force update all secrets regardless of age
-./scripts/add-secrets-to-students.sh INSTRUCTOR_TESTS_TOKEN --force-update --batch student-repos-batch.txt
-
-# Check token validity
-./scripts/add-secrets-to-students.sh --check-token
+# Remove collaborators from repositories
+classroom-pilot repos collaborator remove [OPTIONS]
 ```
-
-**Secret Age Management:**
-- Default expiration: 90 days
-- Configurable with `--max-age` parameter
-- Force update with `--force-update`
-- Automatic detection of existing secret age
-
-### 3. Student Update Helper Script
-
-**File:** `scripts/student-update-helper.sh`
-
-**Purpose:** Assists students with repository updates and merge conflict resolution.
-
-**Key Features:**
-- Automated merge conflict detection and resolution
-- Template update assistance
-- Batch processing for multiple students
-- Safe update procedures with backup strategies
-- Educational guidance for students
-
-**Usage Examples:**
-```bash
-# Help specific student
-./scripts/student-update-helper.sh https://github.com/WSU-ML-DL/cs6600-m1-homework1-student123
-
-# Help all students from file
-./scripts/student-update-helper.sh --batch student-repos-batch.txt
-
-# Use custom template repository
-./scripts/student-update-helper.sh --template https://github.com/CUSTOM/template-repo student-repo-url
-```
-
-### 4. Collaborator Cycling Script
-
-**File:** `scripts/cycle-collaborator.sh`
-
-**Purpose:** Fixes student repository access issues by cycling collaborator permissions.
-
-**Key Features:**
-- Intelligent detection of repository access problems
-- Smart cycling logic (only cycles when needed)
-- Force mode for manual override when troubleshooting
-- Configuration-based integration with orchestrator
-- Repository URL processing for batch operations
-- Comprehensive access verification and reporting
-
-**Usage Examples:**
-```bash
-# Check and fix access for specific student (traditional mode)
-./scripts/cycle-collaborator.sh assignment1 student-username organization
-
-# Configuration mode with batch processing (recommended)
-./scripts/cycle-collaborator.sh --config assignment.conf --batch student-repos.txt --repo-urls
-
-# Force cycling even when access appears correct
-./scripts/cycle-collaborator.sh --config assignment.conf --batch student-repos.txt --repo-urls --force
-
-# Dry run to preview actions
-./scripts/cycle-collaborator.sh --config assignment.conf --batch student-repos.txt --repo-urls --dry-run
-
-# List repository status without making changes
-./scripts/cycle-collaborator.sh --list assignment1 student-username organization
-```
-
-**Intelligent Cycling Logic:**
-- **Normal Mode:** Only cycles permissions when repository access issues are detected
-- **Force Mode:** Cycles permissions anyway when `--force` flag is used
-- **Smart Detection:** Verifies collaborator status before taking action
-- **Clear Reporting:** Explains why cycling is or isn't performed
-
-### 5. Template Deployment Script
-
-**File:** `scripts/push-to-classroom.sh`
-
-**Purpose:** Deploy template updates to GitHub Classroom.
-
-**Key Features:**
-- Safe deployment with backup procedures
-- Branch management and conflict resolution
-- Verification of successful deployment
-- Rollback capabilities
-
-## 🔄 Complete Workflow Examples
-
-### Workflow 1: New Assignment Setup
-```bash
-# 1. Update template repository
-git pull origin main
-
-# 2. Deploy to classroom
-./scripts/push-to-classroom.sh
-
-# 3. Discover student repositories
-./scripts/fetch-student-repos.sh
-
-# 4. Add secrets to all students
-./scripts/add-secrets-to-students.sh INSTRUCTOR_TESTS_TOKEN --batch student-repos-batch.txt
-
-# 5. Fix any repository access issues (optional)
-./scripts/cycle-collaborator.sh --config assignment.conf --batch student-repos-batch.txt --repo-urls
-```
-
-### Workflow 2: Mid-Semester Updates
-```bash
-# 1. Discover current student repositories
-./scripts/fetch-student-repos.sh
-
-# 2. Update expired secrets (older than 30 days)
-./scripts/add-secrets-to-students.sh INSTRUCTOR_TESTS_TOKEN --max-age 30 --batch student-repos-batch.txt
-
-# 3. Help students with any update issues
-./scripts/student-update-helper.sh --batch student-repos-batch.txt
-
-# 4. Fix any repository access issues that may have developed
-./scripts/cycle-collaborator.sh --config assignment.conf --batch student-repos-batch.txt --repo-urls
-```
-
-### Workflow 3: Emergency Secret Update
-```bash
-# 1. Fetch current repositories
-./scripts/fetch-student-repos.sh
-
-# 2. Force update all secrets immediately
-./scripts/add-secrets-to-students.sh INSTRUCTOR_TESTS_TOKEN --force-update --batch student-repos-batch.txt
-```
-
-### Workflow 4: Custom Assignment Management
-```bash
-# 1. Discover repositories for different assignment
-./scripts/fetch-student-repos.sh cs6600-final-project MY-CUSTOM-ORG --output final-repos.txt
-
-# 2. Manage secrets for final project
-./scripts/add-secrets-to-students.sh FINAL_PROJECT_TOKEN --batch final-repos.txt
-
-# 3. Assist students with final project updates
-./scripts/student-update-helper.sh --batch final-repos.txt
-```
-
-### Workflow 5: Repository Access Troubleshooting
-```bash
-# 1. Discover student repositories
-./scripts/fetch-student-repos.sh
-
-# 2. Check repository access status
-./scripts/cycle-collaborator.sh --config assignment.conf --batch student-repos-batch.txt --repo-urls --list
-
-# 3. Fix any detected access issues
-./scripts/cycle-collaborator.sh --config assignment.conf --batch student-repos-batch.txt --repo-urls
-
-# 4. Force cycling for persistent issues
-./scripts/cycle-collaborator.sh --config assignment.conf --batch student-repos-batch.txt --repo-urls --force
-```
-
-## 🔐 Security Features
-
-### Token Management
-- **Validation:** Automatic validation of GitHub token format (ghp_ prefix, 40+ characters)
-- **Permissions:** Verification of required permissions (repo, admin:repo_hook)
-- **Storage:** Secure file-based storage (git-ignored)
-- **Expiration:** Detection and handling of expired tokens
 
 ### Secret Management
-- **Age Tracking:** Automatic detection of secret creation/update dates
-- **Expiration Policies:** Configurable expiration thresholds
-- **Force Updates:** Override policies when security requires immediate updates
-- **Audit Trail:** Comprehensive logging of all secret operations
 
-### Repository Access
-- **Access Verification:** Pre-flight checks for repository accessibility
-- **Batch Validation:** Validation of all repositories before batch operations
-- **Error Handling:** Graceful handling of access denied scenarios
+```bash
+# Add secrets to repositories
+classroom-pilot secrets add [OPTIONS]
 
-## 📊 Output Management
+# Remove secrets from repositories
+classroom-pilot secrets remove [OPTIONS]
 
-### Clean Output Design
-All scripts implement proper stdout/stderr separation:
-- **stdout:** Clean data output (repository URLs, file contents)
-- **stderr:** Status messages, warnings, errors, progress indicators
+# List secrets in repositories
+classroom-pilot secrets list [OPTIONS]
+```
 
-This design enables:
-- **Piping:** Clean data can be piped to other commands
-- **File Redirection:** Status messages remain visible while data is redirected
-- **Script Integration:** Scripts can be composed together reliably
+### Automation & Scheduling
 
-### File Generation
-Scripts generate well-formatted files with:
-- **Headers:** Metadata about generation time, parameters used
-- **Comments:** Usage instructions and integration examples
-- **Clean URLs:** One repository URL per line for easy processing
+```bash
+# Setup automated scheduling
+classroom-pilot automation scheduler setup [OPTIONS]
 
-## 🚨 Error Handling
+# Run batch operations
+classroom-pilot automation batch [OPTIONS]
+```
 
-### Robust Error Management
-- **Pre-flight Checks:** Validation before starting operations
-- **Graceful Failures:** Partial success handling in batch operations
-- **Informative Messages:** Clear error descriptions with resolution suggestions
-- **Exit Codes:** Proper exit codes for script composition
+## ⚙️ Configuration
 
-### Common Issues and Solutions
+### Assignment Configuration File
 
-**Issue:** GitHub CLI not authenticated
-**Solution:** Run `gh auth login` and follow the prompts
+Create `assignment.conf` with your assignment settings:
 
-**Issue:** Token permissions insufficient
-**Solution:** Ensure token has 'repo' and 'admin:repo_hook' permissions
+```bash
+# GitHub Classroom Configuration
+CLASSROOM_URL="https://classroom.github.com/classrooms/123/assignments/456"
+TEMPLATE_REPO_URL="https://github.com/instructor/assignment-template"
+ASSIGNMENT_FILE="homework.py"
 
-**Issue:** Repository not accessible
-**Solution:** Verify organization membership and repository permissions
+# Authentication
+GITHUB_TOKEN_FILE="github_token.txt"
 
-**Issue:** Secret already exists and is recent
-**Solution:** Use `--force-update` to override age policies
+# Secret Management
+SECRETS_LIST="API_KEY,DATABASE_URL,GRADING_TOKEN"
 
-## 📈 Performance Considerations
+# Repository Filtering
+EXCLUDE_REPOS="template,example,demo,instructor-solution"
+INSTRUCTOR_REPOS="instructor-*"
+
+# GitHub Enterprise Support (optional)
+GITHUB_HOSTS="github.enterprise.com"
+```
+
+### Environment Variables
+
+Override configuration with environment variables:
+
+```bash
+# GitHub token
+export GITHUB_TOKEN="ghp_your_token_here"
+
+# Custom GitHub hosts
+export GITHUB_HOSTS="github.enterprise.com,git.company.internal"
+
+# Assignment file override
+export ASSIGNMENT_FILE="main.cpp"
+
+# Run commands with overrides
+classroom-pilot assignments orchestrate
+```
+
+## 🎯 Advanced Automation
 
 ### Batch Processing
-- **Parallel Operations:** Where safely possible, operations run in parallel
-- **Rate Limiting:** Respect GitHub API rate limits
-- **Progress Indicators:** Clear progress reporting for long operations
-- **Resume Capability:** Ability to continue after interruptions
 
-### Scalability
-- **Large Organizations:** Efficient handling of organizations with many repositories
-- **Configurable Limits:** Adjustable parameters for different scales
-- **Memory Efficiency:** Streaming processing for large repository lists
+Process multiple assignments with automation:
 
-## 🔧 Customization
+```bash
+# Process multiple assignment configurations
+for config in assignment-*.conf; do
+    echo "Processing $config..."
+    classroom-pilot --verbose assignments orchestrate --config "$config"
+done
+```
 
-### Configuration Options
-All scripts support extensive customization through:
-- **Command Line Arguments:** Override defaults on a per-run basis
-- **Environment Variables:** Set organization-wide defaults
-- **Configuration Files:** Store commonly used parameters
+### Scheduled Automation
 
-### Extension Points
-The scripts are designed for easy extension:
-- **Custom Filters:** Add repository filtering logic
-- **Additional Secrets:** Support for multiple secret types
-- **Custom Notifications:** Add Slack/email notifications
-- **Audit Integration:** Connect to institutional audit systems
+Set up automated workflows with cron:
+
+```bash
+# Setup automated scheduling
+classroom-pilot automation scheduler setup --config assignment.conf
+
+# This creates cron jobs for:
+# - Regular repository sync
+# - Secret updates
+# - Student assistance checks
+```
+
+### Enterprise Integration
+
+Configure for enterprise GitHub environments:
+
+```bash
+# Enterprise configuration
+GITHUB_HOSTS="github.enterprise.com,git.company.internal"
+GITHUB_TOKEN_FILE="enterprise_token.txt"
+
+# Run with enterprise settings
+classroom-pilot assignments orchestrate --config enterprise-assignment.conf
+```
+
+## 🛡️ Security & Best Practices
+
+### Token Management
+
+```bash
+# Secure token storage
+echo "ghp_your_token_here" > github_token.txt
+chmod 600 github_token.txt
+
+# Use token file in configuration
+GITHUB_TOKEN_FILE="github_token.txt"
+```
+
+### Repository Filtering
+
+```bash
+# Exclude instructor and template repositories
+EXCLUDE_REPOS="template,instructor-solution,demo,example"
+
+# Include only specific patterns
+INSTRUCTOR_REPOS="instructor-*,solution-*"
+```
+
+### Dry-Run Testing
+
+Always test changes before applying:
+
+```bash
+# Preview all changes
+classroom-pilot --dry-run assignments orchestrate --config assignment.conf
+
+# Preview specific operations
+classroom-pilot --dry-run secrets add --config assignment.conf
+classroom-pilot --dry-run repos fetch --config assignment.conf
+```
+
+## 📊 Monitoring & Logging
+
+### Verbose Output
+
+Enable detailed logging for monitoring:
+
+```bash
+# Verbose mode for debugging
+classroom-pilot --verbose assignments orchestrate --config assignment.conf
+
+# Combine with dry-run for detailed preview
+classroom-pilot --dry-run --verbose assignments orchestrate --config assignment.conf
+```
+
+### Log Analysis
+
+Monitor automation workflows:
+
+```bash
+# Check recent automation runs
+classroom-pilot automation batch --config assignment.conf --verbose
+
+# Review scheduled task logs
+classroom-pilot automation scheduler status --config assignment.conf
+```
+
+## 🔄 Workflow Examples
+
+### Weekly Assignment Update
+
+```bash
+#!/bin/bash
+# Weekly automation workflow
+
+CONFIG="assignment.conf"
+
+echo "Starting weekly assignment update..."
+
+# 1. Sync template changes
+classroom-pilot assignments manage --config "$CONFIG"
+
+# 2. Update secrets if needed
+classroom-pilot secrets add --config "$CONFIG"
+
+# 3. Check student repositories
+classroom-pilot repos fetch --config "$CONFIG"
+
+# 4. Run complete orchestration
+classroom-pilot assignments orchestrate --config "$CONFIG"
+
+echo "Weekly update complete!"
+```
+
+### Emergency Secret Rotation
+
+```bash
+#!/bin/bash
+# Emergency secret rotation
+
+CONFIG="assignment.conf"
+OLD_SECRET="COMPROMISED_TOKEN"
+NEW_SECRET="NEW_SECURE_TOKEN"
+
+echo "Starting emergency secret rotation..."
+
+# 1. Remove old secret
+classroom-pilot secrets remove --config "$CONFIG" --secrets "$OLD_SECRET"
+
+# 2. Add new secret
+SECRETS_LIST="$NEW_SECRET" classroom-pilot secrets add --config "$CONFIG"
+
+echo "Secret rotation complete!"
+```
+
+### Midterm Repository Preparation
+
+```bash
+#!/bin/bash
+# Midterm repository preparation
+
+echo "Preparing repositories for midterm..."
+
+# 1. Create midterm configuration
+classroom-pilot assignments setup
+
+# 2. Discover all student repositories
+classroom-pilot repos fetch --config midterm-assignment.conf
+
+# 3. Add grading tokens
+classroom-pilot secrets add --config midterm-assignment.conf
+
+# 4. Set up automated grading
+classroom-pilot automation scheduler setup --config midterm-assignment.conf
+
+echo "Midterm preparation complete!"
+```
+
+## 🆘 Troubleshooting
+
+### Common Issues
+
+1. **Authentication Failures**:
+   ```bash
+   # Check token permissions
+   classroom-pilot --verbose repos fetch --config assignment.conf
+   ```
+
+2. **Repository Discovery Issues**:
+   ```bash
+   # Verify classroom URL format
+   classroom-pilot --dry-run repos fetch --config assignment.conf
+   ```
+
+3. **Secret Management Errors**:
+   ```bash
+   # Test with single repository
+   classroom-pilot --verbose secrets add --config assignment.conf
+   ```
+
+### Debug Mode
+
+```bash
+# Maximum debugging information
+classroom-pilot --verbose --dry-run assignments orchestrate --config assignment.conf
+```
 
 ## 📚 Related Documentation
 
-- [Update Guide](UPDATE-GUIDE.md) - Template repository update procedures
-- [Development Environment Setup](setup/DEVELOPMENT_ENVIRONMENT_SETUP.md) - Developer environment configuration
-- [Virtual Environment Setup](setup/VIRTUAL_ENVIRONMENT_SETUP.md) - Python environment management
-- [Project Structure](project-structure/) - Repository organization documentation
-
-## 🆘 Support and Troubleshooting
-
-For issues with the automation suite:
-
-1. **Check Prerequisites:** Ensure GitHub CLI is installed and authenticated
-2. **Verify Permissions:** Confirm token has required permissions
-3. **Review Logs:** Check script output for specific error messages
-4. **Test Components:** Use individual scripts to isolate issues
-5. **Consult Documentation:** Review specific script documentation
-
-**Common Commands for Troubleshooting:**
-```bash
-# Test GitHub CLI authentication
-gh auth status
-
-# Verify token permissions
-./scripts/add-secrets-to-students.sh --check-token
-
-# Test repository access
-gh repo view WSU-ML-DL/cs6600-m1-homework1-template
-
-# Check organization access
-gh repo list WSU-ML-DL --limit 5
-```
+- **[Assignment Orchestrator](ASSIGNMENT-ORCHESTRATOR.md)** - Complete workflow automation
+- **[Secrets Management](SECRETS-MANAGEMENT.md)** - Detailed secret handling
+- **[Cron Automation](CRON-AUTOMATION.md)** - Scheduled task automation
+- **[Main CLI Reference](../README.md)** - Complete command documentation
 
 ---
 
-**Note:** This automation suite is designed for instructors managing CS6600 assignments. It requires appropriate GitHub permissions and should be used in accordance with your institution's policies.
+The Automation Suite provides comprehensive tools for efficient GitHub Classroom management through modern Python CLI commands.

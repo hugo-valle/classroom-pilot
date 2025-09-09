@@ -1,546 +1,361 @@
-# Automated Cron Workflow Documentation
+# Cron Automation - Scheduled GitHub Classroom Management
 
-## Overview
+## 🎯 Overview
 
-The GitHub Classroom Tools include comprehensive cron job automation for flexible, unattended assignment management. This enhanced system allows you to schedule any combination of workflow steps (sync, secrets, cycle, discover, assist) with custom schedules tailored to your needs.
+Classroom Pilot provides comprehensive automation capabilities for scheduling GitHub Classroom management tasks. Set up automated workflows that run unattended to keep your assignments synchronized and students supported.
 
-## Features
+## 📦 Installation
 
-### 🕐 Flexible Scheduling
-- **Individual steps**: Schedule each workflow step independently
-- **Multiple steps**: Combine multiple steps in a single cron job
-- **Custom schedules**: Override default schedules with cron expressions
-- **Intelligent defaults**: Pre-configured schedules optimized for each step type
-
-### 🔄 Multi-Step Operations
-- **Template synchronization** (`sync`): Pushes template changes to GitHub Classroom
-- **Repository discovery** (`discover`): Finds new student repositories
-- **Secret management** (`secrets`): Distributes and updates tokens across repositories
-- **Student assistance** (`assist`): Automated conflict resolution and help
-- **Access management** (`cycle`): Fixes repository permission issues
-
-### 📊 Enhanced Monitoring & Logging
-- **Step-by-step logging**: Individual success/failure reporting for each step
-- **Consolidated logs**: All workflow activities in a single log file
-- **Log rotation**: Automatic rotation when logs exceed 10MB
-- **Status monitoring**: Easy commands to check all installed cron jobs
-- **Error tracking**: Comprehensive error reporting with step isolation
-
-## Scripts
-
-### 1. `cron-sync.sh`
-**Purpose**: Enhanced automation script supporting multi-step workflow execution
-
-**Features**:
-- **Multi-step execution**: Execute multiple workflow steps in sequence
-- **Step validation**: Validates each step name against allowed values
-- **Individual error handling**: Step failures don't prevent other steps from running
-- **Comprehensive logging**: Step-by-step execution reporting
-- **Backward compatibility**: Still works with single sync step for legacy setups
-
-**Usage**:
 ```bash
-# Single step execution
-./scripts/cron-sync.sh assignment.conf sync
-
-# Multiple steps execution
-./scripts/cron-sync.sh assignment.conf sync secrets cycle
-
-# Default behavior (sync only for backward compatibility)
-./scripts/cron-sync.sh assignment.conf
-```
-
-**Logging**: All output is logged to `tools/generated/cron-workflow.log`
-
-### 2. `manage-cron.sh`
-**Purpose**: Enhanced cron job management utility with flexible scheduling
-
-**Commands**:
-```bash
-# Install sync job with default schedule (every 4 hours)
-./scripts/manage-cron.sh install sync
-
-# Install secrets management with default schedule (daily at 2 AM)
-./scripts/manage-cron.sh install secrets
-
-# Install multiple steps with default schedule (daily at 1 AM)
-./scripts/manage-cron.sh install "sync secrets cycle"
-
-# Install with custom schedule
-./scripts/manage-cron.sh install cycle "0 6 * * 0"
-
-# View default schedules for all steps
-./scripts/manage-cron.sh list-schedules
-
-# Check status of all installed jobs
-./scripts/manage-cron.sh status
-
-# View recent workflow logs
-./scripts/manage-cron.sh logs
-
-# Remove specific cron job
-./scripts/manage-cron.sh remove secrets
-
-# Remove all assignment cron jobs
-./scripts/manage-cron.sh remove all
-
-# Show help with all options
-./scripts/manage-cron.sh help
-```
-
-## Default Schedules
-
-The system provides intelligent default schedules for each workflow step:
-
-| Step         | Default Schedule         | Description              | Cron Expression |
-| ------------ | ------------------------ | ------------------------ | --------------- |
-| **sync**     | Every 4 hours            | Template synchronization | `0 */4 * * *`   |
-| **discover** | Daily at 1 AM            | Repository discovery     | `0 1 * * *`     |
-| **secrets**  | Daily at 2 AM            | Secret management        | `0 2 * * *`     |
-| **assist**   | Weekly on Sunday at 3 AM | Student assistance       | `0 3 * * 0`     |
-| **cycle**    | Weekly on Sunday at 6 AM | Access management        | `0 6 * * 0`     |
-
-## Installation
-
-### Prerequisites
-1. **Working assignment setup**: Ensure `assignment.conf` is properly configured
-2. **GitHub access**: Verify GitHub CLI authentication and repository access
-3. **Clean repository**: Commit any pending changes before installation
-
-### Quick Setup Examples
-
-#### Basic Sync Automation
-```bash
-# Navigate to assignment root
-cd /path/to/your/assignment
-
-# Install sync job (every 4 hours)
-./tools/scripts/manage-cron.sh install sync
+# Install from PyPI
+pip install classroom-pilot
 
 # Verify installation
-./tools/scripts/manage-cron.sh status
+classroom-pilot --help
 ```
 
-#### Comprehensive Automation
-```bash
-# Install multiple workflow steps
-./tools/scripts/manage-cron.sh install "sync discover secrets"
+## 🚀 Automation Features
 
-# Install access management (weekly)
-./tools/scripts/manage-cron.sh install cycle
+### Flexible Scheduling
 
-# Check all installed jobs
-./tools/scripts/manage-cron.sh status
-```
+- **Individual Tasks**: Schedule each workflow component independently
+- **Combined Workflows**: Run multiple tasks in coordinated sequences
+- **Custom Schedules**: Configure timing based on your teaching schedule
+- **Intelligent Defaults**: Pre-configured schedules optimized for common patterns
 
-#### Custom Scheduling
-```bash
-# Sync every 2 hours instead of 4
-./tools/scripts/manage-cron.sh install sync "0 */2 * * *"
+### Automated Tasks
 
-# Secrets management twice daily
-./tools/scripts/manage-cron.sh install secrets "0 2,14 * * *"
+- **Assignment Orchestration**: Complete workflow automation
+- **Repository Synchronization**: Keep templates updated
+- **Secret Management**: Distribute and rotate tokens
+- **Student Assistance**: Automated help and conflict resolution
+- **Permission Management**: Fix repository access issues
 
-# Multiple steps with custom schedule
-./tools/scripts/manage-cron.sh install "sync cycle" "0 6 * * 1"  # Mondays at 6 AM
-```
+### Monitoring & Logging
 
-### Verification
-After installation, you can verify the cron jobs are working:
+- **Comprehensive Logging**: Detailed logs for all automated tasks
+- **Status Monitoring**: Check automation status and health
+- **Error Tracking**: Automated error reporting and alerting
+- **Log Rotation**: Automatic log management and cleanup
 
-```bash
-# Check current status of all jobs
-./tools/scripts/manage-cron.sh status
+## 🔧 Setup Automation
 
-# Monitor logs in real-time
-tail -f tools/generated/cron-workflow.log
-
-# Test manual execution with specific steps
-./tools/scripts/cron-sync.sh assignment.conf sync secrets
-
-# View default schedules
-./tools/scripts/manage-cron.sh list-schedules
-```
-
-## Configuration
-
-### Assignment Configuration
-The cron workflow uses your existing `assignment.conf` file. Ensure these settings are configured:
+### 1. Configure Assignment
 
 ```bash
-# Required for all operations
-CLASSROOM_URL="https://classroom.github.com/classrooms/ID/assignments/NAME"
-TEMPLATE_REPO_URL="https://github.com/ORG/assignment-template"
-GITHUB_ORGANIZATION="YOUR-ORG"
+# Create assignment configuration
+classroom-pilot assignments setup
 
-# Step controls (all steps can be enabled for cron automation)
-STEP_SYNC_TEMPLATE=true
-STEP_DISCOVER_REPOS=true
-STEP_MANAGE_SECRETS=true      # Can be enabled for automated secret management
-STEP_ASSIST_STUDENTS=false    # Usually disabled for cron (manual intervention)
-STEP_CYCLE_COLLABORATORS=true # Can be enabled for automated access fixes
-
-# Secret configuration for automated management
-SECRETS=(
-    "INSTRUCTOR_TESTS_TOKEN:instructor_token.txt:Token for accessing instructor tests"
-)
+# This creates assignment.conf with your settings
 ```
 
-### Multiple Cron Job Configuration
-The system now supports multiple independent cron jobs with different schedules:
+### 2. Setup Scheduler
 
 ```bash
-# Example: Comprehensive automation setup
-./scripts/manage-cron.sh install sync "0 */4 * * *"      # Every 4 hours
-./scripts/manage-cron.sh install secrets "0 2 * * *"     # Daily at 2 AM
-./scripts/manage-cron.sh install cycle "0 6 * * 0"       # Weekly on Sunday
+# Setup automated scheduling
+classroom-pilot automation scheduler setup --config assignment.conf
+
+# This configures cron jobs for:
+# - Regular assignment orchestration
+# - Template synchronization
+# - Secret management
+# - Repository monitoring
 ```
 
-Example crontab entries:
-```cron
-# GitHub Classroom Assignment Auto-sync
-0 */4 * * * /path/to/cron-sync.sh '/path/to/assignment.conf' sync >/dev/null 2>&1
+### 3. Verify Automation
 
-# GitHub Classroom Assignment Auto-secrets  
-0 2 * * * /path/to/cron-sync.sh '/path/to/assignment.conf' secrets >/dev/null 2>&1
-
-# GitHub Classroom Assignment Auto-cycle
-0 6 * * 0 /path/to/cron-sync.sh '/path/to/assignment.conf' cycle >/dev/null 2>&1
-```
-
-## Monitoring
-
-### Log Files
-- **Location**: `tools/generated/cron-workflow.log`
-- **Format**: Timestamped entries with step-by-step operation details
-- **Rotation**: Automatic when file exceeds 10MB
-- **Retention**: Old logs saved as `.old` files
-
-### Status Checking
 ```bash
-# Quick status check of all jobs
-./tools/scripts/manage-cron.sh status
+# Check scheduled tasks
+classroom-pilot automation scheduler status
 
-# Recent activity across all workflows
-./tools/scripts/manage-cron.sh logs
-
-# Real-time monitoring
-tail -f tools/generated/cron-workflow.log
-
-# Check specific step schedules
-./tools/scripts/manage-cron.sh list-schedules
+# View automation logs
+classroom-pilot automation scheduler logs
 ```
 
-### Common Log Entries
+## ⚙️ Automation Commands
+
+### Scheduler Management
+
 ```bash
-# Multi-step execution
-[2025-09-08 14:59:08] INFO: Starting automated workflow job
-[2025-09-08 14:59:08] INFO: Executing steps: sync secrets cycle
-[2025-09-08 14:59:08] INFO: Executing step: sync
-[2025-09-08 14:59:15] SUCCESS: Step 'sync' completed successfully
-[2025-09-08 14:59:15] INFO: Executing step: secrets
-[2025-09-08 14:59:20] SUCCESS: Step 'secrets' completed successfully
-[2025-09-08 14:59:20] INFO: Executing step: cycle
-[2025-09-08 14:59:25] SUCCESS: Step 'cycle' completed successfully
-[2025-09-08 14:59:25] SUCCESS: All workflow steps completed successfully
+# Setup automated scheduling
+classroom-pilot automation scheduler setup [--config FILE]
 
-# Error conditions
-[2025-09-08 15:00:01] ERROR: Invalid step name: invalid
-[2025-09-08 15:00:01] ERROR: Step 'secrets' failed with exit code: 1
-[2025-09-08 15:00:01] WARNING: Some workflow steps failed - check log for details
+# Check scheduler status
+classroom-pilot automation scheduler status
+
+# View scheduler logs
+classroom-pilot automation scheduler logs
+
+# Disable scheduling
+classroom-pilot automation scheduler disable
+
+# Re-enable scheduling
+classroom-pilot automation scheduler enable
 ```
 
-## Workflow Step Details
+### Batch Operations
 
-Each workflow step performs specific operations when executed via cron:
+```bash
+# Run batch operations
+classroom-pilot automation batch [--config FILE]
 
-### sync
-- Synchronizes template repository with GitHub Classroom
-- Updates classroom repository with latest template changes
-- Ensures all students get template updates
+# Run specific batch tasks
+classroom-pilot automation batch --tasks "secrets,repos" [--config FILE]
 
-### discover  
-- Scans GitHub organization for new student repositories
-- Updates batch files with current repository list
-- Prepares data for other automated steps
+# Schedule batch operations
+classroom-pilot automation batch --schedule "0 */6 * * *" [--config FILE]
+```
 
-### secrets
-- Distributes instructor tokens to student repositories
-- Updates expired secrets based on age policies
-- Manages multiple secret types automatically
+## 📅 Scheduling Patterns
 
-### assist
-- Provides automated help for common student issues
-- Resolves merge conflicts where possible
-- Usually requires manual review, limited cron usage
+### Default Schedules
 
-### cycle
-- Fixes repository access permission issues
-- Cycles collaborator permissions to resolve GitHub Classroom glitches
-- Ensures students maintain proper repository access
+The automation system includes optimized default schedules:
 
-## Troubleshooting
+```bash
+# Assignment orchestration: Daily at 2 AM
+0 2 * * *
+
+# Template synchronization: Every 4 hours
+0 */4 * * *
+
+# Secret management: Weekly on Sunday at 3 AM
+0 3 * * 0
+
+# Repository monitoring: Every 2 hours during business hours
+0 9-17/2 * * 1-5
+
+# Student assistance: Hourly during class days
+0 * * * 1-5
+```
+
+### Custom Schedules
+
+Configure custom schedules for your specific needs:
+
+```bash
+# Custom schedule configuration in assignment.conf
+AUTOMATION_SCHEDULE_ORCHESTRATE="0 1 * * *"     # Daily at 1 AM
+AUTOMATION_SCHEDULE_SYNC="0 */2 * * *"          # Every 2 hours
+AUTOMATION_SCHEDULE_SECRETS="0 4 * * 1"         # Monday at 4 AM
+AUTOMATION_SCHEDULE_MONITOR="*/30 9-17 * * 1-5" # Every 30 min during business hours
+```
+
+### Academic Calendar Integration
+
+Align automation with your academic schedule:
+
+```bash
+# Semester start: Increased frequency
+AUTOMATION_SCHEDULE_SEMESTER_START="*/15 * * * *"  # Every 15 minutes
+
+# Regular semester: Standard frequency  
+AUTOMATION_SCHEDULE_REGULAR="0 */4 * * *"          # Every 4 hours
+
+# Finals week: Monitoring focus
+AUTOMATION_SCHEDULE_FINALS="0 */2 * * *"           # Every 2 hours
+
+# Semester end: Reduced frequency
+AUTOMATION_SCHEDULE_END="0 6 * * *"                # Daily at 6 AM
+```
+
+## 🔄 Workflow Automation
+
+### Complete Assignment Automation
+
+```bash
+# Setup comprehensive automation
+cat > automation-assignment.conf << 'EOF'
+# Assignment Configuration
+CLASSROOM_URL="https://classroom.github.com/classrooms/123/assignments/homework1"
+TEMPLATE_REPO_URL="https://github.com/instructor/homework1-template"
+ASSIGNMENT_FILE="homework1.py"
+GITHUB_TOKEN_FILE="github_token.txt"
+SECRETS_LIST="API_KEY,GRADING_TOKEN"
+
+# Automation Schedules
+AUTOMATION_SCHEDULE_ORCHESTRATE="0 2 * * *"      # Daily at 2 AM
+AUTOMATION_SCHEDULE_SYNC="0 */6 * * *"           # Every 6 hours
+AUTOMATION_SCHEDULE_SECRETS="0 3 * * 1"          # Monday at 3 AM
+AUTOMATION_SCHEDULE_MONITOR="0 9-17/2 * * 1-5"   # Business hours monitoring
+EOF
+
+# Setup automation
+classroom-pilot automation scheduler setup --config automation-assignment.conf
+```
+
+### Midterm Exam Automation
+
+```bash
+# High-frequency monitoring for exam period
+cat > midterm-automation.conf << 'EOF'
+CLASSROOM_URL="https://classroom.github.com/classrooms/123/assignments/midterm"
+TEMPLATE_REPO_URL="https://github.com/instructor/midterm-template"
+
+# Intensive monitoring during exam
+AUTOMATION_SCHEDULE_MONITOR="*/10 8-20 * * *"     # Every 10 minutes, 8 AM - 8 PM
+AUTOMATION_SCHEDULE_ASSISTANCE="*/5 8-20 * * *"   # Every 5 minutes during exam
+AUTOMATION_SCHEDULE_SYNC="0 */1 * * *"            # Hourly sync
+EOF
+
+classroom-pilot automation scheduler setup --config midterm-automation.conf
+```
+
+### Semester-End Automation
+
+```bash
+# Reduced automation for semester end
+cat > semester-end-automation.conf << 'EOF'
+CLASSROOM_URL="https://classroom.github.com/classrooms/123/assignments/final-project"
+
+# Minimal automation
+AUTOMATION_SCHEDULE_ORCHESTRATE="0 6 * * *"       # Daily at 6 AM
+AUTOMATION_SCHEDULE_BACKUP="0 0 * * 0"            # Weekly backup
+AUTOMATION_SCHEDULE_CLEANUP="0 1 * * 0"           # Weekly cleanup
+EOF
+
+classroom-pilot automation scheduler setup --config semester-end-automation.conf
+```
+
+## 📊 Monitoring & Management
+
+### Status Monitoring
+
+```bash
+# Check all automation status
+classroom-pilot automation scheduler status
+
+# View active cron jobs
+crontab -l | grep classroom-pilot
+
+# Check automation health
+classroom-pilot automation scheduler health
+```
+
+### Log Management
+
+```bash
+# View automation logs
+classroom-pilot automation scheduler logs
+
+# View specific task logs
+classroom-pilot automation scheduler logs --task orchestrate
+
+# Tail live logs
+classroom-pilot automation scheduler logs --follow
+
+# Rotate logs manually
+classroom-pilot automation scheduler logs --rotate
+```
+
+### Performance Monitoring
+
+```bash
+# Check automation performance
+classroom-pilot automation scheduler metrics
+
+# View task execution times
+classroom-pilot automation scheduler metrics --task-times
+
+# Monitor resource usage
+classroom-pilot automation scheduler metrics --resources
+```
+
+## 🛡️ Security & Best Practices
+
+### Token Management
+
+```bash
+# Secure token storage for automation
+echo "ghp_your_automation_token" > automation_token.txt
+chmod 600 automation_token.txt
+
+# Use dedicated automation token
+GITHUB_TOKEN_FILE="automation_token.txt"
+```
+
+### Access Control
+
+```bash
+# Limit automation token permissions
+# Required scopes:
+# - repo (for repository access)
+# - admin:org (for organization management)
+# - write:org (for secret management)
+
+# Avoid overly broad permissions
+# Never use personal access tokens for automation
+```
+
+### Error Handling
+
+```bash
+# Configure error notifications
+AUTOMATION_ERROR_EMAIL="instructor@university.edu"
+AUTOMATION_ERROR_SLACK_WEBHOOK="https://hooks.slack.com/..."
+
+# Setup automated alerting
+classroom-pilot automation scheduler setup --config assignment.conf --alerts
+```
+
+## 🔍 Troubleshooting
 
 ### Common Issues
 
-#### 1. "Configuration file not found"
-**Cause**: Missing or incorrect path to `assignment.conf`
-**Solution**: 
-```bash
-# Verify config file exists
-ls -la assignment.conf
+1. **Cron Jobs Not Running**:
+   ```bash
+   # Check cron service status
+   systemctl status cron
+   
+   # Verify cron job syntax
+   classroom-pilot automation scheduler validate
+   ```
 
-# Check cron job path
-./tools/scripts/manage-cron.sh status
-```
+2. **Authentication Failures**:
+   ```bash
+   # Check token permissions
+   classroom-pilot --verbose automation batch --config assignment.conf
+   ```
 
-#### 2. "Template synchronization failed"
-**Cause**: Usually uncommitted changes in repository
-**Solution**:
-```bash
-# Check for uncommitted changes
-git status
+3. **Schedule Conflicts**:
+   ```bash
+   # Review active schedules
+   classroom-pilot automation scheduler status --detailed
+   ```
 
-# Commit or stash changes
-git add . && git commit -m "Update for cron sync"
-```
-
-#### 3. "Permission denied" errors
-**Cause**: Script permissions or GitHub authentication issues
-**Solution**:
-```bash
-# Fix script permissions
-chmod +x tools/scripts/cron-sync.sh
-chmod +x tools/scripts/manage-cron.sh
-
-# Test GitHub access
-gh auth status
-```
-
-#### 4. Cron job not running
-**Cause**: Cron service issues or path problems
-**Solution**:
-```bash
-# Check cron service
-sudo systemctl status cron
-
-# Verify cron job installation
-./tools/scripts/manage-cron.sh status
-
-# Test manual execution with specific steps
-./tools/scripts/cron-sync.sh assignment.conf sync
-```
-
-#### 5. "Invalid step name" errors
-**Cause**: Typo in step name or unsupported step
-**Solution**:
-```bash
-# Check valid step names
-./tools/scripts/manage-cron.sh help
-
-# Valid steps are: sync, discover, secrets, assist, cycle
-```
-
-#### 6. Step failures in multi-step execution
-**Cause**: Individual step configuration or permission issues
-**Solution**:
-```bash
-# Test each step individually
-./tools/scripts/assignment-orchestrator.sh --step sync --dry-run
-./tools/scripts/assignment-orchestrator.sh --step secrets --dry-run
-
-# Check step-specific configuration
-grep "STEP_" assignment.conf
-```
-
-### Debugging
-For detailed debugging, run scripts manually with verbose output:
-```bash
-# Test specific workflow steps
-./tools/scripts/assignment-orchestrator.sh --step sync --yes --verbose
-./tools/scripts/assignment-orchestrator.sh --step cycle --yes --verbose
-
-# Test multi-step cron execution
-./tools/scripts/cron-sync.sh assignment.conf sync secrets --verbose
-
-# Check recent logs with step details
-./tools/scripts/manage-cron.sh logs
-```
-
-## Security Considerations
-
-### Secrets Management
-- **Automatic secrets**: Disabled by default in cron mode for security
-- **Token access**: Ensure GitHub CLI has appropriate repository permissions
-- **Log security**: Logs may contain repository URLs but not sensitive tokens
-
-### Repository Access
-- **Authentication**: Uses existing GitHub CLI authentication
-- **Permissions**: Requires push access to classroom repository
-- **Scope**: Only accesses repositories defined in configuration
-
-## Advanced Usage
-
-### Custom Schedule Examples
-Create sophisticated scheduling patterns for different workflow needs:
+### Debug Mode
 
 ```bash
-# High-frequency sync during active assignment periods
-./tools/scripts/manage-cron.sh install sync "0 */2 * * 1-5"  # Every 2 hours, weekdays
+# Run automation in debug mode
+classroom-pilot --verbose automation batch --config assignment.conf
 
-# Comprehensive daily automation
-./tools/scripts/manage-cron.sh install "discover secrets" "0 1 * * *"  # Daily at 1 AM
-
-# Weekend maintenance
-./tools/scripts/manage-cron.sh install "cycle assist" "0 6 * * 0"  # Sundays at 6 AM
-
-# Custom intervals
-./tools/scripts/manage-cron.sh install secrets "0 2,14 * * *"  # Twice daily at 2 AM and 2 PM
+# Test automation without scheduling
+classroom-pilot --dry-run automation scheduler setup --config assignment.conf
 ```
 
-### Multiple Assignment Management
-Each assignment repository can have independent cron automation:
+## 📚 Related Documentation
 
-```bash
-# Assignment 1 - High frequency during active period
-cd /path/to/assignment1
-./tools/scripts/manage-cron.sh install "sync secrets" "0 */4 * * *"
+- **[Automation Suite](AUTOMATION-SUITE.md)** - Complete automation capabilities
+- **[Assignment Orchestrator](ASSIGNMENT-ORCHESTRATOR.md)** - Workflow automation
+- **[Secrets Management](SECRETS-MANAGEMENT.md)** - Automated secret handling
+- **[Main CLI Reference](../README.md)** - Complete command documentation
 
-# Assignment 2 - Lower frequency maintenance
-cd /path/to/assignment2  
-./tools/scripts/manage-cron.sh install sync "0 8 * * *"
+## 💡 Tips for Effective Automation
 
-# Final project - Comprehensive automation
-cd /path/to/final-project
-./tools/scripts/manage-cron.sh install "sync discover secrets cycle" "0 6 * * *"
-```
+### Scheduling Strategy
 
-### Seasonal Automation Patterns
+- **Start Conservative**: Begin with less frequent schedules and increase as needed
+- **Consider Time Zones**: Schedule automation during low-activity periods
+- **Plan for Peaks**: Increase frequency during assignment deadlines
+- **Monitor Resource Usage**: Avoid overwhelming GitHub API limits
 
-#### Active Assignment Period
-```bash
-# Frequent sync and secret management
-./tools/scripts/manage-cron.sh install sync "0 */2 * * 1-5"
-./tools/scripts/manage-cron.sh install secrets "0 1 * * *"
-./tools/scripts/manage-cron.sh install discover "0 0 * * *"
-```
+### Maintenance Planning
 
-#### Maintenance Period
-```bash
-# Remove high-frequency jobs
-./tools/scripts/manage-cron.sh remove sync
+- **Regular Reviews**: Monthly review of automation effectiveness
+- **Schedule Adjustments**: Modify schedules based on semester patterns
+- **Token Rotation**: Regularly rotate automation tokens
+- **Log Analysis**: Review logs for optimization opportunities
 
-# Keep basic maintenance
-./tools/scripts/manage-cron.sh install "sync cycle" "0 6 * * 0"
-```
+---
 
-### Integration with CI/CD
-Enhanced cron scripts work well with automated pipelines:
-
-```yaml
-# GitHub Actions example - Multi-step workflow
-- name: Run Assignment Automation
-  run: |
-    ./tools/scripts/cron-sync.sh assignment.conf sync secrets
-  env:
-    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-# GitLab CI example - Scheduled pipeline
-workflow_automation:
-  script:
-    - ./tools/scripts/cron-sync.sh assignment.conf discover cycle
-  only:
-    - schedules
-```
-
-## Best Practices
-
-### 1. Testing and Validation
-- **Test individual steps**: Verify each workflow step works independently
-- **Test multi-step execution**: Ensure step combinations work together
-- **Monitor initial deployment**: Watch logs closely for first few executions
-- **Validate configuration**: Ensure all required settings are present
-
-```bash
-# Testing workflow
-./tools/scripts/assignment-orchestrator.sh --step sync --dry-run
-./tools/scripts/cron-sync.sh assignment.conf sync secrets --dry-run
-./tools/scripts/manage-cron.sh status
-```
-
-### 2. Monitoring and Maintenance
-- **Regular log review**: Check logs weekly during active periods
-- **Disk space monitoring**: Prevent log files from filling disk space
-- **Schedule optimization**: Adjust frequencies based on actual needs
-- **Error tracking**: Set up alerts for repeated failures
-
-```bash
-# Monitoring commands
-./tools/scripts/manage-cron.sh logs | grep ERROR
-du -h tools/generated/cron-workflow.log
-./tools/scripts/manage-cron.sh status
-```
-
-### 3. Security and Access Management
-- **Token rotation**: Regularly update GitHub tokens
-- **Permission validation**: Verify access to all required repositories
-- **Log security**: Ensure logs don't contain sensitive information
-- **Cleanup**: Remove cron jobs when assignments complete
-
-```bash
-# Security maintenance
-gh auth status
-./tools/scripts/add-secrets-to-students.sh --check-token
-./tools/scripts/manage-cron.sh remove all  # When assignment ends
-```
-### 4. Documentation and Change Management
-- **Document schedules**: Record custom cron schedules for team members
-- **Track changes**: Record any configuration or schedule modifications
-- **Backup configurations**: Maintain backup of working configurations
-- **Team communication**: Share cron setup with other instructors
-
-```bash
-# Documentation commands
-./tools/scripts/manage-cron.sh status > cron-setup.txt
-./tools/scripts/manage-cron.sh list-schedules >> cron-setup.txt
-```
-
-## Related Documentation
-
-- [Assignment Orchestrator](ASSIGNMENT-ORCHESTRATOR.md) - Main workflow documentation with 5-step process
-- [Cycle Collaborator](CYCLE-COLLABORATOR.md) - Repository access fix automation
-- [Automation Suite](AUTOMATION-SUITE.md) - Complete automation overview
-- [Secrets Management](SECRETS-MANAGEMENT.md) - Token and secrets handling
-- [Changelog](CHANGELOG.md) - Recent changes and version history
-
-## Support
-
-For issues with cron automation:
-
-1. **Check logs**: `./tools/scripts/manage-cron.sh logs`
-2. **Verify status**: `./tools/scripts/manage-cron.sh status`
-3. **Test individual steps**: `./tools/scripts/assignment-orchestrator.sh --step [step] --dry-run`
-4. **Test multi-step execution**: `./tools/scripts/cron-sync.sh assignment.conf sync secrets`
-5. **Review step schedules**: `./tools/scripts/manage-cron.sh list-schedules`
-6. **Check configuration**: Ensure `assignment.conf` has all required settings
-7. **Verify GitHub access**: Confirm authentication and repository permissions
-
-### Quick Diagnostic Commands
-```bash
-# Comprehensive status check
-./tools/scripts/manage-cron.sh status
-
-# Recent activity review
-./tools/scripts/manage-cron.sh logs | tail -20
-
-# Test specific workflow step
-./tools/scripts/assignment-orchestrator.sh --step cycle --dry-run --verbose
-
-# Validate all steps individually
-for step in sync discover secrets cycle; do
-    echo "Testing $step..."
-    ./tools/scripts/assignment-orchestrator.sh --step $step --dry-run
-done
-```
-
-For additional help, see the main [README.md](../README.md) or create an issue in the repository.
+Cron automation provides powerful, unattended management of GitHub Classroom assignments through intelligent scheduling and monitoring.

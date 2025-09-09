@@ -75,3 +75,10 @@ test_report.json
 htmlcov/
 .tox/
 coverage.xml
+
+# MkDocs build artifacts
+site/
+.mkdocs_cache/
+
+# Documentation build artifacts
+docs-site/.mkdocs_cache/

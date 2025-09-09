@@ -1,348 +1,264 @@
-# Assignment Orchestrator - Master Workflow Automation
+# Assignment Orchestrator - Workflow Automation
 
-The Assignment Orchestrator is a comprehensive wrapper script that connects all the individual automation tools into a single, streamlined workflow for managing GitHub Classroom assignments.
+The Assignment Orchestrator provides comprehensive workflow automation for GitHub Classroom assignments through the modern Python CLI interface.
 
 ## 🎯 Overview
 
-Instead of running multiple scripts manually, the orchestrator reads a configuration file and executes all necessary steps automatically:
+The orchestrator automates the complete assignment lifecycle through a single command:
 
 1. **Template Synchronization** - Updates GitHub Classroom with latest template changes
 2. **Repository Discovery** - Finds all student repositories from the classroom
-3. **Secret Management** - Adds/updates secrets across all student repositories
-4. **Student Assistance** - Optionally runs student help tools
-5. **Collaborator Cycling** - Fixes student repository access issues by cycling permissions
+3. **Secret Management** - Distributes/updates secrets across all student repositories
+4. **Student Assistance** - Runs student help and support tools
+5. **Collaborator Management** - Manages repository access and permissions
 
-## 📁 Files
+## 📦 Installation
 
-- **`scripts/assignment-orchestrator.sh`** - Main orchestration script
-- **`assignment.conf`** - Configuration file with all assignment settings
+```bash
+# Install from PyPI
+pip install classroom-pilot
+
+# Verify installation
+classroom-pilot --help
+```
 
 ## 🚀 Quick Start
 
-### 1. Automatic Setup (First Time)
-If you don't have an `assignment.conf` file, the orchestrator will detect this and offer to run the setup wizard:
+### 1. Interactive Setup
+
+Create assignment configuration interactively:
 
 ```bash
-# Run orchestrator - it will prompt for setup if needed
-./scripts/assignment-orchestrator.sh
+# Run interactive setup wizard
+classroom-pilot assignments setup
 
-# Or force setup with --yes flag
-./scripts/assignment-orchestrator.sh --yes
+# This creates an assignment.conf file with your settings
 ```
 
-The setup wizard will guide you through creating the configuration file interactively.
-
-### 2. Manual Configuration (Alternative)
-You can also configure manually by editing `assignment.conf` with your assignment details:
+### 2. Complete Workflow Orchestration
 
 ```bash
-# GitHub Classroom assignment URL
-CLASSROOM_URL="https://classroom.github.com/classrooms/YOUR-CLASSROOM/assignments/YOUR-ASSIGNMENT"
+# Run complete orchestrated workflow
+classroom-pilot assignments orchestrate --config assignment.conf
 
-# Template repository URL  
-TEMPLATE_REPO_URL="https://github.com/YOUR-ORG/YOUR-TEMPLATE.git"
+# Preview what would be done (dry-run)
+classroom-pilot --dry-run assignments orchestrate --config assignment.conf
 
-# Secrets to manage
-SECRETS=(
-    "INSTRUCTOR_TESTS_TOKEN:instructor_token.txt:Token for accessing instructor tests"
-    "GRADING_TOKEN:grading_token.txt:Token for automated grading"
-)
+# Run with verbose output for debugging
+classroom-pilot --verbose assignments orchestrate --config assignment.conf
 ```
 
-### 3. Run the Complete Workflow
+## ⚙️ Configuration
+
+### Assignment Configuration File
+
+The `assignment.conf` file contains all settings for your assignment:
+
 ```bash
-# Full workflow with confirmation
-./scripts/assignment-orchestrator.sh
+# GitHub Classroom Configuration
+CLASSROOM_URL="https://classroom.github.com/classrooms/123/assignments/456"
+TEMPLATE_REPO_URL="https://github.com/instructor/assignment-template"
+ASSIGNMENT_FILE="homework.py"
 
-# Automated workflow (no prompts)
-./scripts/assignment-orchestrator.sh --yes
+# Authentication
+GITHUB_TOKEN_FILE="github_token.txt"
 
-# Preview what would be done
-./scripts/assignment-orchestrator.sh --dry-run
+# Secret Management
+SECRETS_LIST="API_KEY,DATABASE_URL,SECRET_TOKEN"
+
+# Repository Filtering
+EXCLUDE_REPOS="template,example,demo"
+INSTRUCTOR_REPOS="instructor-solution"
 ```
 
-## ⚙️ Configuration File Format
+### Environment Variable Overrides
 
-The `assignment.conf` file uses shell variable syntax and supports:
+Override configuration with environment variables:
 
-### Assignment Information
 ```bash
-CLASSROOM_URL="https://classroom.github.com/..."
-TEMPLATE_REPO_URL="https://github.com/..."
-GITHUB_ORGANIZATION="WSU-ML-DL"
+# Set custom GitHub hosts
+export GITHUB_HOSTS="github.enterprise.com"
+
+# Set GitHub token directly
+export GITHUB_TOKEN="ghp_your_token_here"
+
+# Run orchestrator
+classroom-pilot assignments orchestrate
 ```
 
-### Secret Management
-```bash
-SECRETS=(
-    "SECRET_NAME:token_file.txt:Description"
-    "ANOTHER_SECRET:another_token.txt:Another description"
-)
-SECRET_MAX_AGE_DAYS=90
-SECRET_FORCE_UPDATE=false
-```
-
-### Workflow Control
-```bash
-STEP_SYNC_TEMPLATE=true
-STEP_DISCOVER_REPOS=true  
-STEP_MANAGE_SECRETS=true
-STEP_ASSIST_STUDENTS=false
-STEP_CYCLE_COLLABORATORS=false
-```
-
-### Output Settings
-```bash
-OUTPUT_DIR="scripts"
-STUDENT_REPOS_FILE="student-repos-batch.txt"
-DRY_RUN=false
-```
-
-## 🛠️ Command Line Options
+## 🔧 Command Options
 
 ### Basic Usage
-```bash
-# Use default configuration
-./scripts/assignment-orchestrator.sh
-
-# Use custom configuration file
-./scripts/assignment-orchestrator.sh my-assignment.conf
-```
-
-### Workflow Control
-```bash
-# Run only specific step
-./scripts/assignment-orchestrator.sh --step secrets
-
-# Skip specific step  
-./scripts/assignment-orchestrator.sh --skip sync
-
-# Run collaborator cycling step
-./scripts/assignment-orchestrator.sh --step cycle
-
-# Preview mode
-./scripts/assignment-orchestrator.sh --dry-run
-```
-
-### Automation Options
-```bash
-# No confirmation prompts
-./scripts/assignment-orchestrator.sh --yes
-
-# Verbose output
-./scripts/assignment-orchestrator.sh --verbose
-
-# Combined options
-./scripts/assignment-orchestrator.sh --dry-run --verbose
-```
-
-## ✨ Key Features
-
-### Automatic Setup Integration
-- **Smart detection**: Automatically detects missing `assignment.conf` file
-- **Interactive setup**: Offers to run setup wizard when configuration is missing
-- **Seamless workflow**: Integrates setup as the first step in the orchestration process
-- **Automation friendly**: Supports `--yes` flag to auto-confirm setup for CI/CD pipelines
-
-### Intelligent Workflow Management
-- **Step-by-step execution**: Runs all automation tools in the correct order
-- **Flexible control**: Run individual steps or skip specific steps as needed
-- **Preview mode**: Dry-run capability to preview actions before execution
-- **Error handling**: Stops on errors to prevent cascade failures
-
-### Configuration-Driven
-- **Single source of truth**: All assignment settings in one configuration file
-- **Universal file support**: Works with any file type (.py, .cpp, .sql, .md, etc.)
-- **Multi-secret support**: Manage multiple tokens and secrets across repositories
-- **Customizable workflows**: Enable/disable specific steps based on assignment needs
-
-## 📋 Workflow Steps
-
-### Step 1: Template Synchronization (`sync`)
-- Executes `scripts/push-to-classroom.sh`
-- Pushes latest template changes to GitHub Classroom
-- Ensures all students get updated template content
-
-### Step 2: Repository Discovery (`discover`)
-- Executes `scripts/fetch-student-repos.sh`
-- Uses classroom URL to find all student repositories
-- Generates batch files for subsequent operations
-- Creates both complete and students-only repository lists
-
-### Step 3: Secret Management (`secrets`)
-- Executes `scripts/add-secrets-to-students.sh` for each configured secret
-- Supports multiple secrets with different token files
-- Respects age-based update policies
-- Can force update all secrets if needed
-
-### Step 4: Student Assistance (`assist`) 
-- Executes `scripts/student-update-helper.sh`
-- Provides automated assistance for common student issues
-- Optional step (disabled by default)
-
-### Step 5: Collaborator Cycling (`cycle`)
-- Executes `scripts/cycle-collaborator.sh` with configuration mode
-- Fixes repository access issues by cycling collaborator permissions
-- Intelligently detects when cycling is needed vs when access is already correct
-- Optional step (disabled by default)
-- Useful for resolving GitHub Classroom permission glitches
-
-## 🎛️ Advanced Usage
-
-### Multiple Assignments
-Create separate configuration files for different assignments:
 
 ```bash
-# CS6600 Module 1
-./scripts/assignment-orchestrator.sh cs6600-m1.conf
+# Interactive orchestration with prompts
+classroom-pilot assignments orchestrate
 
-# CS6600 Module 2  
-./scripts/assignment-orchestrator.sh cs6600-m2.conf
+# Use specific configuration file
+classroom-pilot assignments orchestrate --config my-assignment.conf
 
-# Final Project
-./scripts/assignment-orchestrator.sh final-project.conf
+# Preview without executing changes
+classroom-pilot --dry-run assignments orchestrate
+
+# Enable detailed logging
+classroom-pilot --verbose assignments orchestrate
 ```
 
-### Partial Workflows
-Run only specific parts of the workflow:
+### Workflow Components
+
+The orchestrator runs these components in sequence:
+
+1. **Configuration Validation** - Validates all settings and URLs
+2. **Template Sync** - Updates GitHub Classroom template
+3. **Repository Discovery** - Finds student repositories
+4. **Secret Distribution** - Adds/updates repository secrets
+5. **Access Management** - Manages collaborator permissions
+
+## 🔄 Workflow Steps
+
+### Step 1: Assignment Setup
 
 ```bash
-# Only sync template (for urgent fixes)
-./scripts/assignment-orchestrator.sh --step sync
+# Create new assignment configuration
+classroom-pilot assignments setup
 
-# Only manage secrets (for token updates)
-./scripts/assignment-orchestrator.sh --step secrets
-
-# Only fix repository access issues
-./scripts/assignment-orchestrator.sh --step cycle
-
-# Everything except student assistance
-./scripts/assignment-orchestrator.sh --skip assist
+# Or manage existing assignment
+classroom-pilot assignments manage --config assignment.conf
 ```
 
-### Development and Testing
+### Step 2: Repository Operations
+
 ```bash
-# Test configuration without making changes
-./scripts/assignment-orchestrator.sh --dry-run
+# Fetch student repositories
+classroom-pilot repos fetch --config assignment.conf
 
-# Debug configuration issues
-./scripts/assignment-orchestrator.sh --verbose --dry-run
-
-# Force execution without prompts (for CI/CD)
-./scripts/assignment-orchestrator.sh --yes
+# Manage collaborators
+classroom-pilot repos collaborator add --config assignment.conf
 ```
 
-## 🔧 Integration with Existing Scripts
+### Step 3: Secret Management
 
-The orchestrator is designed to work seamlessly with existing scripts:
-
-- **`push-to-classroom.sh`** - Called for template synchronization
-- **`fetch-student-repos.sh`** - Called with `--classroom-url` parameter
-- **`add-secrets-to-students.sh`** - Called with `--batch` mode for each secret
-- **`student-update-helper.sh`** - Called with `--batch` mode for assistance
-- **`cycle-collaborator.sh`** - Called with `--config` and `--repo-urls` for access fixes
-
-All scripts maintain their individual functionality and can still be used standalone.
-
-## 📊 Output and Logging
-
-### Generated Files
-```
-scripts/
-├── student-repos-batch.txt          # All repositories (students + instructor)
-├── student-repos-students-only.txt  # Only student repositories
-└── assignment-workflow.log          # Execution log (if enabled)
-```
-
-### Console Output
-- **Color-coded messages** for different types of information
-- **Progress indicators** for each workflow step
-- **Summary statistics** showing repository counts and execution time
-- **Error reporting** with specific failure details
-
-### Example Output
-```
-=== Configuration Summary ===
-Assignment: cs6600-m1-homework1
-Organization: WSU-ML-DL
-Template Repository: https://github.com/WSU-ML-DL/cs6600-m1-homework1-template.git
-Secrets to manage: 2
-
-=== Step 1: Synchronizing Template with Classroom ===
-[SUCCESS] Template synchronization completed
-
-=== Step 2: Discovering Student Repositories ===  
-[SUCCESS] Repository discovery completed
-[INFO] Total repositories: 5
-[INFO] Student repositories: 4
-
-=== Step 3: Managing Secrets ===
-[SUCCESS] Secret management completed
-
-=== Workflow Summary ===
-[SUCCESS] All workflow steps completed successfully!
-[INFO] Total execution time: 45s
-```
-
-## 🚨 Error Handling
-
-### Configuration Validation
-- **Required variables** are checked before execution
-- **File paths** are validated for existence
-- **URL formats** are verified for classroom URLs
-
-### Step Failure Handling  
-- Each step is independent and can fail without stopping others
-- **Failed steps** are reported in the final summary
-- **Partial success** scenarios are clearly indicated
-
-### Recovery Procedures
 ```bash
-# Check which step failed
-./scripts/assignment-orchestrator.sh --verbose
+# Add secrets to all repositories
+classroom-pilot secrets add --config assignment.conf
 
-# Retry specific failed step
-./scripts/assignment-orchestrator.sh --step secrets
-
-# Fix configuration and retry
-vim assignment.conf
-./scripts/assignment-orchestrator.sh
+# List existing secrets
+classroom-pilot secrets list --config assignment.conf
 ```
 
-## 🔒 Security Considerations
+### Step 4: Complete Orchestration
+
+```bash
+# Run all steps together
+classroom-pilot assignments orchestrate --config assignment.conf
+```
+
+## 🎯 Advanced Features
+
+### Batch Operations
+
+Process multiple assignments with different configurations:
+
+```bash
+# Process multiple assignments
+for config in assignment-*.conf; do
+    classroom-pilot --verbose assignments orchestrate --config "$config"
+done
+```
+
+### Automation Integration
+
+Integrate with scheduling systems:
+
+```bash
+# Setup automated scheduling
+classroom-pilot automation scheduler setup --config assignment.conf
+
+# Run batch operations
+classroom-pilot automation batch --config assignment.conf
+```
+
+### Enterprise GitHub Support
+
+Configure for GitHub Enterprise or custom hosts:
+
+```bash
+# Set enterprise hosts in configuration
+GITHUB_HOSTS="github.enterprise.com,git.company.internal"
+
+# Or via environment variable
+export GITHUB_HOSTS="github.enterprise.com"
+classroom-pilot assignments orchestrate
+```
+
+## 🛡️ Security & Best Practices
 
 ### Token Management
-- **Token files** are never committed to git
-- **Configuration** can reference multiple token files
-- **Age-based updates** prevent using expired tokens
 
-### Dry Run Safety
-- **Preview mode** shows all actions without executing
-- **Configuration validation** happens before any operations
-- **User confirmation** required by default (can be disabled)
+- Store tokens securely using `GITHUB_TOKEN_FILE`
+- Use environment variables for sensitive information
+- Regularly rotate API tokens
+- Limit token permissions to required scopes
 
-### Access Control
-- Inherits **GitHub CLI authentication**
-- Respects **repository permissions** from component scripts
-- **Validates access** before attempting operations
+### Repository Access
 
-## 🎓 Best Practices
+- Use `--dry-run` to preview changes before execution
+- Configure repository filtering to exclude instructor repos
+- Monitor access logs for unauthorized changes
+- Implement proper backup procedures
 
-### Configuration Management
-1. **Version control** configuration files (but not token files)
-2. **Document changes** when updating assignment settings
-3. **Test with dry-run** before executing on production
+### Configuration Security
 
-### Workflow Execution
-1. **Run sync step** after template changes
-2. **Monitor output** for any error messages
-3. **Verify results** by checking generated repository files
+```bash
+# Secure configuration file permissions
+chmod 600 assignment.conf
 
-### Maintenance
-1. **Update token files** before they expire
-2. **Review configuration** at the start of each semester
-3. **Test workflows** with new assignments before deploying
+# Use environment variables for sensitive data
+export GITHUB_TOKEN="$(cat secure_token.txt)"
+classroom-pilot assignments orchestrate --config assignment.conf
+```
+
+## 🔍 Troubleshooting
+
+### Common Issues
+
+1. **Authentication Errors**:
+   ```bash
+   # Verify token permissions
+   classroom-pilot --verbose assignments orchestrate
+   ```
+
+2. **Repository Not Found**:
+   ```bash
+   # Check URL format and access
+   classroom-pilot repos fetch --config assignment.conf --verbose
+   ```
+
+3. **Secret Distribution Failures**:
+   ```bash
+   # Test with single repository first
+   classroom-pilot --dry-run secrets add --config assignment.conf
+   ```
+
+### Debug Mode
+
+Enable comprehensive logging for troubleshooting:
+
+```bash
+# Maximum verbosity
+classroom-pilot --verbose assignments orchestrate --config assignment.conf
+
+# Dry-run with detailed output
+classroom-pilot --dry-run --verbose assignments orchestrate --config assignment.conf
+```
+
+## 📚 Related Documentation
+
+- **[Main CLI Reference](../README.md#command-reference)** - Complete command documentation
+- **[Secrets Management](SECRETS-MANAGEMENT.md)** - Detailed secret handling guide
+- **[Repository Operations](../README.md#repository-operations)** - Repository management commands
+- **[Configuration Guide](../README.md#configuration)** - Configuration file setup
 
 ---
 
-**Note:** The orchestrator requires all component scripts to be present and executable. It will check for required dependencies and report any missing components before execution.
+The Assignment Orchestrator provides a comprehensive, automated solution for managing GitHub Classroom assignments through the modern Python CLI interface.

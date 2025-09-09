@@ -2,7 +2,7 @@ name: 🔄 CI
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main, develop, feature/python-migration ]
   pull_request:
     branches: [ main, develop ]
 
@@ -32,7 +32,7 @@ jobs:
       - name: Test script syntax
         run: |
           echo "🔍 Testing script syntax with ${{ matrix.shell }}..."
-          for script in scripts/*.sh; do
+          for script in classroom_pilot/scripts/*.sh; do
             echo "Checking $script..."
             ${{ matrix.shell }} -n "$script"
           done
@@ -56,21 +56,20 @@ jobs:
           STEP_MANAGE_SECRETS="true"
           EOF
           
-          # Create mock assignment notebook
+          # Create test files for tool integration testing
+          echo '{"assignment":"test"}' > assignment.json
+          echo 'Test notebook content' > test.ipynb
           echo '{"cells":[],"metadata":{},"nbformat":4,"nbformat_minor":4}' > test.ipynb
-          
-          # Create symlink to tools
-          ln -s ../gh_classroom_tools tools
           
           # Test help commands with proper context
           echo "Testing setup-assignment.sh --help..."
-          bash -x tools/scripts/setup-assignment.sh --help || echo "Setup help completed with status $?"
+          bash -x classroom_pilot/scripts/setup-assignment.sh --help || echo "Setup help completed with status $?"
           
           echo "Testing assignment-orchestrator.sh --help..."
-          bash tools/scripts/assignment-orchestrator.sh --help || echo "Orchestrator help completed with status $?"
+          bash classroom_pilot/scripts/assignment-orchestrator.sh --help || echo "Orchestrator help completed with status $?"
           
           echo "Testing fetch-student-repos.sh --help..."
-          bash tools/scripts/fetch-student-repos.sh --help || echo "Fetch help completed with status $?"
+          bash classroom_pilot/scripts/fetch-student-repos.sh --help || echo "Fetch help completed with status $?"
 
   lint:
     name: 🔍 Lint

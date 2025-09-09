@@ -1,0 +1,106 @@
+site_name: Classroom Pilot
+site_description: Modern Python CLI for automating GitHub Classroom assignment management 🚀
+site_url: https://hugo-valle.github.io/classroom-pilot/
+
+repo_url: https://github.com/hugo-valle/classroom-pilot
+repo_name: hugo-valle/classroom-pilot
+
+docs_dir: docs-site
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: blue
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: blue
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.top
+    - navigation.tracking
+    - search.suggest
+    - search.highlight
+    - search.share
+    - content.code.copy
+    - content.action.edit
+    - content.action.view
+    - content.tabs.link
+  icon:
+    repo: fontawesome/brands/github
+
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Installation: getting-started/installation.md
+    - Quick Start: getting-started/quick-start.md
+    - Configuration: getting-started/configuration.md
+  - CLI Reference:
+    - Overview: cli/overview.md
+    - Assignment Commands: cli/assignments.md
+    - Repository Commands: cli/repositories.md
+    - Secret Management: cli/secrets.md
+    - Automation Commands: cli/automation.md
+  - Workflows:
+    - Assignment Orchestrator: workflows/assignment-orchestrator.md
+    - Automation Suite: workflows/automation-suite.md
+    - Classroom URL Integration: workflows/classroom-url-integration.md
+    - Cron Automation: workflows/cron-automation.md
+    - Secrets Management: workflows/secrets-management.md
+  - Development:
+    - Contributing: development/contributing.md
+    - Architecture: development/architecture.md
+    - Testing: development/testing.md
+  - About:
+    - Changelog: about/changelog.md
+    - License: about/license.md
+
+plugins:
+  - search:
+      lang: en
+
+markdown_extensions:
+  - toc:
+      permalink: true
+      title: On this page
+  - tables
+  - admonition
+  - codehilite:
+      css_class: highlight
+  - footnotes
+  - def_list
+  - attr_list
+  - md_in_html
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+extra:
+  version:
+    provider: mike
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/hugo-valle/classroom-pilot
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/classroom-pilot/
+
+copyright: Copyright &copy; 2024 Hugo Valle
