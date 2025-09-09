@@ -131,7 +131,7 @@ class TestWorkflowCommands:
     def test_run_command_dry_run(self):
         """Test the run command in dry-run mode."""
         success, stdout, stderr = run_cli_command(
-            "python -m classroom_pilot --dry-run --verbose run")
+            "python -m classroom_pilot run --dry-run --verbose")
         assert success, f"Run command failed: {stderr}"
         assert "DRY RUN" in stdout
         assert "completed successfully" in stdout
@@ -139,28 +139,28 @@ class TestWorkflowCommands:
     def test_sync_command_dry_run(self):
         """Test the sync command in dry-run mode."""
         success, stdout, stderr = run_cli_command(
-            "python -m classroom_pilot --dry-run --verbose sync")
+            "python -m classroom_pilot sync --dry-run --verbose")
         assert success, f"Sync command failed: {stderr}"
         assert "DRY RUN" in stdout
 
     def test_discover_command_dry_run(self):
         """Test the discover command in dry-run mode."""
         success, stdout, stderr = run_cli_command(
-            "python -m classroom_pilot --dry-run --verbose discover")
+            "python -m classroom_pilot discover --dry-run --verbose")
         assert success, f"Discover command failed: {stderr}"
         assert "DRY RUN" in stdout
 
     def test_secrets_command_dry_run(self):
         """Test the secrets command in dry-run mode."""
         success, stdout, stderr = run_cli_command(
-            "python -m classroom_pilot --dry-run --verbose secrets")
+            "python -m classroom_pilot secrets --dry-run --verbose")
         assert success, f"Secrets command failed: {stderr}"
         assert "DRY RUN" in stdout
 
     def test_assist_command_dry_run(self):
         """Test the assist command in dry-run mode."""
         success, stdout, stderr = run_cli_command(
-            "python -m classroom_pilot --dry-run --verbose assist")
+            "python -m classroom_pilot assist --dry-run --verbose")
         assert success, f"Assist command failed: {stderr}"
         assert "DRY RUN" in stdout
 
@@ -171,28 +171,28 @@ class TestManagementCommands:
     def test_setup_command_dry_run(self):
         """Test the setup command in dry-run mode."""
         success, stdout, stderr = run_cli_command(
-            "python -m classroom_pilot --dry-run --verbose setup")
+            "python -m classroom_pilot setup --dry-run --verbose")
         assert success, f"Setup command failed: {stderr}"
         assert "DRY RUN" in stdout
 
     def test_update_command_dry_run(self):
         """Test the update command in dry-run mode."""
         success, stdout, stderr = run_cli_command(
-            "python -m classroom_pilot --dry-run --verbose update")
+            "python -m classroom_pilot update --dry-run --verbose")
         assert success, f"Update command failed: {stderr}"
         assert "DRY RUN" in stdout
 
     def test_cron_status_dry_run(self):
         """Test the cron status command in dry-run mode."""
         success, stdout, stderr = run_cli_command(
-            "python -m classroom_pilot --dry-run --verbose cron status")
+            "python -m classroom_pilot cron --dry-run --verbose --action status")
         assert success, f"Cron status command failed: {stderr}"
         assert "DRY RUN" in stdout
 
     def test_cron_sync_dry_run(self):
         """Test the cron-sync command in dry-run mode."""
         success, stdout, stderr = run_cli_command(
-            "python -m classroom_pilot --dry-run --verbose cron-sync")
+            "python -m classroom_pilot cron-sync --dry-run --verbose")
         assert success, f"Cron-sync command failed: {stderr}"
         assert "DRY RUN" in stdout
 
@@ -203,13 +203,13 @@ class TestCycleCommands:
     def test_cycle_list_mode(self):
         """Test cycle command in list mode."""
         success, stdout, stderr = run_cli_command(
-            "python -m classroom_pilot --dry-run cycle --list lab01")
+            "python -m classroom_pilot cycle --dry-run --list --assignment-prefix lab01")
         assert success, f"Cycle list command failed: {stderr}"
         assert "DRY RUN" in stdout
 
     def test_cycle_force_mode(self):
         """Test cycle command in force mode with user arguments."""
-        cmd = "python -m classroom_pilot --dry-run cycle --force homework01 student123 cs101"
+        cmd = "python -m classroom_pilot cycle --dry-run --force --assignment-prefix homework01 --username student123 --organization cs101"
         success, stdout, stderr = run_cli_command(cmd)
         assert success, f"Cycle force command failed: {stderr}"
         assert "DRY RUN" in stdout
@@ -217,6 +217,6 @@ class TestCycleCommands:
     def test_cycle_repo_urls_mode(self):
         """Test cycle command with repo-urls flag."""
         success, stdout, stderr = run_cli_command(
-            "python -m classroom_pilot --dry-run cycle --repo-urls")
+            "python -m classroom_pilot cycle --dry-run --repo-urls")
         assert success, f"Cycle repo-urls command failed: {stderr}"
         assert "DRY RUN" in stdout

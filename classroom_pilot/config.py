@@ -47,6 +47,9 @@ class Configuration:
             if not config_file.exists():
                 # Look for assignment-example.conf as fallback
                 config_file = Path("assignment-example.conf")
+        else:
+            # Convert string to Path if needed
+            config_file = Path(config_file)
 
         if not config_file.exists():
             raise FileNotFoundError(

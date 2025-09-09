@@ -12,44 +12,31 @@ from .config import Configuration
 from .bash_wrapper import BashWrapper
 from .utils import setup_logging, logger
 
-# Create the main Typer application with no configuration at all
+# Create the absolutely minimal Typer application
 app = typer.Typer(
-    add_completion=False,
-    no_args_is_help=True,
+    help="Classroom Pilot - Comprehensive automation suite for managing assignments."
 )
 
 
-@app.callback()
-def main_callback(
-    ctx: typer.Context,
+@app.command()
+def run(
     dry_run: bool = False,
     verbose: bool = False,
     config_file: str = None,
     yes: bool = False,
 ):
-    """Classroom Pilot - Comprehensive automation suite for managing assignments."""
-    # Store global options in context
-    ctx.ensure_object(dict)
-    ctx.obj['dry_run'] = dry_run
-    ctx.obj['verbose'] = verbose
-    ctx.obj['config_file'] = config_file
-    ctx.obj['yes'] = yes
-
-    # Setup logging based on verbose flag
+    """Run the complete classroom workflow (sync, discover, secrets, assist)."""
+    # Setup logging
     setup_logging(verbose)
 
-
-@app.command()
-def run(ctx: typer.Context):
-    """Run the complete classroom workflow (sync, discover, secrets, assist)."""
     # Load configuration
-    config = Configuration.load(ctx.obj.get('config_file'))
+    config = Configuration.load(config_file)
 
     wrapper = BashWrapper(
         config,
-        dry_run=ctx.obj.get('dry_run', False),
-        verbose=ctx.obj.get('verbose', False),
-        auto_yes=ctx.obj.get('yes', False)
+        dry_run=dry_run,
+        verbose=verbose,
+        auto_yes=yes
     )
     success = wrapper.assignment_orchestrator(workflow_type="run")
 
@@ -61,16 +48,24 @@ def run(ctx: typer.Context):
 
 
 @app.command()
-def sync(ctx: typer.Context):
+def sync(
+    dry_run: bool = False,
+    verbose: bool = False,
+    config_file: str = None,
+    yes: bool = False,
+):
     """Sync template repository to GitHub Classroom."""
+    # Setup logging
+    setup_logging(verbose)
+
     # Load configuration
-    config = Configuration.load(ctx.obj.get('config_file'))
+    config = Configuration.load(config_file)
 
     wrapper = BashWrapper(
         config,
-        dry_run=ctx.obj.get('dry_run', False),
-        verbose=ctx.obj.get('verbose', False),
-        auto_yes=ctx.obj.get('yes', False)
+        dry_run=dry_run,
+        verbose=verbose,
+        auto_yes=yes
     )
     success = wrapper.push_to_classroom()
 
@@ -82,16 +77,24 @@ def sync(ctx: typer.Context):
 
 
 @app.command()
-def discover(ctx: typer.Context):
+def discover(
+    dry_run: bool = False,
+    verbose: bool = False,
+    config_file: str = None,
+    yes: bool = False,
+):
     """Discover and fetch student repositories from GitHub Classroom."""
+    # Setup logging
+    setup_logging(verbose)
+
     # Load configuration
-    config = Configuration.load(ctx.obj.get('config_file'))
+    config = Configuration.load(config_file)
 
     wrapper = BashWrapper(
         config,
-        dry_run=ctx.obj.get('dry_run', False),
-        verbose=ctx.obj.get('verbose', False),
-        auto_yes=ctx.obj.get('yes', False)
+        dry_run=dry_run,
+        verbose=verbose,
+        auto_yes=yes
     )
     success = wrapper.fetch_student_repos()
 
@@ -103,16 +106,24 @@ def discover(ctx: typer.Context):
 
 
 @app.command()
-def secrets(ctx: typer.Context):
+def secrets(
+    dry_run: bool = False,
+    verbose: bool = False,
+    config_file: str = None,
+    yes: bool = False,
+):
     """Add or update secrets in student repositories."""
+    # Setup logging
+    setup_logging(verbose)
+
     # Load configuration
-    config = Configuration.load(ctx.obj.get('config_file'))
+    config = Configuration.load(config_file)
 
     wrapper = BashWrapper(
         config,
-        dry_run=ctx.obj.get('dry_run', False),
-        verbose=ctx.obj.get('verbose', False),
-        auto_yes=ctx.obj.get('yes', False)
+        dry_run=dry_run,
+        verbose=verbose,
+        auto_yes=yes
     )
     success = wrapper.add_secrets_to_students()
 
@@ -124,16 +135,24 @@ def secrets(ctx: typer.Context):
 
 
 @app.command()
-def assist(ctx: typer.Context):
+def assist(
+    dry_run: bool = False,
+    verbose: bool = False,
+    config_file: str = None,
+    yes: bool = False,
+):
     """Assist students with common repository issues."""
+    # Setup logging
+    setup_logging(verbose)
+
     # Load configuration
-    config = Configuration.load(ctx.obj.get('config_file'))
+    config = Configuration.load(config_file)
 
     wrapper = BashWrapper(
         config,
-        dry_run=ctx.obj.get('dry_run', False),
-        verbose=ctx.obj.get('verbose', False),
-        auto_yes=ctx.obj.get('yes', False)
+        dry_run=dry_run,
+        verbose=verbose,
+        auto_yes=yes
     )
     success = wrapper.student_update_helper()
 
@@ -145,16 +164,27 @@ def assist(ctx: typer.Context):
 
 
 @app.command()
-def setup(ctx: typer.Context):
+def setup(
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Show what would be done without executing"),
+    verbose: bool = typer.Option(
+        False, "--verbose", "-v", help="Enable verbose output"),
+    config_file: str = typer.Option(
+        "assignment.conf", "--config-file", "-c", help="Path to configuration file"),
+    yes: bool = typer.Option(False, "--yes", "-y",
+                             help="Automatically answer yes to prompts")
+):
     """Setup a new assignment configuration."""
+    setup_logging(verbose)
+
     # Load configuration
-    config = Configuration.load(ctx.obj.get('config_file'))
+    config = Configuration.load(config_file)
 
     wrapper = BashWrapper(
         config,
-        dry_run=ctx.obj.get('dry_run', False),
-        verbose=ctx.obj.get('verbose', False),
-        auto_yes=ctx.obj.get('yes', False)
+        dry_run=dry_run,
+        verbose=verbose,
+        auto_yes=yes
     )
     success = wrapper.setup_assignment()
 
@@ -166,16 +196,27 @@ def setup(ctx: typer.Context):
 
 
 @app.command()
-def update(ctx: typer.Context):
+def update(
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Show what would be done without executing"),
+    verbose: bool = typer.Option(
+        False, "--verbose", "-v", help="Enable verbose output"),
+    config_file: str = typer.Option(
+        "assignment.conf", "--config-file", "-c", help="Path to configuration file"),
+    yes: bool = typer.Option(False, "--yes", "-y",
+                             help="Automatically answer yes to prompts")
+):
     """Update assignment configuration and repositories."""
+    setup_logging(verbose)
+
     # Load configuration
-    config = Configuration.load(ctx.obj.get('config_file'))
+    config = Configuration.load(config_file)
 
     wrapper = BashWrapper(
         config,
-        dry_run=ctx.obj.get('dry_run', False),
-        verbose=ctx.obj.get('verbose', False),
-        auto_yes=ctx.obj.get('yes', False)
+        dry_run=dry_run,
+        verbose=verbose,
+        auto_yes=yes
     )
     success = wrapper.update_assignment()
 
@@ -187,30 +228,29 @@ def update(ctx: typer.Context):
 
 
 @app.command()
-def cron(ctx: typer.Context):
+def cron(
+    action: str = typer.Option(
+        "status", "--action", "-a", help="Action to perform (status, install, remove, etc.)"),
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Show what would be done without executing"),
+    verbose: bool = typer.Option(
+        False, "--verbose", "-v", help="Enable verbose output"),
+    config_file: str = typer.Option(
+        "assignment.conf", "--config-file", "-c", help="Path to configuration file"),
+    yes: bool = typer.Option(False, "--yes", "-y",
+                             help="Automatically answer yes to prompts")
+):
     """Manage cron automation jobs."""
-    import sys
-
-    # Check if an action was provided as a trailing argument
-    # This is a workaround to avoid typer.Argument() for CI compatibility
-    action = "status"  # default
-    if len(sys.argv) > 1:
-        # Look for cron command and check if there's an argument after it
-        try:
-            cron_idx = sys.argv.index("cron")
-            if cron_idx + 1 < len(sys.argv) and not sys.argv[cron_idx + 1].startswith("-"):
-                action = sys.argv[cron_idx + 1]
-        except (ValueError, IndexError):
-            pass
+    setup_logging(verbose)
 
     # Load configuration
-    config = Configuration.load(ctx.obj.get('config_file'))
+    config = Configuration.load(config_file)
 
     wrapper = BashWrapper(
         config,
-        dry_run=ctx.obj.get('dry_run', False),
-        verbose=ctx.obj.get('verbose', False),
-        auto_yes=ctx.obj.get('yes', False)
+        dry_run=dry_run,
+        verbose=verbose,
+        auto_yes=yes
     )
     success = wrapper.manage_cron(action)
 
@@ -222,16 +262,27 @@ def cron(ctx: typer.Context):
 
 
 @app.command(name="cron-sync")
-def cron_sync(ctx: typer.Context):
+def cron_sync(
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Show what would be done without executing"),
+    verbose: bool = typer.Option(
+        False, "--verbose", "-v", help="Enable verbose output"),
+    config_file: str = typer.Option(
+        "assignment.conf", "--config-file", "-c", help="Path to configuration file"),
+    yes: bool = typer.Option(False, "--yes", "-y",
+                             help="Automatically answer yes to prompts")
+):
     """Execute scheduled synchronization tasks."""
+    setup_logging(verbose)
+
     # Load configuration
-    config = Configuration.load(ctx.obj.get('config_file'))
+    config = Configuration.load(config_file)
 
     wrapper = BashWrapper(
         config,
-        dry_run=ctx.obj.get('dry_run', False),
-        verbose=ctx.obj.get('verbose', False),
-        auto_yes=ctx.obj.get('yes', False)
+        dry_run=dry_run,
+        verbose=verbose,
+        auto_yes=yes
     )
     success = wrapper.cron_sync()
 
@@ -244,23 +295,34 @@ def cron_sync(ctx: typer.Context):
 
 @app.command()
 def cycle(
-    ctx: typer.Context,
-    assignment_prefix: str = None,
-    username: str = None,
-    organization: str = None,
-    list: bool = False,
-    force: bool = False,
-    repo_urls: bool = False,
+    assignment_prefix: str = typer.Option(
+        None, "--assignment-prefix", help="Assignment prefix"),
+    username: str = typer.Option(None, "--username", help="Username"),
+    organization: str = typer.Option(
+        None, "--organization", help="Organization"),
+    list: bool = typer.Option(False, "--list", help="List collaborators"),
+    force: bool = typer.Option(False, "--force", help="Force cycling"),
+    repo_urls: bool = typer.Option(False, "--repo-urls", help="Use repo URLs"),
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Show what would be done without executing"),
+    verbose: bool = typer.Option(
+        False, "--verbose", "-v", help="Enable verbose output"),
+    config_file: str = typer.Option(
+        "assignment.conf", "--config-file", "-c", help="Path to configuration file"),
+    yes: bool = typer.Option(False, "--yes", "-y",
+                             help="Automatically answer yes to prompts")
 ):
     """Cycle repository collaborator permissions."""
+    setup_logging(verbose)
+
     # Load configuration
-    config = Configuration.load(ctx.obj.get('config_file'))
+    config = Configuration.load(config_file)
 
     wrapper = BashWrapper(
         config,
-        dry_run=ctx.obj.get('dry_run', False),
-        verbose=ctx.obj.get('verbose', False),
-        auto_yes=ctx.obj.get('yes', False)
+        dry_run=dry_run,
+        verbose=verbose,
+        auto_yes=yes
     )
     success = wrapper.cycle_collaborator(
         assignment_prefix=assignment_prefix,
