@@ -85,7 +85,7 @@ jobs:
         from classroom_pilot.config.loader import ConfigLoader
         from classroom_pilot.config.validator import ConfigValidator
         from classroom_pilot.config.generator import ConfigGenerator
-        from classroom_pilot.utils import get_logger, Logger, GitManager, PathManager
+        from classroom_pilot.utils import get_logger, logger, GitManager, PathManager
         from classroom_pilot.utils.ui_components import Colors
         from classroom_pilot.utils.input_handlers import InputHandler, Validators
         from classroom_pilot.utils.file_operations import FileManager
