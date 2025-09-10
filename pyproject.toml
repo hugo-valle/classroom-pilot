@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "classroom-pilot"
-version = "3.1.0-alpha.1"
+version = "3.1.0a1"
 description = "Modern Python CLI for automating GitHub Classroom assignment management"
 authors = ["Hugo Valle <hugo.valle@example.com>"]
 license = "MIT"

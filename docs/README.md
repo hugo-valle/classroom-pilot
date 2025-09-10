@@ -49,7 +49,7 @@ Welcome to the documentation for Classroom Pilot - a modern Python CLI tool for 
 ## 📦 Package Information
 
 ### Current Release
-- **Version**: 3.1.0-alpha.1
+- **Version**: 3.1.0a1
 - **Python Support**: 3.10, 3.11, 3.12
 - **Package**: [classroom-pilot on PyPI](https://pypi.org/project/classroom-pilot/)
 - **Repository**: [hugo-valle/classroom-pilot](https://github.com/hugo-valle/classroom-pilot)
