@@ -1,0 +1,140 @@
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "classroom-pilot"
+version = "3.1.0-alpha.1"
+description = "Modern Python CLI for automating GitHub Classroom assignment management"
+authors = ["Hugo Valle <hugo.valle@example.com>"]
+license = "MIT"
+readme = "README.md"
+homepage = "https://github.com/hugo-valle/classroom-pilot"
+repository = "https://github.com/hugo-valle/classroom-pilot"
+documentation = "https://github.com/hugo-valle/classroom-pilot#readme"
+keywords = ["github", "classroom", "education", "automation", "cli"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Education",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Education",
+    "Topic :: Software Development :: Version Control :: Git",
+    "Topic :: System :: Systems Administration",
+    "Environment :: Console",
+]
+packages = [{include = "classroom_pilot"}]
+exclude = ["tests"]
+include = [
+    "classroom_pilot/scripts/*.sh",
+    "classroom_pilot/utils/*.sh", 
+    "classroom_pilot/docs/*.md",
+    "classroom_pilot/docs/*.yml",
+    "*.conf",
+]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+click = ">=8.0.0,<8.2.0"
+typer = ">=0.12.0"
+pyyaml = "^6.0.1"
+requests = "^2.31.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4.0"
+pytest-cov = "^4.1.0"
+black = "^23.7.0"
+isort = "^5.12.0"
+flake8 = "^6.0.0"
+mypy = "^1.5.0"
+pre-commit = "^3.3.0"
+pytest-mock = "^3.11.0"
+types-PyYAML = "^6.0.12"
+types-requests = "^2.31.0"
+
+[tool.poetry.scripts]
+classroom-pilot = "classroom_pilot.cli:main"
+
+[tool.poetry.urls]
+"Bug Reports" = "https://github.com/hugo-valle/classroom-pilot/issues"
+"Feature Requests" = "https://github.com/hugo-valle/classroom-pilot/issues"
+"Source" = "https://github.com/hugo-valle/classroom-pilot"
+
+[tool.black]
+line-length = 88
+target-version = ['py38']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+known_first_party = ["classroom_pilot"]
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+[[tool.mypy.overrides]]
+module = [
+    "tests.*",
+]
+disallow_untyped_defs = false
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra -q --strict-markers --strict-config"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+[tool.coverage.run]
+source = ["classroom_pilot"]
+omit = [
+    "*/tests/*",
+    "*/test_*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]

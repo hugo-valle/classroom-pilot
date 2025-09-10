@@ -2,172 +2,280 @@
 
 ## 🎯 Overview
 
-The `fetch-student-repos.sh` script now supports direct integration with GitHub Classroom URLs, making it much more convenient to use with classroom assignments.
+Classroom Pilot provides seamless integration with GitHub Classroom URLs, making it convenient to manage classroom assignments directly from the GitHub Classroom interface.
 
-## 🚀 New Feature: --classroom-url
+## 📦 Installation
 
-### Usage
 ```bash
-./scripts/fetch-student-repos.sh --classroom-url https://classroom.github.com/classrooms/206604610-wsu-ml-dl-classroom-fall25/assignments/cs6600-m1-homework1
+# Install from PyPI
+pip install classroom-pilot
+
+# Verify installation
+classroom-pilot --help
 ```
 
-### How it Works
-The script automatically extracts the assignment name from the last part of the GitHub Classroom URL:
-- **Input URL:** `https://classroom.github.com/classrooms/206604610-wsu-ml-dl-classroom-fall25/assignments/cs6600-m1-homework1`
-- **Extracted Assignment:** `cs6600-m1-homework1`
-- **Search Pattern:** `cs6600-m1-homework1-*`
+## 🚀 Classroom URL Integration
 
-## 🧪 Testing Results
+### Direct URL Usage
 
-### ✅ Successful URL Extraction
+Use GitHub Classroom URLs directly in your configuration:
+
 ```bash
-# Test with the actual classroom assignment
-./scripts/fetch-student-repos.sh --classroom-url https://classroom.github.com/classrooms/206604610-wsu-ml-dl-classroom-fall25/assignments/cs6600-m1-homework1 --dry-run
-
-# Output:
-[INFO] Extracted assignment prefix: cs6600-m1-homework1
-=== GitHub Classroom Repository Fetcher ===
-[INFO] Assignment prefix: cs6600-m1-homework1
-[SUCCESS] Found 2 student repositories
-
-[INFO] Repositories that would be saved:
-[FOUND] https://github.com/WSU-ML-DL/cs6600-m1-homework1-hugo-wsu
-[FOUND] https://github.com/WSU-ML-DL/cs6600-m1-homework1-instructor-tests
+# GitHub Classroom Configuration
+CLASSROOM_URL="https://classroom.github.com/classrooms/123/assignments/cs6600-homework1"
+TEMPLATE_REPO_URL="https://github.com/instructor/cs6600-homework1-template"
+ASSIGNMENT_FILE="homework.py"
 ```
 
-### ✅ File Generation with Classroom URL
-```bash
-# Generate repository file directly from classroom URL
-./scripts/fetch-student-repos.sh --classroom-url https://classroom.github.com/classrooms/206604610-wsu-ml-dl-classroom-fall25/assignments/cs6600-m1-homework1 --output scripts/classroom-url-test.txt
+### URL Parsing and Assignment Detection
 
-# Results in: scripts/classroom-url-test.txt
-# Content:
-# https://github.com/WSU-ML-DL/cs6600-m1-homework1-hugo-wsu
-# https://github.com/WSU-ML-DL/cs6600-m1-homework1-instructor-tests
+The CLI automatically extracts assignment information from classroom URLs:
+
+- **Input URL**: `https://classroom.github.com/classrooms/123/assignments/cs6600-homework1`
+- **Extracted Assignment**: `cs6600-homework1`
+- **Search Pattern**: `cs6600-homework1-*` (for student repositories)
+
+## 🔧 Command Integration
+
+### Repository Discovery
+
+```bash
+# Fetch repositories using classroom URL
+classroom-pilot repos fetch --config assignment.conf
+
+# The CLI automatically:
+# 1. Parses the CLASSROOM_URL from configuration
+# 2. Extracts assignment name
+# 3. Searches for matching student repositories
 ```
 
-### ✅ Different Assignment Names
-```bash
-# Test with hypothetical different assignment
-./scripts/fetch-student-repos.sh --classroom-url https://classroom.github.com/classrooms/123456/assignments/cs6600-final-project --dry-run
+### Assignment Setup
 
-# Output:
-[INFO] Extracted assignment prefix: cs6600-final-project
-[INFO] Assignment prefix: cs6600-final-project
-[WARNING] No repositories found matching pattern: cs6600-final-project-*
+```bash
+# Interactive setup with classroom URL
+classroom-pilot assignments setup
+
+# The wizard will prompt for:
+# - GitHub Classroom URL
+# - Template repository URL
+# - Assignment file name
+# - Secret requirements
 ```
 
-### ✅ Error Handling
-```bash
-# Test with invalid URL
-./scripts/fetch-student-repos.sh --classroom-url https://invalid-url.com/something
+### Complete Workflow
 
-# Output:
-[ERROR] Could not extract assignment name from URL: https://invalid-url.com/something
-[ERROR] Expected format: https://classroom.github.com/.../assignments/ASSIGNMENT-NAME
+```bash
+# Run complete workflow with classroom URL integration
+classroom-pilot assignments orchestrate --config assignment.conf
+
+# This automatically:
+# 1. Validates classroom URL format
+# 2. Discovers student repositories
+# 3. Manages secrets and permissions
+# 4. Synchronizes templates
 ```
 
-## 📋 Complete Usage Examples
+## ⚙️ Configuration Examples
 
-### Direct Classroom URL Usage
+### Basic Assignment Configuration
+
 ```bash
-# Basic usage with classroom URL
-./scripts/fetch-student-repos.sh --classroom-url https://classroom.github.com/classrooms/206604610-wsu-ml-dl-classroom-fall25/assignments/cs6600-m1-homework1
-
-# Dry run with classroom URL
-./scripts/fetch-student-repos.sh --classroom-url https://classroom.github.com/classrooms/206604610-wsu-ml-dl-classroom-fall25/assignments/cs6600-m1-homework1 --dry-run
-
-# Custom output file with classroom URL
-./scripts/fetch-student-repos.sh --classroom-url https://classroom.github.com/classrooms/206604610-wsu-ml-dl-classroom-fall25/assignments/cs6600-m1-homework1 --output scripts/my-assignment.txt
-
-# Include template with classroom URL
-./scripts/fetch-student-repos.sh --classroom-url https://classroom.github.com/classrooms/206604610-wsu-ml-dl-classroom-fall25/assignments/cs6600-m1-homework1 --include-template
+# assignment.conf
+CLASSROOM_URL="https://classroom.github.com/classrooms/206604610/assignments/cs6600-m1-homework1"
+TEMPLATE_REPO_URL="https://github.com/wsu-ml-dl/cs6600-m1-homework1-template"
+ASSIGNMENT_FILE="homework1.py"
+GITHUB_TOKEN_FILE="github_token.txt"
+SECRETS_LIST="API_KEY,GRADING_TOKEN"
 ```
 
-### Complete Workflow with Classroom URL
+### Multiple Assignment Management
+
 ```bash
-# Step 1: Fetch repositories from classroom URL
-./scripts/fetch-student-repos.sh --classroom-url https://classroom.github.com/classrooms/206604610-wsu-ml-dl-classroom-fall25/assignments/cs6600-m1-homework1
+# assignment-hw1.conf
+CLASSROOM_URL="https://classroom.github.com/classrooms/123/assignments/homework1"
+TEMPLATE_REPO_URL="https://github.com/instructor/homework1-template"
 
-# Step 2: Add secrets to all discovered repositories
-./scripts/add-secrets-to-students.sh INSTRUCTOR_TESTS_TOKEN --batch scripts/student-repos-batch.txt
+# assignment-hw2.conf  
+CLASSROOM_URL="https://classroom.github.com/classrooms/123/assignments/homework2"
+TEMPLATE_REPO_URL="https://github.com/instructor/homework2-template"
 
-# Step 3: Assist students with updates
-./scripts/student-update-helper.sh --batch scripts/student-repos-batch.txt
+# Process multiple assignments
+for config in assignment-*.conf; do
+    classroom-pilot assignments orchestrate --config "$config"
+done
 ```
 
-## 🔧 Technical Implementation
+### Enterprise GitHub Classroom
 
-### URL Pattern Matching
-The script uses bash regex to extract assignment names:
 ```bash
-if [[ "$url" =~ /assignments/([^/?]+) ]]; then
-    echo "${BASH_REMATCH[1]}"
-else
-    return 1
-fi
+# enterprise-assignment.conf
+CLASSROOM_URL="https://github.enterprise.com/classrooms/456/assignments/project1"
+TEMPLATE_REPO_URL="https://github.enterprise.com/department/project1-template"
+GITHUB_HOSTS="github.enterprise.com"
+GITHUB_TOKEN_FILE="enterprise_token.txt"
 ```
 
-### Supported URL Formats
-- `https://classroom.github.com/classrooms/CLASSROOM-ID/assignments/ASSIGNMENT-NAME`
-- `https://classroom.github.com/classrooms/CLASSROOM-ID/assignments/ASSIGNMENT-NAME?param=value`
-- `https://classroom.github.com/classrooms/CLASSROOM-ID/assignments/ASSIGNMENT-NAME/`
+## 🎯 Advanced URL Features
+
+### URL Validation
+
+The CLI performs comprehensive URL validation:
+
+```bash
+# Valid classroom URL patterns:
+# https://classroom.github.com/classrooms/{id}/assignments/{name}
+# https://github.enterprise.com/classrooms/{id}/assignments/{name}
+
+# Automatic validation during setup
+classroom-pilot assignments setup
+
+# Manual validation
+classroom-pilot --dry-run repos fetch --config assignment.conf
+```
 
 ### Assignment Name Extraction
-- Extracts everything after `/assignments/` until the next `/`, `?`, or end of string
-- Works with complex assignment names like `cs6600-m1-homework1`, `final-project-2025`, etc.
-- Handles URL parameters and trailing slashes gracefully
 
-## 🎯 Benefits
+Automatic assignment name extraction supports various patterns:
 
-### 1. **Simplified Workflow**
-Instead of manually extracting assignment names:
 ```bash
-# OLD: Manual extraction required
-./scripts/fetch-student-repos.sh cs6600-m1-homework1
+# Standard assignment names
+cs6600-homework1                    # → cs6600-homework1-*
+final-project                       # → final-project-*
+midterm-exam-2024                  # → midterm-exam-2024-*
 
-# NEW: Direct URL usage
-./scripts/fetch-student-repos.sh --classroom-url https://classroom.github.com/classrooms/206604610-wsu-ml-dl-classroom-fall25/assignments/cs6600-m1-homework1
+# Special characters handled
+data-structures-hw_1               # → data-structures-hw_1-*
+ml-assignment.part2                # → ml-assignment.part2-*
 ```
 
-### 2. **Reduced Errors**
-- No manual typing of assignment names
-- Automatic extraction eliminates typos
-- Consistent naming between classroom and automation
+### Repository Pattern Matching
 
-### 3. **Better Integration**
-- Direct copy-paste from GitHub Classroom
-- Works with bookmarked classroom URLs
-- Supports sharing URLs between instructors
+The CLI intelligently matches student repositories:
 
-### 4. **Flexible Usage**
-- Can still use traditional assignment prefix method
-- Classroom URL is an additional option, not a replacement
-- Works with all existing script features (dry-run, custom output, etc.)
-
-## 🔄 Backward Compatibility
-
-All existing usage patterns continue to work:
 ```bash
-# Traditional method still works
-./scripts/fetch-student-repos.sh cs6600-m1-homework1
-
-# All flags still work
-./scripts/fetch-student-repos.sh --assignment cs6600-m1-homework1 --org WSU-ML-DL
-
-# New classroom URL method is additive
-./scripts/fetch-student-repos.sh --classroom-url CLASSROOM-URL
+# From assignment "cs6600-homework1", finds:
+cs6600-homework1-student1          # ✅ Match
+cs6600-homework1-student2          # ✅ Match
+cs6600-homework1-template          # ❌ Excluded (template)
+cs6600-homework1-instructor        # ❌ Excluded (instructor)
+different-assignment-student1      # ❌ No match
 ```
 
-## 📊 Real-World Testing
+## 🛠️ Workflow Integration
 
-**Assignment:** CS6600 Module 1 Homework 1  
-**Classroom URL:** https://classroom.github.com/classrooms/206604610-wsu-ml-dl-classroom-fall25/assignments/cs6600-m1-homework1  
-**Students Found:** 1 (hugo-wsu)  
-**Result:** ✅ Perfect extraction and repository discovery
+### Complete Assignment Lifecycle
 
-This feature has been tested with the actual CS6600 GitHub Classroom assignment and works perfectly for real-world instructor workflows.
+```bash
+# 1. Setup assignment with classroom URL
+classroom-pilot assignments setup
+# Enter classroom URL when prompted
+
+# 2. Validate configuration
+classroom-pilot --dry-run assignments orchestrate --config assignment.conf
+
+# 3. Execute complete workflow
+classroom-pilot assignments orchestrate --config assignment.conf
+```
+
+### Batch Classroom Management
+
+```bash
+#!/bin/bash
+# Manage multiple classroom assignments
+
+CLASSROOM_URLS=(
+    "https://classroom.github.com/classrooms/123/assignments/hw1"
+    "https://classroom.github.com/classrooms/123/assignments/hw2"
+    "https://classroom.github.com/classrooms/123/assignments/final"
+)
+
+for url in "${CLASSROOM_URLS[@]}"; do
+    echo "Processing classroom: $url"
+    
+    # Create temporary config
+    cat > temp-config.conf << EOF
+CLASSROOM_URL="$url"
+TEMPLATE_REPO_URL="https://github.com/instructor/template"
+ASSIGNMENT_FILE="main.py"
+GITHUB_TOKEN_FILE="github_token.txt"
+EOF
+
+    # Process assignment
+    classroom-pilot assignments orchestrate --config temp-config.conf
+    
+    # Cleanup
+    rm temp-config.conf
+done
+```
+
+## 🔍 Troubleshooting
+
+### URL Format Issues
+
+```bash
+# Check URL format
+classroom-pilot --verbose repos fetch --config assignment.conf
+
+# Common issues:
+# ❌ Missing /assignments/ in URL
+# ❌ Incorrect classroom ID
+# ❌ Special characters in assignment name
+# ❌ Wrong GitHub host (enterprise vs public)
+```
+
+### Repository Discovery Problems
+
+```bash
+# Debug repository discovery
+classroom-pilot --dry-run --verbose repos fetch --config assignment.conf
+
+# Check:
+# 1. Assignment name extraction
+# 2. Repository search patterns
+# 3. Access permissions
+# 4. Repository filtering rules
+```
+
+### Authentication Issues
+
+```bash
+# Verify GitHub authentication
+classroom-pilot --verbose assignments orchestrate --config assignment.conf
+
+# Check:
+# 1. Token permissions
+# 2. Organization access
+# 3. Classroom membership
+# 4. Repository visibility
+```
+
+## 📚 Related Documentation
+
+- **[Main CLI Reference](../README.md)** - Complete command documentation
+- **[Assignment Orchestrator](ASSIGNMENT-ORCHESTRATOR.md)** - Workflow automation
+- **[Repository Operations](../README.md#repository-operations)** - Repository management
+- **[Configuration Guide](../README.md#configuration)** - Configuration setup
+
+## 💡 Tips & Best Practices
+
+### URL Management
+
+- **Use consistent naming**: Keep assignment names consistent across semesters
+- **Validate URLs early**: Use `--dry-run` to catch URL issues before execution
+- **Document patterns**: Maintain documentation of URL patterns for your organization
+
+### Automation Integration
+
+- **Store URLs in configs**: Keep classroom URLs in version-controlled configuration files
+- **Use environment variables**: Override URLs for different environments (dev/staging/prod)
+- **Batch processing**: Process multiple classroom assignments efficiently
+
+### Security Considerations
+
+- **Verify permissions**: Ensure tokens have appropriate classroom access
+- **Monitor access**: Track repository access and modifications
+- **Audit regularly**: Review classroom integrations and permissions
 
 ---
 
-**Note:** This enhancement makes the automation suite even more user-friendly while maintaining all existing functionality and robust error handling.
+GitHub Classroom URL integration makes managing assignments seamless and efficient through the modern Python CLI interface.

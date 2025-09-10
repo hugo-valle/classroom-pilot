@@ -3,6 +3,7 @@
 # Generated files from tool execution
 generated/
 *.txt
+!requirements*.txt
 student-repos-*.txt
 repos-*.txt
 
@@ -68,3 +69,16 @@ venv.bak/
 test-output/
 debug/
 *.debug
+test_report.json
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+coverage.xml
+
+# MkDocs build artifacts
+site/
+.mkdocs_cache/
+
+# Documentation build artifacts
+docs-site/.mkdocs_cache/

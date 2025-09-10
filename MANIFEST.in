@@ -1,0 +1,20 @@
+include README.md
+include LICENSE
+include *.conf
+include *.md
+include requirements.txt
+include requirements-dev.txt
+
+recursive-include classroom_pilot *.py
+recursive-include classroom_pilot/scripts *.sh
+recursive-include classroom_pilot/utils *.sh
+recursive-include classroom_pilot/docs *.md
+recursive-include classroom_pilot/docs *.yml
+
+exclude .gitignore
+exclude .github/*
+exclude tests/*
+
+global-exclude *.pyc
+global-exclude __pycache__
+global-exclude .git*
