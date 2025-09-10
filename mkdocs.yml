@@ -58,6 +58,7 @@ nav:
     - Contributing: development/contributing.md
     - Architecture: development/architecture.md
     - Testing: development/testing.md
+    - Versioning: development/versioning.md
   - About:
     - Changelog: about/changelog.md
     - License: about/license.md

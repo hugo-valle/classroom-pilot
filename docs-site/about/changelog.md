@@ -3,9 +3,9 @@
 All notable changes to Classroom Pilot are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) with [PEP 440](https://peps.python.org/pep-0440/) compliant version identifiers.
 
-## [3.1.0-alpha.1] - 2025-09-09
+## [3.1.0a1] - 2025-09-09
 
 ### Added
 - Complete MkDocs documentation structure with Material theme
@@ -19,18 +19,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Configuration guide with examples for all environments
 - Comprehensive workflow documentation for all major operations
 - Development documentation including contributing, architecture, and testing guides
+- **PEP 440 compliant versioning**: Updated from `3.1.0-alpha.1` to `3.1.0a1` format
 
 ### Changed
 - Enhanced documentation organization with logical grouping and navigation
 - Improved cross-references and internal linking throughout documentation
 - Updated all CLI examples to use modern Python commands
 - Modernized installation and setup instructions for better user experience
+- **Version format compliance**: All version identifiers now follow PEP 440 standard
+- **Release workflows**: Updated to handle PEP 440 version formats correctly
 
 ### Fixed
 - Documentation consistency across all workflow guides
 - Internal link references throughout the documentation site
 - CLI command examples and usage patterns
 - Integration examples with modern Python packaging ecosystem
+- **PyPI compatibility**: Version format now fully compatible with Python Package Index standards
 
 ## [3.0.1-alpha.2] - 2025-09-05
 
