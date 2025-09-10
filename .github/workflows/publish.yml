@@ -17,6 +17,13 @@ on:
         required: false
         type: string
 
+# Set workflow-level permissions
+permissions:
+  contents: write       # For creating releases and accessing repository content
+  actions: read         # For workflow context
+  id-token: write       # For OIDC token access
+  pull-requests: read   # For PR information access
+
 jobs:
   # Job 1: Run comprehensive tests
   test:
@@ -87,6 +94,8 @@ jobs:
     permissions:
       id-token: write  # For trusted publishing
       contents: write  # For creating releases
+      actions: read    # For workflow context
+      attestations: write  # For build attestations
       
     steps:
     - name: 📥 Checkout Code
@@ -193,14 +202,13 @@ jobs:
         
     - name: 🏷️ Create GitHub Release
       if: startsWith(github.ref, 'refs/tags/v')
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
         name: 🎉 classroom-pilot v${{ steps.version.outputs.version }}
         body_path: release_notes.md
         draft: false
         prerelease: ${{ contains(steps.version.outputs.version, 'a') || contains(steps.version.outputs.version, 'b') || contains(steps.version.outputs.version, 'rc') }}
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        token: ${{ secrets.GITHUB_TOKEN }}
         
     - name: 📢 Post-publish verification
       run: |
