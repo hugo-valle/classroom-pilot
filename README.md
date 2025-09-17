@@ -332,10 +332,11 @@ poetry run pytest tests/ --cov=classroom_pilot
 
 ### Version Information
 
-- **Current Version**: 3.1.0-alpha.1
+- **Current Version**: 3.1.0a1
 - **Python Support**: 3.10, 3.11, 3.12
 - **Package Distribution**: PyPI with automated CI/CD
-- **Release Cycle**: Semantic versioning with automated publishing
+- **Release Cycle**: Semantic versioning with [PEP 440](https://peps.python.org/pep-0440/) compliant identifiers
+- **Versioning Strategy**: [Development Documentation](docs-site/development/versioning.md)
 
 ## 🆘 Support
 

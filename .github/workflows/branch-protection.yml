@@ -1,13 +1,20 @@
 name: Enforce Branch Protection
 
+# This workflow is disabled as it requires admin permissions not available to GITHUB_TOKEN
+# Set up branch protection manually in repository settings instead
+
 on:
-  push:
-    branches:
-      - main
+  # Disabled - uncomment workflow_dispatch to enable manual runs only
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   protect:
     runs-on: ubuntu-latest
+    # Skip this job entirely - branch protection should be set manually
+    if: false
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

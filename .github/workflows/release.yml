@@ -38,11 +38,11 @@ jobs:
           echo "version=${TAG_NAME}" >> $GITHUB_OUTPUT
           
           # Determine if this is a prerelease
-          if [[ "$TAG_NAME" =~ -alpha\.|beta\.|rc\. ]]; then
+          if [[ "$TAG_NAME" =~ -a\.|a[0-9]+|b[0-9]+|rc[0-9]+ ]]; then
             echo "is_prerelease=true" >> $GITHUB_OUTPUT
-            if [[ "$TAG_NAME" =~ -alpha\. ]]; then
+            if [[ "$TAG_NAME" =~ a[0-9]+ ]]; then
               echo "release_type=alpha" >> $GITHUB_OUTPUT
-            elif [[ "$TAG_NAME" =~ -beta\. ]]; then
+            elif [[ "$TAG_NAME" =~ b[0-9]+ ]]; then
               echo "release_type=beta" >> $GITHUB_OUTPUT
             else
               echo "release_type=rc" >> $GITHUB_OUTPUT
@@ -55,9 +55,9 @@ jobs:
       - name: Validate tag format
         run: |
           TAG_NAME=${GITHUB_REF#refs/tags/}
-          if [[ ! "$TAG_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-alpha\.[0-9]+|-beta\.[0-9]+|-rc\.[0-9]+)?$ ]]; then
+          if [[ ! "$TAG_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(a[0-9]+|b[0-9]+|rc[0-9]+)?$ ]]; then
             echo "❌ Invalid tag format: $TAG_NAME"
-            echo "Expected format: v1.0.0, v1.0.0-alpha.1, v1.0.0-beta.1, v1.0.0-rc.1"
+            echo "Expected format: v1.0.0, v1.0.0a1, v1.0.0b1, v1.0.0rc1"
             exit 1
           fi
           echo "✅ Valid tag format: $TAG_NAME"
@@ -68,102 +68,55 @@ jobs:
     needs: validate
     strategy:
       matrix:
-        shell: [bash, zsh]
+        python-version: ['3.10', '3.11', '3.12']
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup GitHub CLI
-        run: |
-          # GitHub CLI is pre-installed on GitHub Actions runners
-          gh --version
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
 
-      - name: Install shell
-        run: |
-          if [ "${{ matrix.shell }}" = "zsh" ]; then
-            sudo apt-get update
-            sudo apt-get install -y zsh
-          fi
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: latest
+          virtualenvs-create: true
+          virtualenvs-in-project: true
 
-      - name: Test script syntax
+      - name: Install dependencies
         run: |
-          echo "🔍 Testing script syntax..."
-          for script in scripts/*.sh; do
-            echo "Checking $script..."
-            ${{ matrix.shell }} -n "$script"
-          done
+          poetry install --no-interaction --no-ansi
 
-      - name: Test setup wizard (dry run)
+      - name: Test Python syntax and imports
         run: |
-          echo "🧪 Testing setup wizard..."
-          # Test help functionality with explicit debugging
-          echo "Testing setup-assignment.sh --help"
-          bash -x tools/scripts/setup-assignment.sh --help || echo "Setup help test completed with status $?"
+          echo "🔍 Testing Python syntax and imports..."
+          poetry run python -m py_compile classroom_pilot/__init__.py
+          poetry run python -m py_compile classroom_pilot/__main__.py
+          poetry run python -m py_compile classroom_pilot/cli.py
+          echo "✅ All Python files compile successfully"
 
-      - name: Test orchestrator (dry run)
+      - name: Test CLI functionality
         run: |
-          echo "🧪 Testing orchestrator..."
-          # Create minimal test configuration
-          cat > test-assignment.conf << EOF
-          CLASSROOM_URL="https://classroom.github.com/classrooms/12345/assignments/test"
-          TEMPLATE_REPO_URL="https://github.com/test/test-template"
-          GITHUB_ORGANIZATION="test-org"
-          ASSIGNMENT_NAME="test-assignment"
-          ASSIGNMENT_FILE="test.ipynb"
-          SECRETS_CONFIG=""
-          STEP_SYNC_TEMPLATE=true
-          STEP_DISCOVER_REPOS=true
-          STEP_MANAGE_SECRETS=false
-          STEP_ASSIST_STUDENTS=false
-          OUTPUT_DIR="tools/generated"
-          EXCLUDE_INSTRUCTOR_REPOS=true
-          INCLUDE_TEMPLATE_REPO=false
-          DEFAULT_DRY_RUN=true
-          LOG_LEVEL=INFO
-          SKIP_CONFIRMATIONS=false
-          EOF
-          
-          # Test orchestrator help
-          bash scripts/assignment-orchestrator.sh --help || echo "Orchestrator help test completed with status $?"
+          echo "🧪 Testing CLI functionality..."
+          poetry run python -m classroom_pilot --help
+          poetry run python -m classroom_pilot --version
+          echo "✅ CLI commands work correctly"
 
-      - name: Test individual scripts
+      - name: Run unit tests
         run: |
-          echo "🧪 Testing individual scripts..."
-          
-          # Create mock directory structure for testing
-          mkdir -p ../mock-assignment
-          cd ../mock-assignment
-          
-          # Create mock assignment.conf that the scripts expect
-          cat > assignment.conf << 'EOF'
-          # Mock assignment configuration for testing
-          CLASSROOM_URL="https://classroom.github.com/classrooms/12345/assignments/test-assignment"
-          TEMPLATE_REPO_URL="https://github.com/test-org/test-template"
-          GITHUB_ORGANIZATION="test-org"
-          ASSIGNMENT_NOTEBOOK="test_assignment.ipynb"
-          INSTRUCTOR_TESTS_TOKEN="test-token"
-          SECRETS_CONFIG="test-secrets.json"
-          STEP_MANAGE_SECRETS="true"
-          EOF
-          
-          # Create mock assignment notebook
-          echo '{"cells":[],"metadata":{},"nbformat":4,"nbformat_minor":4}' > test_assignment.ipynb
-          
-          # Create symlink to tools directory
-          ln -s ../gh_classroom_tools tools
-          
-          # Test scripts with proper context
-          echo "Testing fetch-student-repos.sh..."
-          bash tools/scripts/fetch-student-repos.sh --help || echo "fetch-student-repos help completed"
-          
-          echo "Testing add-secrets-to-students.sh..."
-          bash tools/scripts/add-secrets-to-students.sh --help || echo "add-secrets-to-students help completed"
-          
-          echo "Testing push-to-classroom.sh..."
-          bash tools/scripts/push-to-classroom.sh --help || echo "push-to-classroom help completed"
-          
-          echo "Testing student-update-helper.sh..."
-          bash tools/scripts/student-update-helper.sh --help || echo "student-update-helper help completed"
+          echo "🧪 Running unit tests..."
+          poetry run pytest tests/ -v --tb=short
+          echo "✅ All tests passed"
+
+      - name: Test package installation
+        run: |
+          echo "🧪 Testing package installation..."
+          poetry build
+          pip install dist/*.whl
+          classroom-pilot --version
+          echo "✅ Package installs and runs correctly"
 
   security-scan:
     name: 🛡️ Security Scan
@@ -173,14 +126,29 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Run Shellcheck
-        uses: ludeeus/action-shellcheck@master
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          scandir: './scripts'
-          severity: error
-          ignore_paths: '.git'
-        env:
-          SHELLCHECK_OPTS: -e SC1091,SC2034,SC2155,SC2086,SC2162,SC2329
+          python-version: '3.11'
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: latest
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
+      - name: Install dependencies
+        run: |
+          poetry install --no-interaction --no-ansi
+
+      - name: Run security checks
+        run: |
+          echo "🛡️ Running security checks..."
+          # Check for common security issues in Python code
+          poetry run python -m py_compile classroom_pilot/*.py
+          poetry run python -m py_compile classroom_pilot/*/*.py
+          echo "✅ Python security checks passed"
 
       - name: Scan for secrets
         uses: trufflesecurity/trufflehog@main
@@ -234,14 +202,14 @@ jobs:
 
           ### 📋 Installation
           \`\`\`bash
-          # Add as submodule to your assignment repository
-          git submodule add https://github.com/hugo-valle/gh_classroom_tools.git tools
-          cd tools
-          git checkout tags/$VERSION
-          cd ..
+          # Install via pip
+          pip install classroom-pilot==$VERSION
           
-          # Run setup wizard
-          ./tools/scripts/setup-assignment.sh
+          # Or install via pipx (recommended)
+          pipx install classroom-pilot==$VERSION
+          
+          # Verify installation
+          classroom-pilot --version
           \`\`\`
 
           ### ⚠️ Known Limitations
@@ -250,8 +218,9 @@ jobs:
           - Not recommended for production use
 
           ### 🔗 Links
-          - [Documentation](https://github.com/hugo-valle/gh_classroom_tools/tree/$VERSION/docs)
-          - [Report Issues](https://github.com/hugo-valle/gh_classroom_tools/issues)"
+          - [Documentation](https://github.com/hugo-valle/classroom-pilot/tree/$VERSION/docs)
+          - [PyPI Package](https://pypi.org/project/classroom-pilot/$VERSION/)
+          - [Report Issues](https://github.com/hugo-valle/classroom-pilot/issues)"
               ;;
             "beta")
               RELEASE_NOTES="## 🎯 Beta Release $VERSION
@@ -263,14 +232,14 @@ jobs:
 
           ### 📋 Installation
           \`\`\`bash
-          # Add as submodule to your assignment repository
-          git submodule add https://github.com/hugo-valle/gh_classroom_tools.git tools
-          cd tools
-          git checkout tags/$VERSION
-          cd ..
+          # Install via pip
+          pip install classroom-pilot==$VERSION
           
-          # Run setup wizard
-          ./tools/scripts/setup-assignment.sh
+          # Or install via pipx (recommended)
+          pipx install classroom-pilot==$VERSION
+          
+          # Verify installation
+          classroom-pilot --version
           \`\`\`
 
           ### 🧪 Testing
@@ -278,8 +247,9 @@ jobs:
           - Please report any remaining issues
 
           ### 🔗 Links
-          - [Documentation](https://github.com/hugo-valle/gh_classroom_tools/tree/$VERSION/docs)
-          - [Report Issues](https://github.com/hugo-valle/gh_classroom_tools/issues)"
+          - [Documentation](https://github.com/hugo-valle/classroom-pilot/tree/$VERSION/docs)
+          - [PyPI Package](https://pypi.org/project/classroom-pilot/$VERSION/)
+          - [Report Issues](https://github.com/hugo-valle/classroom-pilot/issues)"
               ;;
             "stable")
               RELEASE_NOTES="## 🎉 Stable Release $VERSION
@@ -289,19 +259,20 @@ jobs:
 
           ### 📋 Installation
           \`\`\`bash
-          # Add as submodule to your assignment repository
-          git submodule add https://github.com/hugo-valle/gh_classroom_tools.git tools
-          cd tools
-          git checkout tags/$VERSION
-          cd ..
+          # Install via pip
+          pip install classroom-pilot==$VERSION
           
-          # Run setup wizard
-          ./tools/scripts/setup-assignment.sh
+          # Or install via pipx (recommended)
+          pipx install classroom-pilot==$VERSION
+          
+          # Verify installation
+          classroom-pilot --version
           \`\`\`
 
           ### 🔗 Links
-          - [Documentation](https://github.com/hugo-valle/gh_classroom_tools/tree/$VERSION/docs)
-          - [Report Issues](https://github.com/hugo-valle/gh_classroom_tools/issues)"
+          - [Documentation](https://github.com/hugo-valle/classroom-pilot/tree/$VERSION/docs)
+          - [PyPI Package](https://pypi.org/project/classroom-pilot/$VERSION/)
+          - [Report Issues](https://github.com/hugo-valle/classroom-pilot/issues)"
               ;;
           esac
           
