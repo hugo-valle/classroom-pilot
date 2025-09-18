@@ -88,7 +88,7 @@ class ConfigValidator:
         if not file_path:
             return False, "File path cannot be empty"
 
-        valid_extensions = {'.ipynb', '.py', '.cpp', '.sql', '.md', 'asm'
+        valid_extensions = {'.ipynb', '.py', '.cpp', '.sql', '.md', 'asm',
                             '.html', '.js', '.ts', '.java', '.c', '.h', '.hpp', '.txt'}
 
         if any(file_path.endswith(ext) for ext in valid_extensions):
