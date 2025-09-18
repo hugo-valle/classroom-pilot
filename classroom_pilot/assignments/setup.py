@@ -24,9 +24,51 @@ logger = get_logger("assignments.setup")
 
 
 class AssignmentSetup:
-    """Interactive assignment setup wizard."""
+    """
+    AssignmentSetup provides an interactive wizard for configuring GitHub Classroom assignments.
+
+    This class guides the user through the process of setting up assignment configuration, including:
+    - Collecting assignment and repository information.
+    - Gathering assignment-specific details such as assignment name and main file.
+    - Configuring secret management for instructor-only tests.
+    - Creating necessary configuration and token files.
+    - Handling user input, validation, and error management throughout the setup process.
+
+    Attributes:
+        path_manager (PathManager): Handles workspace and path management.
+        repo_root (Path): The root directory of the repository.
+        config_file (Path): Path to the assignment configuration file.
+        input_handler (InputHandler): Manages user input and prompts.
+        validators (Validators): Provides input validation methods.
+        url_parser (URLParser): Extracts information from GitHub Classroom URLs.
+        config_generator (ConfigGenerator): Generates configuration files.
+        file_manager (FileManager): Manages file creation and updates.
+        config_values (dict): Stores collected configuration values.
+        token_files (dict): Maps token names to their respective file paths.
+        token_validation (dict): Stores token validation preferences.
+
+    Methods:
+        run_wizard():
+            Runs the interactive setup wizard, orchestrating the full configuration process.
+        _collect_assignment_info():
+            Prompts for and validates the GitHub Classroom assignment URL.
+        _collect_repository_info():
+            Extracts and collects repository-related information, including organization and template repo URL.
+        _collect_assignment_details():
+            Gathers assignment-specific details such as assignment name and main file.
+        _configure_secret_management():
+            Configures secret management options for instructor-only tests.
+        _configure_tokens():
+            Prompts for and stores GitHub personal access tokens for instructor test repositories.
+        _create_files():
+            Creates configuration and token files, and updates .gitignore as needed.
+    """
 
     def __init__(self):
+        """
+        Initializes the class by setting up path management, configuration file location, input handling, validation, URL parsing, configuration generation, and file management. 
+        Also initializes dictionaries for storing configuration values, token files, and token validation results.
+        """
         self.path_manager = PathManager()
         self.repo_root = self.path_manager.get_workspace_root()
         self.config_file = self.repo_root / "assignment.conf"
@@ -44,7 +86,20 @@ class AssignmentSetup:
         self.token_validation = {}
 
     def run_wizard(self):
-        """Run the complete setup wizard."""
+        """
+        Runs the complete setup wizard for assignment configuration.
+
+        This method orchestrates the interactive setup process, including:
+        - Displaying a welcome screen.
+        - Collecting basic assignment and repository information.
+        - Gathering assignment-specific details.
+        - Configuring secret management.
+        - Creating necessary configuration files.
+        - Displaying a completion message upon success.
+
+        Handles user cancellation (KeyboardInterrupt) and unexpected errors gracefully,
+        logging relevant information and exiting with appropriate status codes.
+        """
         try:
             logger.info("Starting assignment setup wizard")
 
@@ -82,7 +137,15 @@ class AssignmentSetup:
             sys.exit(1)
 
     def _collect_assignment_info(self):
-        """Collect basic assignment information."""
+        """
+        Collects basic assignment information from the user.
+
+        Prompts the user to enter the GitHub Classroom assignment URL, validates the input,
+        and stores it in the configuration values under the key 'CLASSROOM_URL'.
+
+        Returns:
+            None
+        """
         logger.debug("Collecting assignment information")
 
         classroom_url = self.input_handler.prompt_input(
@@ -94,7 +157,19 @@ class AssignmentSetup:
         self.config_values['CLASSROOM_URL'] = classroom_url
 
     def _collect_repository_info(self):
-        """Collect repository information."""
+        """
+        Collects and prompts for repository-related configuration values required for assignment setup.
+
+        This method performs the following steps:
+        1. Extracts the GitHub organization and assignment name from the provided classroom URL.
+        2. Prompts the user to confirm or edit the GitHub organization name, validating the input.
+        3. Prompts the user for the template repository URL, suggesting a default based on the organization and assignment name, and validates the input.
+        4. Stores the collected values in the configuration dictionary.
+        5. Exits the program with an error message if the template repository URL is not provided.
+
+        Raises:
+            SystemExit: If the template repository URL is not provided by the user.
+        """
         logger.debug("Collecting repository information")
 
         # Extract organization and assignment name from URL
@@ -126,7 +201,17 @@ class AssignmentSetup:
         self.config_values['TEMPLATE_REPO_URL'] = template_url
 
     def _collect_assignment_details(self):
-        """Collect assignment-specific details."""
+        """
+        Collects assignment-specific details from the user and updates the configuration values.
+
+        This method prompts the user to provide the assignment name and the main assignment file.
+        If the assignment name is not provided, it can be auto-extracted from the template URL.
+        The main assignment file is the primary file students will work on (e.g., assignment.ipynb, main.py, homework.cpp).
+        Both inputs are validated using the appropriate validators before being stored in the configuration.
+
+        Raises:
+            ValidationError: If the provided assignment name or file path does not pass validation.
+        """
         logger.debug("Collecting assignment details")
 
         extracted_assignment = self.url_parser.extract_assignment_from_url(
@@ -149,7 +234,15 @@ class AssignmentSetup:
         self.config_values['MAIN_ASSIGNMENT_FILE'] = main_file
 
     def _configure_secret_management(self):
-        """Configure secret management settings."""
+        """
+        Configure secret management settings for assignment tests.
+
+        This method prompts the user to specify the location of assignment tests:
+        either within the template repository (simpler setup) or in a separate
+        private instructor repository (more secure). Based on the user's choice,
+        it enables or disables secret management for accessing the instructor test
+        repository and updates the configuration accordingly.
+        """
         logger.debug("Configuring secret management")
 
         print_colored("Where are your assignment tests located?", Colors.BLUE)
@@ -174,7 +267,14 @@ class AssignmentSetup:
                 "✓ Secret management will be disabled (tests in template repository)")
 
     def _configure_tokens(self):
-        """Configure GitHub tokens and secrets."""
+        """
+        Configure and prompt for GitHub personal access tokens and related secrets.
+
+        This method guides the user through the process of obtaining and securely storing a GitHub personal access token
+        with the required permissions ('repo' and 'admin:repo_hook'). It prompts the user for the token, stores it in the
+        configuration, and asks whether the token should be validated (e.g., checking if it starts with 'ghp_'). The method
+        also manages the mapping of token validation and storage file locations.
+        """
         logger.debug("Configuring tokens")
 
         print_colored(
@@ -198,7 +298,14 @@ class AssignmentSetup:
         self.token_files['INSTRUCTOR_TESTS_TOKEN'] = 'instructor_token.txt'
 
     def _create_files(self):
-        """Create all configuration and token files."""
+        """
+        Creates all necessary configuration and token files for the application.
+
+        This method performs the following actions:
+        1. Generates the main configuration file using the provided configuration values, token files, and token validation settings.
+        2. If secrets are enabled (i.e., 'USE_SECRETS' is set to 'true' in the configuration values), it creates the required token files.
+        3. Updates the .gitignore file to ensure sensitive files are excluded from version control.
+        """
         logger.debug("Creating configuration files")
 
         # Create configuration file
@@ -218,7 +325,15 @@ class AssignmentSetup:
 
 
 def setup_assignment():
-    """Main entry point for assignment setup."""
+    """
+    Initializes and runs the assignment setup wizard.
+
+    This function creates an instance of the AssignmentSetup class and starts
+    the interactive setup process for configuring an assignment.
+
+    Returns:
+        None
+    """
     setup = AssignmentSetup()
     setup.run_wizard()
 
