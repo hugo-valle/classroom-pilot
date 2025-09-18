@@ -218,12 +218,14 @@ jobs:
         # Try multiple times with increasing delays
         for i in {1..5}; do
           echo "Attempt $i/5..."
-          if pip index versions classroom-pilot | grep -q "$VERSION"; then
-            echo "✅ Package version $VERSION found on PyPI!"
+          # Check if the specific version is available
+          if pip install classroom-pilot==${{ env.VERSION }} --dry-run --quiet 2>/dev/null; then
+            echo "✅ Package version ${{ env.VERSION }} found on PyPI!"
             break
           elif [ $i -eq 5 ]; then
             echo "⚠️ Package not yet available on PyPI, but publication likely succeeded"
             echo "Note: PyPI propagation can take several minutes"
+            echo "Check manually: https://pypi.org/project/classroom-pilot/${{ env.VERSION }}/"
           else
             echo "Waiting 30 seconds before retry..."
             sleep 30
@@ -231,7 +233,7 @@ jobs:
         done
         
         echo "✅ Publication process completed!"
-        echo "📦 Package: https://pypi.org/project/classroom-pilot/$VERSION/"
+        echo "📦 Package: https://pypi.org/project/classroom-pilot/${{ env.VERSION }}/"
         
     - name: 💬 Notify on failure
       if: failure()
@@ -251,6 +253,7 @@ jobs:
       uses: actions/checkout@v4
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
+        ref: main  # Checkout main branch instead of tag
         
     - name: 📝 Update publication history
       run: |
@@ -265,4 +268,4 @@ jobs:
         git config --local user.name "GitHub Action"
         git add docs/PYPI_PUBLICATION.md
         git commit -m "docs: update publication history for v$VERSION" || exit 0
-        git push
+        git push origin main
