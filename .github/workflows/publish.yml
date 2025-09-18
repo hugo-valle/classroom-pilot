@@ -1,13 +1,12 @@
 name: 🚀 Build and Publish to PyPI
 
 on:
-  # Trigger on tags for releases and main branch updates
+  # Trigger on version tags (always) OR main branch pyproject.toml changes
   push:
     tags:
       - 'v*'
-    branches: [main]
-    paths:
-      - 'pyproject.toml'
+    branches: 
+      - main
   
   # Allow manual triggering
   workflow_dispatch:
@@ -85,7 +84,7 @@ jobs:
     name: 📦 Build & Publish to PyPI
     needs: test
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch' || (github.ref == 'refs/heads/main' && contains(github.event.head_commit.modified, 'pyproject.toml'))
     
     environment:
       name: pypi
