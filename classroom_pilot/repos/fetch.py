@@ -23,6 +23,11 @@ except ImportError:
     GITHUB_AVAILABLE = False
 
 from ..utils import get_logger, GitManager, PathManager
+from ..utils.github_exceptions import (
+    GitHubAPIError, GitHubAuthenticationError, GitHubDiscoveryError,
+    GitHubRepositoryError, GitHubNetworkError, github_api_retry,
+    github_api_context, handle_github_errors, is_github_available
+)
 from ..config import ConfigLoader
 
 logger = get_logger("repos.fetch")
@@ -48,16 +53,6 @@ class FetchResult:
     error_message: Optional[str] = None
     was_cloned: bool = False
     was_updated: bool = False
-
-
-class GitHubAuthenticationError(Exception):
-    """Raised when GitHub authentication fails."""
-    pass
-
-
-class RepositoryDiscoveryError(Exception):
-    """Raised when repository discovery fails."""
-    pass
 
 
 class RepositoryFetcher:
@@ -186,7 +181,7 @@ class RepositoryFetcher:
             List[RepositoryInfo]: List of discovered repository information objects.
 
         Raises:
-            RepositoryDiscoveryError: If discovery fails or required parameters missing.
+            GitHubDiscoveryError: If discovery fails or required parameters missing.
 
         Example:
             >>> fetcher = RepositoryFetcher()
@@ -208,9 +203,11 @@ class RepositoryFetcher:
             organization = self.config.get('GITHUB_ORGANIZATION')
 
         if not assignment_prefix or not organization:
-            raise RepositoryDiscoveryError(
+            raise GitHubDiscoveryError(
                 f"Missing required parameters: assignment_prefix='{assignment_prefix}', "
-                f"organization='{organization}'. Check configuration."
+                f"organization='{organization}'. Check configuration.",
+                assignment_prefix=assignment_prefix,
+                organization=organization
             )
 
         logger.info(
@@ -223,9 +220,14 @@ class RepositoryFetcher:
                 return self._discover_via_cli(assignment_prefix, organization)
         except Exception as e:
             logger.error(f"Repository discovery failed: {e}")
-            raise RepositoryDiscoveryError(
-                f"Failed to discover repositories: {e}")
+            raise GitHubDiscoveryError(
+                f"Failed to discover repositories: {e}",
+                assignment_prefix=assignment_prefix,
+                organization=organization,
+                original_error=e
+            )
 
+    @github_api_retry(max_attempts=2, base_delay=1.0)
     def _discover_via_api(self, assignment_prefix: str, organization: str) -> List[RepositoryInfo]:
         """Discover repositories using GitHub API."""
         logger.info("Using GitHub API for repository discovery")
@@ -255,7 +257,12 @@ class RepositoryFetcher:
 
         except GithubException as e:
             logger.error(f"GitHub API error: {e}")
-            raise RepositoryDiscoveryError(f"GitHub API error: {e}")
+            raise GitHubDiscoveryError(
+                f"GitHub API error: {e}",
+                assignment_prefix=assignment_prefix,
+                organization=organization,
+                original_error=e
+            )
 
     def _discover_via_cli(self, assignment_prefix: str, organization: str) -> List[RepositoryInfo]:
         """Discover repositories using GitHub CLI fallback."""
@@ -298,10 +305,18 @@ class RepositoryFetcher:
 
         except subprocess.CalledProcessError as e:
             logger.error(f"GitHub CLI error: {e}")
-            raise RepositoryDiscoveryError(f"GitHub CLI error: {e}")
+            raise GitHubDiscoveryError(
+                f"GitHub CLI error: {e}",
+                assignment_prefix=assignment_prefix,
+                organization=organization,
+                original_error=e
+            )
         except FileNotFoundError:
-            raise RepositoryDiscoveryError(
-                "GitHub CLI (gh) not found. Please install GitHub CLI or configure API access.")
+            raise GitHubDiscoveryError(
+                "GitHub CLI (gh) not found. Please install GitHub CLI or configure API access.",
+                assignment_prefix=assignment_prefix,
+                organization=organization
+            )
 
     def _is_student_repository(self, repo_name: str, assignment_prefix: str) -> bool:
         """Check if repository name indicates a student submission."""
@@ -469,7 +484,7 @@ class RepositoryFetcher:
             bool: True if template synchronization successful, False otherwise.
 
         Raises:
-            RepositoryDiscoveryError: If template repository configuration is missing.
+            GitHubDiscoveryError: If template repository configuration is missing.
 
         Example:
             >>> fetcher = RepositoryFetcher()

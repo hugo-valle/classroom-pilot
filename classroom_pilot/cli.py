@@ -59,7 +59,14 @@ def assignment_setup():
 
 
 @assignments_app.command("orchestrate")
-def assignment_orchestrate():
+def assignment_orchestrate(
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Show what would be done without executing"),
+    verbose: bool = typer.Option(
+        False, "--verbose", "-v", help="Enable verbose output"),
+    config_file: str = typer.Option(
+        "assignment.conf", "--config", "-c", help="Configuration file path")
+):
     """
     Run the complete assignment workflow, including sync, discover, secrets, and assist steps.
 
@@ -74,12 +81,6 @@ def assignment_orchestrate():
     Raises:
         typer.Exit: Exits with code 1 if the assignment orchestration fails.
     """
-    dry_run: bool = typer.Option(
-        False, "--dry-run", help="Show what would be done without executing"),
-    verbose: bool = typer.Option(
-        False, "--verbose", "-v", help="Enable verbose output"),
-    config_file: str = typer.Option(
-        "assignment.conf", "--config", "-c", help="Configuration file path")
     setup_logging(verbose)
     logger.info("Starting assignment orchestration")
 

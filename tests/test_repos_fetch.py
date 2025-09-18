@@ -44,9 +44,11 @@ from classroom_pilot.repos.fetch import (
     RepositoryFetcher,
     RepositoryInfo,
     FetchResult,
-    GitHubAuthenticationError,
-    RepositoryDiscoveryError,
     GITHUB_AVAILABLE
+)
+from classroom_pilot.utils.github_exceptions import (
+    GitHubAuthenticationError,
+    GitHubDiscoveryError
 )
 
 
@@ -491,7 +493,7 @@ test-org/other-assignment-student1\tOther repo\tprivate"""
         fetcher.path_manager = mock_path_manager.return_value
         fetcher.github_client = None
 
-        with pytest.raises(RepositoryDiscoveryError, match="Missing required parameters"):
+        with pytest.raises(GitHubDiscoveryError, match="Missing required parameters"):
             fetcher.discover_repositories()
 
 
@@ -1008,7 +1010,7 @@ class TestRepositoryFetcherErrorHandling:
         fetcher.path_manager = mock_path_manager.return_value
         fetcher.github_client = mock_github_client
 
-        with pytest.raises(RepositoryDiscoveryError):
+        with pytest.raises(GitHubDiscoveryError):
             fetcher.discover_repositories('python-basics', 'test-org')
 
     @patch('classroom_pilot.repos.fetch.subprocess.run')
@@ -1039,7 +1041,7 @@ class TestRepositoryFetcherErrorHandling:
         fetcher.path_manager = mock_path_manager.return_value
         fetcher.github_client = None
 
-        with pytest.raises(RepositoryDiscoveryError):
+        with pytest.raises(GitHubDiscoveryError):
             fetcher.discover_repositories('python-basics', 'test-org')
 
 
