@@ -1,11 +1,12 @@
 """
-Secrets and token management module.
+Secrets and Token Management for GitHub Classroom Repository Operations.
 
 This module handles:
-- GitHub token management
-- Repository secrets configuration
-- Student repository secret deployment
-- Token validation and rotation
+- GitHub token management and authentication for repository access
+- Repository secrets configuration and secure deployment to student repositories
+- Batch secrets operations with progress tracking and error handling
+- Token validation, rotation, and credential lifecycle management
+- Integration with GitHub API for automated secrets management workflows
 """
 
 from pathlib import Path
@@ -32,10 +33,55 @@ logger = get_logger("secrets.manager")
 
 
 class SecretsManager:
-    """Handles secrets and token management for student repositories."""
+    """
+    SecretsManager handles comprehensive GitHub repository secrets and token operations.
+
+    This class provides methods for managing repository secrets deployment, token
+    validation and rotation, and batch secrets operations across multiple student
+    repositories. It supports both authenticated GitHub API access and secure
+    credential handling with comprehensive error management.
+
+    Args:
+        config_path (Path): Path to the assignment configuration file.
+                          Defaults to "assignment.conf" in current directory.
+
+    Attributes:
+        config_loader (ConfigLoader): Configuration loader instance.
+        config (dict): Loaded configuration values.
+        path_manager (PathManager): Path management utilities.
+        github_client (Github): GitHub API client (if authenticated).
+
+    Methods:
+        deploy_secrets_to_repository(repository_name, secrets_dict):
+            Deploys specified secrets to the target repository.
+
+        batch_deploy_secrets(repositories, secrets_dict):
+            Performs batch secrets deployment across multiple repositories.
+
+        validate_github_token(token):
+            Validates GitHub token and checks permissions.
+
+        rotate_repository_secrets(repository_name, new_secrets):
+            Rotates existing secrets with new values in specified repository.
+
+        audit_repository_secrets(repository_name):
+            Audits current secrets configuration for specified repository.
+
+        load_secrets_template(template_path):
+            Loads secrets configuration from template file.
+
+        verify_secrets_deployment(repository_name, secret_names):
+            Verifies successful deployment of specified secrets to repository.
+    """
 
     def __init__(self, config_path: Path = Path("assignment.conf")):
-        """Initialize secrets manager with configuration."""
+        """
+        Initialize secrets manager with configuration and API setup.
+
+        Args:
+            config_path (Path): Path to configuration file.
+                              Defaults to "assignment.conf" in current directory.
+        """
         self.config_loader = ConfigLoader(config_path)
         self.config = self.config_loader.load()
         self.path_manager = PathManager()

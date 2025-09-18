@@ -1,11 +1,12 @@
 """
-Repository collaborator management module.
+Repository Collaborator Management for GitHub Classroom Operations.
 
 This module handles:
-- Adding/removing collaborators from repositories
-- Managing repository permissions
-- Cycling collaborator access
-- Repository access auditing
+- Collaborator permission management and access control for student repositories
+- Repository access auditing and permission verification
+- Automated collaborator cycling for permission issues resolution
+- Batch collaborator operations with progress tracking and error handling
+- GitHub API authentication and fallback strategies for collaborator management
 """
 
 from pathlib import Path
@@ -31,10 +32,55 @@ logger = get_logger("repos.collaborator")
 
 
 class CollaboratorManager:
-    """Handles repository collaborator management."""
+    """
+    CollaboratorManager handles comprehensive GitHub repository collaborator operations.
+
+    This class provides methods for managing repository collaborators, handling permission
+    cycles, auditing repository access, and performing batch collaborator operations
+    across multiple student repositories. It supports both authenticated GitHub API
+    access and fallback to command-line operations for reliability.
+
+    Args:
+        config_path (Path): Path to the assignment configuration file.
+                          Defaults to "assignment.conf" in current directory.
+
+    Attributes:
+        config_loader (ConfigLoader): Configuration loader instance.
+        config (dict): Loaded configuration values.
+        git_manager (GitManager): Git operations manager.
+        github_client (Github): GitHub API client (if authenticated).
+
+    Methods:
+        add_collaborator(repository_name, username, permission):
+            Adds a collaborator to the specified repository with given permissions.
+
+        remove_collaborator(repository_name, username):
+            Removes collaborator access from the specified repository.
+
+        cycle_collaborator_permissions(repository_name, username):
+            Cycles collaborator permissions to resolve access issues.
+
+        audit_repository_access(repository_name):
+            Audits current collaborator access and permissions for repository.
+
+        batch_collaborator_operation(repositories, operation_type):
+            Performs batch collaborator operations across multiple repositories.
+
+        verify_collaborator_access(repository_name, username):
+            Verifies that collaborator has appropriate access to repository.
+
+        list_repository_collaborators(repository_name):
+            Lists all collaborators and their permissions for specified repository.
+    """
 
     def __init__(self, config_path: Path = Path("assignment.conf")):
-        """Initialize collaborator manager with configuration."""
+        """
+        Initialize collaborator manager with configuration and API setup.
+
+        Args:
+            config_path (Path): Path to configuration file.
+                              Defaults to "assignment.conf" in current directory.
+        """
         self.config_loader = ConfigLoader(config_path)
         self.config = self.config_loader.load()
         self.git_manager = GitManager()

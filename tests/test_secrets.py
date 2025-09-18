@@ -1,23 +1,38 @@
 """
-Test suite for the secrets management package.
+Comprehensive test suite for classroom_pilot.secrets.manager module.
 
-This test suite provides coverage for the SecretsManager class, which handles:
-- Loading and validating secrets templates
-- Managing repository secrets deployment
-- GitHub token management and authentication
-- Error handling for secrets operations
+This test suite provides comprehensive coverage for the SecretsManager class,
+which handles GitHub repository secrets management, token deployment, and
+secure configuration for GitHub Classroom assignments. The tests include
+unit tests for individual methods, integration tests for GitHub API operations,
+error handling scenarios, and comprehensive mocking for reliable test execution.
 
 Test Categories:
 1. Initialization Tests - Constructor and configuration setup
-2. Template Loading Tests - Secrets template file operations
-3. Secret Deployment Tests - Repository secrets management
-4. Error Handling Tests - Exception scenarios and validation
+2. Template Loading Tests - Secrets template file operations and validation
+3. Secret Deployment Tests - Repository secrets management and GitHub API integration
+4. Token Management Tests - GitHub token handling and authentication
+5. Batch Operations Tests - Multiple repository secrets deployment with progress tracking
+6. Configuration Tests - Secrets configuration parsing and validation
+7. Error Handling Tests - Exception scenarios and graceful failure handling
+8. Integration Tests - End-to-end secrets management workflows
 
-The SecretsManager provides methods for:
-- Loading secrets from configuration templates
-- Deploying secrets to student repositories
-- Managing GitHub tokens and authentication
-- Comprehensive error handling and logging
+The SecretsManager class provides methods for:
+- GitHub API authentication with multiple token sources
+- Secrets template loading and validation from configuration files
+- Individual and batch secrets deployment to student repositories
+- Secure token management and credential handling
+- Progress tracking for large-scale secrets operations
+- Comprehensive error handling with detailed logging
+- Integration with GitHub Classroom repository patterns
+- Configuration-driven secrets management workflows
+
+Dependencies and Integration:
+- Integrates with classroom_pilot.config for configuration management
+- Uses classroom_pilot.utils.paths for file and path operations
+- Leverages GitHub API for repository secrets management
+- Supports both file-based and environment-based token sources
+- Compatible with GitHub Classroom repository naming conventions
 """
 
 import pytest
@@ -30,7 +45,21 @@ from classroom_pilot.secrets.manager import SecretsManager
 
 
 class TestSecretsManager:
-    """Test the SecretsManager class."""
+    """
+    TestSecretsManager contains comprehensive unit tests for the SecretsManager class
+    initialization, configuration management, and secrets deployment operations. It verifies
+    that the class properly handles secrets template loading, GitHub API authentication,
+    repository secrets management, and error handling scenarios.
+
+    Test Cases:
+    - test_load_secrets_template_success: Tests successful secrets template loading from configuration
+    - test_load_secrets_template_file_not_found: Tests graceful handling of missing template files
+    - test_deploy_secrets_to_repository: Tests individual repository secrets deployment
+    - test_batch_secrets_deployment: Tests multiple repository secrets deployment with progress tracking
+    - test_github_authentication_setup: Tests GitHub API authentication and token validation
+    - test_configuration_validation: Tests secrets configuration parsing and validation
+    - test_error_handling_scenarios: Tests comprehensive error handling for API failures
+    """
 
     @pytest.fixture
     def secrets_manager(self):
@@ -39,7 +68,14 @@ class TestSecretsManager:
             return SecretsManager(Path("test.conf"))
 
     def test_load_secrets_template_success(self, secrets_manager):
-        """Test loading secrets template from configuration."""
+        """
+        Test successful secrets template loading from configuration.
+
+        This test verifies that the SecretsManager can successfully load a secrets
+        template from a JSON configuration file. It tests the complete flow of
+        template discovery, file reading, and JSON parsing to ensure secrets
+        are properly loaded and available for deployment.
+        """
         mock_secrets = {"GITHUB_TOKEN": "test-token",
                         "API_KEY": "test-api-key"}
 

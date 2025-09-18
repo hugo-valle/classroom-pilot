@@ -1,11 +1,13 @@
 """
-Enhanced CLI interface for Classroom Pilot with modular package structure.
+Enhanced CLI Interface for Classroom Pilot GitHub Assignment Management.
 
-This module provides a comprehensive command-line interface organized by functional areas:
-- assignments: Setup, orchestration, and management
-- repos: Repository operations and collaborator management  
-- secrets: Token and secret management
-- automation: Cron jobs and batch processing
+This module provides:
+- Comprehensive command-line interface organized by functional areas
+- Modular command structure with intuitive subcommand organization
+- Rich console output with progress tracking and error handling
+- Legacy command support for backward compatibility
+- Integration with all core Classroom Pilot functionality including assignments,
+  repositories, secrets, and automation workflows
 """
 
 import typer
@@ -45,11 +47,26 @@ app.add_typer(automation_app, name="automation")
 @assignments_app.command("setup")
 def assignment_setup():
     """
-    Launches an interactive wizard to configure a new assignment.
+    Launch interactive wizard to configure a new assignment.
 
-    This function initializes logging, logs the start of the setup process,
-    creates an AssignmentSetup instance, and runs its interactive wizard
-    to guide the user through assignment configuration steps.
+    This command initializes an interactive setup wizard that guides users through
+    the complete process of configuring a new GitHub Classroom assignment. The wizard
+    collects all required configuration parameters and generates the assignment.conf
+    file needed for subsequent operations.
+
+    The setup process includes:
+    - Assignment metadata configuration (name, description, organization)
+    - GitHub repository settings and template configuration  
+    - Student repository discovery parameters
+    - Secrets and token management setup
+    - Automation and workflow preferences
+
+    Raises:
+        SystemExit: If setup process is interrupted or fails.
+
+    Example:
+        $ classroom-pilot assignments setup
+        # Interactive wizard begins
     """
     setup_logging()
     logger.info("Starting assignment setup wizard")
@@ -68,18 +85,34 @@ def assignment_orchestrate(
         "assignment.conf", "--config", "-c", help="Configuration file path")
 ):
     """
-    Run the complete assignment workflow, including sync, discover, secrets, and assist steps.
+    Execute complete assignment workflow with comprehensive orchestration.
 
-    This function sets up logging, loads the configuration file, and invokes the assignment orchestration
-    process using a Bash wrapper. It supports dry-run and verbose modes for safer and more informative execution.
+    This command runs the full assignment management workflow including repository
+    synchronization, student repository discovery, secrets deployment, and 
+    assistance operations. It provides the primary automation interface for
+    managing GitHub Classroom assignments end-to-end.
+
+    The orchestration workflow includes:
+    - Template repository synchronization to GitHub Classroom
+    - Student repository discovery and validation
+    - Secrets and token deployment to student repositories
+    - Repository access verification and assistance operations
+    - Progress tracking and comprehensive error handling
 
     Args:
-        dry_run (bool): If True, shows what would be done without executing any actions.
-        verbose (bool): If True, enables verbose output for debugging and detailed logs.
-        config_file (str): Path to the configuration file to use for the assignment workflow.
+        dry_run (bool): Preview operations without executing changes.
+                       Useful for validating configuration and workflow steps.
+        verbose (bool): Enable detailed logging and progress information.
+                       Provides comprehensive feedback during execution.
+        config_file (str): Path to assignment configuration file.
+                          Defaults to "assignment.conf" in current directory.
 
     Raises:
-        typer.Exit: Exits with code 1 if the assignment orchestration fails.
+        typer.Exit: With code 1 if orchestration fails or encounters errors.
+
+    Example:
+        $ classroom-pilot assignments orchestrate --dry-run --verbose
+        $ classroom-pilot assignments orchestrate --config my-assignment.conf
     """
     setup_logging(verbose)
     logger.info("Starting assignment orchestration")
