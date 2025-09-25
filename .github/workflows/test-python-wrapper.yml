@@ -100,10 +100,13 @@ jobs:
             return 1
           fi
           
-          local critical_packages=("pytest" "typer" "click" "pyyaml" "requests")
+          local critical_packages=("pytest" "typer" "click" "yaml" "requests")
+          log_info "Validating critical package imports..."
           for package in "${critical_packages[@]}"; do
-            if ! poetry run python -c "import $package" 2>/dev/null; then
+            if ! poetry run python -c "import $package; print(f'✅ {package} imported successfully')" 2>/dev/null; then
               log_error "Critical package '$package' not properly installed"
+              log_info "Attempting to debug import issue..."
+              poetry run python -c "import $package" 2>&1 || true
               return 1
             fi
           done
