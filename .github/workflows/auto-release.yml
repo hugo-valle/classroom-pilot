@@ -64,33 +64,12 @@ jobs:
           NEW_TAG=${{ steps.version_info.outputs.version }}
           TYPE=${{ steps.version_info.outputs.type }}
 
-          echo "## ${TYPE^} v$NEW_TAG" > CHANGELOG.md
-          echo "" >> CHANGELOG.md
+          if [ -z "$NEW_TAG" ] || [ -z "$TYPE" ]; then
+            echo "No release version detected; skipping changelog generation."
+            exit 0
+          fi
 
-          echo "### 🚀 Features" >> CHANGELOG.md
-          jq -r '.[] | select(.labels[]? == "feature") | "- \(.title) (#\(.number))"' prs.json >> CHANGELOG.md || true
-          git log $PREV_TAG..HEAD --pretty=format:"- %s" | grep -iE '^feat' | sed 's/^feat:? *//' >> CHANGELOG.md || true
-          if ! grep -q "-" CHANGELOG.md; then echo "_No new features_" >> CHANGELOG.md; fi
-
-          echo "" >> CHANGELOG.md
-          echo "### 🐛 Fixes" >> CHANGELOG.md
-          jq -r '.[] | select(.labels[]? == "bug") | "- \(.title) (#\(.number))"' prs.json >> CHANGELOG.md || true
-          git log $PREV_TAG..HEAD --pretty=format:"- %s" | grep -iE '^fix' | sed 's/^fix:? *//' >> CHANGELOG.md || true
-          if ! grep -q "-" CHANGELOG.md; then echo "_No bug fixes_" >> CHANGELOG.md; fi
-
-          echo "" >> CHANGELOG.md
-          echo "### 📝 Docs" >> CHANGELOG.md
-          jq -r '.[] | select(.labels[]? == "docs") | "- \(.title) (#\(.number))"' prs.json >> CHANGELOG.md || true
-          git log $PREV_TAG..HEAD --pretty=format:"- %s" | grep -iE '^docs' | sed 's/^docs:? *//' >> CHANGELOG.md || true
-          if ! grep -q "-" CHANGELOG.md; then echo "_No docs changes_" >> CHANGELOG.md; fi
-
-          echo "" >> CHANGELOG.md
-          echo "### 🔧 Other Changes" >> CHANGELOG.md
-          jq -r '.[] | select(.labels[]? | in({"feature":1,"bug":1,"docs":1}) | not) | "- \(.title) (#\(.number))"' prs.json >> CHANGELOG.md || true
-          git log $PREV_TAG..HEAD --pretty=format:"- %s" | grep -vE '^(feat|fix|docs)' >> CHANGELOG.md || true
-          if ! grep -q "-" CHANGELOG.md; then echo "_None_" >> CHANGELOG.md; fi
-
-          cat CHANGELOG.md
+          ./.github/scripts/generate_grouped_changelog.sh "$PREV_TAG" "$NEW_TAG" "$TYPE"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2

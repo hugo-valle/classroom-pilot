@@ -1,4 +1,4 @@
-name: Python Wrapper Test
+name: 🐍 Python Wrapper Test & Quality Assurance
 
 on:
   push:
@@ -7,313 +7,221 @@ on:
     branches: [ main, develop ]
   workflow_dispatch:
 
+env:
+  CACHE_VERSION: v3
+  PYTHONDONTWRITEBYTECODE: 1
+  PYTHONUNBUFFERED: 1
+
+permissions:
+  contents: read
+  actions: read
+
 jobs:
   test-python-wrapper:
+    name: 🧪 Test Python Wrapper (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         python-version: ["3.10", "3.11", "3.12"]
 
     steps:
-    - uses: actions/checkout@v4
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
 
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
+    - name: 📦 Load workflow utilities
+      run: |
+        chmod +x .github/scripts/workflow_utils.sh
+        source .github/scripts/workflow_utils.sh
+        echo "STEP_START_TIME=$(date +%s)" >> $GITHUB_ENV
+
+    - name: 🐍 Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip setuptools wheel
-        # Install specific compatible versions to avoid Click/Typer conflicts
-        pip install "click>=8.1.3,<8.2.0" "typer>=0.9.0,<0.10.0"
-        pip install -e .
-        if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
-        pip install pytest pytest-cov
-        
-    - name: Verify installation and environment
-      run: |
-        echo "🔍 Verifying package installation..."
-        python -c "import sys; print('Python path:'); [print(f'  {p}') for p in sys.path]"
-        echo "📦 Testing package import..."
-        python -c "import classroom_pilot; print('✅ classroom_pilot imported successfully')"
-        echo "🔧 Testing module execution..."
-        python -c "import classroom_pilot.__main__; print('✅ __main__ module imported successfully')"
-        echo "📋 Testing CLI help..."
-        python -m classroom_pilot --help | head -5 || echo "⚠️ CLI help command failed"
-
-    - name: Create test configuration
-      run: |
-        cat > assignment.conf << EOF
-        # Test configuration for GitHub Actions
-        CLASSROOM_URL="https://classroom.github.com/classrooms/test/assignments/test"
-        TEMPLATE_REPO_URL="https://github.com/test/template"
-        GITHUB_ORGANIZATION="test-org"
-        CLASSROOM_REPO_URL="https://github.com/test-org/test-assignment"
-        ASSIGNMENT_NAME="test-assignment"
-        ASSIGNMENT_FILE="test.py"
-        SECRETS_JSON='{"TEST_SECRET": "test-value"}'
-        STEP_SYNC_TEMPLATE="true"
-        STEP_DISCOVER_REPOS="true"
-        STEP_MANAGE_SECRETS="true"
-        STEP_ASSIST_STUDENTS="false"
-        STEP_CYCLE_COLLABORATORS="false"
-        EOF
-
-    - name: Run comprehensive test suite
-      env:
-        PYTHONPATH: ${{ github.workspace }}
-      run: |
-        echo "🧪 Running comprehensive test suite (80+ tests)..."
-        pytest tests/test_config_system.py tests/test_utils.py tests/test_cli.py tests/test_assignments.py -v --tb=short
-        
-    - name: Run legacy tests for compatibility
-      run: |
-        echo "🔄 Running legacy tests for backward compatibility..."
-        pytest tests/test_bash_wrapper.py tests/test_config.py -v --tb=short || echo "Some legacy tests may fail due to architecture changes"
-
-    - name: Test basic functionality
-      run: |
-        make test
-
-    - name: Run comprehensive import tests
-      run: |
-        python -c "
-        print('🧪 Testing new modular architecture imports...')
-        
-        # Test new modular architecture
-        from classroom_pilot.config.loader import ConfigLoader
-        from classroom_pilot.config.validator import ConfigValidator
-        from classroom_pilot.config.generator import ConfigGenerator
-        from classroom_pilot.utils import get_logger, logger, GitManager, PathManager
-        from classroom_pilot.utils.ui_components import Colors
-        from classroom_pilot.utils.input_handlers import InputHandler, Validators
-        from classroom_pilot.utils.file_operations import FileManager
-        from classroom_pilot.assignments.setup import AssignmentSetup
-        from classroom_pilot.assignments.orchestrator import AssignmentOrchestrator
-        from classroom_pilot.assignments.manage import AssignmentManager
-        print('✅ All modular architecture imports successful')
-        
-        # Test CLI functionality  
-        from classroom_pilot.cli import app
-        from classroom_pilot.bash_wrapper import BashWrapper
-        print('✅ CLI and wrapper imports successful')
-        
-        # Test basic package functionality
-        import subprocess
-        result = subprocess.run(['python', '-c', 'import classroom_pilot; print(\"Package loaded\")'], 
-                               capture_output=True, text=True)
-        if result.returncode == 0:
-            print('✅ Package loading successful')
-        else:
-            print('❌ Package loading failed')
-            exit(1)
-        "
-
-    - name: Test CLI functionality
-      env:
-        PYTHONPATH: ${{ github.workspace }}
-      run: |
-        echo "🧪 Testing new modular CLI structure..."
-        # Test basic CLI functionality with new modular commands
-        python -c "from classroom_pilot.cli import app; print('✅ CLI import successful')"
-        python -c "from classroom_pilot.bash_wrapper import BashWrapper; print('✅ BashWrapper import successful')"
-        python -c "from classroom_pilot.config.loader import ConfigLoader; print('✅ ConfigLoader import successful')"
-        
-        # Test CLI help commands (should work without errors)
-        echo "Testing CLI help commands..."
-        python -m classroom_pilot --help > /dev/null && echo "✅ Main help works"
-        python -m classroom_pilot assignments --help > /dev/null && echo "✅ Assignments help works"
-        python -m classroom_pilot repos --help > /dev/null && echo "✅ Repos help works"
-        python -m classroom_pilot secrets --help > /dev/null && echo "✅ Secrets help works"
-        python -m classroom_pilot automation --help > /dev/null && echo "✅ Automation help works"
-
-    - name: Test package installation
-      run: |
-        # Test installing as a package
-        pip uninstall -y classroom-pilot
-        pip install .
-        python -c "import classroom_pilot; print(f'Package version: {classroom_pilot.__version__}')"
-
-  test-modular-architecture:
-    name: 🏗️ Test Modular Architecture (80+ Tests)
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.10", "3.11", "3.12"]
-
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
+    - name: 💾 Cache Python dependencies
+      uses: actions/cache@v4
       with:
-        python-version: ${{ matrix.python-version }}
+        path: |
+          ~/.cache/pip
+          ~/.local/lib/python${{ matrix.python-version }}/site-packages
+        key: ${{ runner.os }}-py${{ matrix.python-version }}-pip-${{ hashFiles('pyproject.toml', 'requirements-dev.txt') }}-${{ env.CACHE_VERSION }}
+        restore-keys: |
+          ${{ runner.os }}-py${{ matrix.python-version }}-pip-${{ hashFiles('pyproject.toml') }}-
+          ${{ runner.os }}-py${{ matrix.python-version }}-pip-
 
-    - name: Install dependencies
+    - name: 🔧 Install Poetry with retry
       run: |
-        python -m pip install --upgrade pip setuptools wheel
-        # Install specific compatible versions to avoid Click/Typer conflicts
-        pip install "click>=8.1.3,<8.2.0" "typer>=0.9.0,<0.10.0"
-        pip install -e .
-        if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
-        pip install pytest pytest-cov
+        source .github/scripts/workflow_utils.sh
+        
+        install_poetry_with_retry() {
+          log_info "Installing Poetry for Python ${{ matrix.python-version }}"
+          
+          if ! retry_with_backoff "pip install poetry" "Poetry installation" 3 5; then
+            log_error "Failed to install Poetry after 3 attempts"
+            return 1
+          fi
+          
+          poetry config virtualenvs.create true
+          poetry config virtualenvs.in-project true
+          poetry --version
+          
+          log_success "Poetry installation completed successfully"
+          return 0
+        }
+        
+        if ! install_poetry_with_retry; then
+          log_error "Poetry installation failed completely"
+          exit 1
+        fi
 
-    - name: Create comprehensive test configuration
-      run: |
-        cat > assignment.conf << EOF
-        # Comprehensive test configuration for modular architecture
-        CLASSROOM_URL="https://classroom.github.com/classrooms/test/assignments/test"
-        TEMPLATE_REPO_URL="https://github.com/test/template"
-        GITHUB_ORGANIZATION="test-org"
-        CLASSROOM_REPO_URL="https://github.com/test-org/test-assignment"
-        ASSIGNMENT_NAME="test-assignment"
-        ASSIGNMENT_FILE="test.py"
-        SECRETS_JSON='{"TEST_SECRET": "test-value"}'
-        STEP_SYNC_TEMPLATE="true"
-        STEP_DISCOVER_REPOS="true"
-        STEP_MANAGE_SECRETS="true"
-        STEP_ASSIST_STUDENTS="false"
-        STEP_CYCLE_COLLABORATORS="false"
-        EOF
-
-    - name: Run Configuration System Tests (15 tests)
-      env:
-        PYTHONPATH: ${{ github.workspace }}
-      run: |
-        echo "🔧 Testing Configuration System..."
-        pytest tests/test_config_system.py -v --tb=short
-
-    - name: Run Utils Package Tests (33 tests)
-      env:
-        PYTHONPATH: ${{ github.workspace }}
-      run: |
-        echo "🛠️ Testing Utils Package..."
-        pytest tests/test_utils.py -v --tb=short
-
-    - name: Run CLI Interface Tests (16 tests)
-      env:
-        PYTHONPATH: ${{ github.workspace }}
-      run: |
-        echo "💻 Testing CLI Interface..."
-        pytest tests/test_cli.py -v --tb=short
-
-    - name: Run Assignments Package Tests (16 tests)
-      env:
-        PYTHONPATH: ${{ github.workspace }}
-      run: |
-        echo "📚 Testing Assignments Package..."
-        pytest tests/test_assignments.py -v --tb=short
-
-    - name: Run All Modular Tests Together
-      env:
-        PYTHONPATH: ${{ github.workspace }}
-      run: |
-        echo "🚀 Running complete modular architecture test suite..."
-        pytest tests/test_config_system.py tests/test_utils.py tests/test_cli.py tests/test_assignments.py -v --tb=line --durations=10
-
-  test-bash-compatibility:
-    runs-on: ubuntu-latest
-    needs: test-python-wrapper
-
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Set up Python
-      uses: actions/setup-python@v4
+    - name: 💾 Cache Poetry dependencies
+      uses: actions/cache@v4
       with:
-        python-version: "3.11"
+        path: |
+          .venv
+          ~/.cache/pypoetry
+        key: ${{ runner.os }}-py${{ matrix.python-version }}-poetry-${{ hashFiles('pyproject.toml', 'poetry.lock') }}-${{ env.CACHE_VERSION }}
+        restore-keys: |
+          ${{ runner.os }}-py${{ matrix.python-version }}-poetry-${{ hashFiles('pyproject.toml') }}-
+          ${{ runner.os }}-py${{ matrix.python-version }}-poetry-
 
-    - name: Install package
+    - name: 📦 Install dependencies with retry and validation
       run: |
-        python -m pip install --upgrade pip
-        pip install -e .
+        source .github/scripts/workflow_utils.sh
+        
+        install_dependencies_with_validation() {
+          log_info "Installing Python dependencies for version ${{ matrix.python-version }}"
+          
+          if ! retry_with_backoff "poetry install --no-dev" "main dependencies installation" 3 10; then
+            log_error "Failed to install main dependencies"
+            return 1
+          fi
+          
+          if ! retry_with_backoff "poetry install --only dev" "development dependencies installation" 3 10; then
+            log_error "Failed to install development dependencies"
+            return 1
+          fi
+          
+          local critical_packages=("pytest" "typer" "click" "pyyaml" "requests")
+          for package in "${critical_packages[@]}"; do
+            if ! poetry run python -c "import $package" 2>/dev/null; then
+              log_error "Critical package '$package' not properly installed"
+              return 1
+            fi
+          done
+          
+          log_info "Python environment information:"
+          poetry env info
+          poetry show --tree
+          
+          log_success "All dependencies installed and validated successfully"
+          return 0
+        }
+        
+        if ! install_dependencies_with_validation; then
+          log_error "Dependency installation failed completely"
+          
+          echo "::group::Poetry Debug Information"
+          poetry env info || true
+          poetry check || true
+          poetry show --outdated || true
+          echo "::endgroup::"
+          
+          exit 1
+        fi
 
-    - name: Test bash script accessibility
+    - name: 🧪 Test with pytest (comprehensive)
       run: |
-        # Verify that bash scripts are accessible from the installed package
-        python -c "
-        from classroom_pilot.bash_wrapper import BashWrapper
-        from classroom_pilot.config import ConfigLoader
-        from pathlib import Path
-        import tempfile
-        import os
+        source .github/scripts/workflow_utils.sh
         
-        # Create a temporary config file for testing
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.conf', delete=False) as f:
-            f.write('CLASSROOM_URL=https://classroom.github.com/classrooms/test/assignments/test\\n')
-            f.write('TEMPLATE_REPO_URL=https://github.com/test/template\\n')
-            f.write('GITHUB_ORGANIZATION=test-org\\n')
-            config_file = f.name
+        run_comprehensive_tests() {
+          log_info "Running comprehensive test suite for Python ${{ matrix.python-version }}"
+          
+          local test_start_time=$(date +%s)
+          
+          mkdir -p test-results/python${{ matrix.python-version }}
+          
+          local pytest_cmd=(
+            "poetry" "run" "pytest"
+            "tests/"
+            "-v"
+            "--tb=short"
+            "--strict-markers"
+            "--disable-warnings"
+            "--cov=classroom_pilot"
+            "--cov-branch"
+            "--cov-report=term-missing:skip-covered"
+            "--cov-report=xml:test-results/python${{ matrix.python-version }}/coverage.xml"
+            "--cov-report=html:test-results/python${{ matrix.python-version }}/htmlcov"
+            "--junitxml=test-results/python${{ matrix.python-version }}/pytest-results.xml"
+          )
+          
+          if ! "${pytest_cmd[@]}"; then
+            log_error "Test execution failed for Python ${{ matrix.python-version }}"
+            return 1
+          fi
+          
+          local test_end_time=$(date +%s)
+          local test_duration=$((test_end_time - test_start_time))
+          
+          log_success "All tests passed for Python ${{ matrix.python-version }} (${test_duration}s)"
+          return 0
+        }
         
-        try:
-            config_loader = ConfigLoader(Path(config_file))
-            config_data = config_loader.load()
-            
-            wrapper = BashWrapper(config_data, dry_run=True)
-            
-            # Test that script paths can be resolved
-            script_path = wrapper._get_script_path('assignment-orchestrator.sh')
-            print(f'Script path: {script_path}')
-            assert script_path.exists(), f'Script not found: {script_path}'
-            print('✅ Bash script accessibility test passed')
-        finally:
-            os.unlink(config_file)
-        "
+        if ! run_comprehensive_tests; then
+          log_error "Comprehensive test execution failed"
+          exit 1
+        fi
 
-  integration-test:
-    runs-on: ubuntu-latest
-    needs: [test-python-wrapper, test-modular-architecture, test-bash-compatibility]
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/feature/python-migration'
-
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Set up Python
-      uses: actions/setup-python@v4
+    - name: 📊 Upload test results and coverage
+      uses: actions/upload-artifact@v4
+      if: always()
       with:
-        python-version: "3.11"
+        name: test-results-python${{ matrix.python-version }}
+        path: |
+          test-results/python${{ matrix.python-version }}/
+        retention-days: 30
 
-    - name: Install package
+  test-matrix-summary:
+    name: 📊 Python Test Matrix Summary
+    runs-on: ubuntu-latest
+    needs: [test-python-wrapper]
+    if: always()
+    
+    steps:
+    - name: 📥 Checkout code (for utilities)
+      uses: actions/checkout@v4
+    
+    - name: 📦 Load workflow utilities
       run: |
-        python -m pip install --upgrade pip
-        pip install -e .
-
-    - name: Create comprehensive test configuration
+        chmod +x .github/scripts/workflow_utils.sh
+        source .github/scripts/workflow_utils.sh
+    
+    - name: 📊 Generate test matrix summary
       run: |
-        cat > assignment.conf << EOF
-        # Comprehensive test configuration
-        CLASSROOM_URL="https://classroom.github.com/classrooms/123456/assignments/test-assignment"
-        TEMPLATE_REPO_URL="https://github.com/test-org/template-repo"
-        GITHUB_ORGANIZATION="test-org"
-        CLASSROOM_REPO_URL="https://github.com/test-org/classroom-assignment"
-        SECRETS_JSON='{"TEST_SECRET": "test-value", "ANOTHER_SECRET": "another-value"}'
+        source .github/scripts/workflow_utils.sh
         
-        # Optional settings
-        INSTRUCTOR_HANDLE="instructor"
-        ASSIGNMENT_NAME="test-assignment"
-        SEMESTER="fall2025"
-        EOF
-
-    - name: Run end-to-end workflow test
-      run: |
-        echo "🧪 Running end-to-end workflow test..."
+        log_info "Python Test Matrix Summary"
+        echo "=================================="
         
-        # Test complete workflow (legacy command with dry-run)
-        classroom-pilot run --dry-run --verbose
+        success_count=0
+        failure_count=0
         
-        # Test individual commands with dry-run support
-        classroom-pilot repos push --dry-run
-        classroom-pilot repos fetch --dry-run  
-        classroom-pilot secrets add --dry-run
-        classroom-pilot assignments orchestrate --dry-run
+        if [ "${{ needs.test-python-wrapper.result }}" = "success" ]; then
+          log_success "Python wrapper tests: PASSED"
+          success_count=$((success_count + 1))
+        else
+          log_error "Python wrapper tests: FAILED"
+          failure_count=$((failure_count + 1))
+        fi
         
-        # Test management commands with dry-run support
-        classroom-pilot repos update --dry-run
-        classroom-pilot repos cycle-collaborator --list --dry-run
+        echo "Summary: $success_count passed, $failure_count failed"
         
-        # Test commands without dry-run (just help)
-        classroom-pilot secrets manage --help > /dev/null
-        classroom-pilot assignments setup --help > /dev/null
-        
-        echo "✅ End-to-end workflow test completed successfully"
+        if [ $failure_count -gt 0 ]; then
+          log_error "Some Python versions failed testing"
+          exit 1
+        else
+          log_success "All Python versions passed testing successfully!"
+        fi

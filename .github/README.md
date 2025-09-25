@@ -5,13 +5,57 @@ This directory contains all GitHub Actions workflows for the `gh_classroom_tools
 ## � Complete Workflow Suite
 
 | Workflow | Trigger | Purpose | Status |
-|----------|---------|---------|--------|
+|----------|---------|-----## 🔧 Configuration & Setup
+
+### PyPI Publishing (OIDC) - **NEW**
+**No secrets required!** Our publish workflow now uses OpenID Connect for secure PyPI publishing:
+
+- **🔒 Trusted Publishing**: GitHub OIDC directly authenticates with PyPI
+- **🛡️ Zero Token Management**: No need to store or rotate API tokens
+- **✅ Enhanced Security**: Eliminates secret exposure risks
+- **⚡ Better Performance**: Direct authentication without token lookups
+
+**Setup Required**: Configure trusted publishing on [PyPI project settings](https://pypi.org/manage/project/classroom-pilot/settings/publishing/).
+
+### Required Secrets
+| Secret | Purpose | Required For | Status |
+|--------|---------|--------------|--------|
+| `GITHUB_TOKEN` | GitHub API access (auto-provided) | All workflows | ✅ Auto |
+| `GH_PAT` | Enhanced permissions for protection | Branch protection | ✅ Required |
+| ~~`PYPI_API_TOKEN`~~ | ~~PyPI publishing~~ | ~~Publish workflow~~ | 🔒 **Replaced by OIDC** |
+
+### Modern Infrastructure Updates
+- **🚀 Python Actions v5**: Updated setup-python for faster dependency installation
+- **📦 Optimized Caching**: Aligned Poetry virtualenv strategy with cache paths
+- **🔄 Smart Retries**: Exponential backoff for all network operations
+- **🧹 Cache Cleanup**: Removed unused lint cache directories for efficiency
+
+### Required Permissions
+Enhanced permission model with OIDC integration:
+- `contents: write` - Create releases and update files
+- `pull-requests: write` - Create and update PRs  
+- `id-token: write` - **NEW**: OIDC token generation for PyPI publishing
+- `attestations: write` - **NEW**: Build attestation generation
+- `actions: read` - Workflow context access|
 | [🤖 auto-release.yml](#-automated-release) | Push to `main` | Quick automated releases from feature branches | ✅ Active |
 | [🚀 release.yml](#-official-release) | Git tags (`v*.*.*`) | Official production releases with full validation | ✅ Active |
 | [🔍 branch-name-check.yml](#-branch-name-check) | PR creation/updates | Enforce branch naming conventions | ✅ Active |
 | [🛡️ branch-protection.yml](#️-branch-protection) | Manual dispatch | Apply protection rules to main branch | ✅ Active |
 | [🧪 ci.yml](#-continuous-integration) | PR/Push events | Continuous integration testing | ✅ Active |
 | [🔄 auto-update.yml](#-automated-updates) | Weekly schedule | Automated dependency updates | ✅ Active |
+
+## 🚀 Recent Optimizations & Improvements
+
+**Latest Updates (September 2025)**: Our workflows have been significantly enhanced with modern best practices:
+
+- **🛠️ Workflow Utilities**: New centralized logging and retry mechanisms via `workflow_utils.sh`
+- **🔒 OIDC Publishing**: Migrated to trusted PyPI publishing eliminating API token dependencies
+- **⚡ Performance**: Optimized caching strategies and updated to Python setup v5
+- **🛡️ Error Handling**: Standardized retry logic and comprehensive error reporting
+- **📦 Build Quality**: Enhanced build verification and content validation
+- **🔧 Infrastructure**: Improved cache efficiency and removed unused paths
+
+These improvements provide more reliable, secure, and maintainable automation across all workflows.
 
 ---
 
@@ -55,23 +99,31 @@ git push origin release/1.2.3
 
 ## 🚀 Official Release
 
-**File**: [`workflows/release.yml`](./workflows/release.yml)
+**File**: [`workflows/publish.yml`](./workflows/publish.yml)
 
 ### Purpose
 Creates comprehensive, production-ready releases with full validation, testing, and security scanning. Used for major releases and production deployments.
 
 ### Triggers
 - Git tags matching pattern `v*.*.*` (e.g., `v1.2.3`, `v2.0.0-beta.1`)
+- Manual workflow dispatch
+
+### Recent Security & Performance Improvements (September 2025)
+- **🔒 OIDC Publishing**: Migrated to trusted PyPI publishing (no API tokens required)
+- **🚀 Python v5**: Updated setup-python action for faster performance
+- **📦 Build Quality**: Enhanced build content verification and validation
+- **🔄 Smart Retries**: Standardized retry logic for PyPI verification
+- **📝 Centralized Logging**: Integrated workflow_utils.sh for consistent messaging
 
 ### Features
-- ✅ Comprehensive validation and testing
-- ✅ Multi-shell compatibility testing (bash, zsh, dash)
-- ✅ Security scanning with ShellCheck
-- ✅ Secret scanning with TruffleHog
-- ✅ Detailed changelog generation
+- ✅ Comprehensive validation and testing across Python 3.10, 3.11, 3.12
+- ✅ **OIDC-based PyPI publishing** (secure, no token management)
+- ✅ **Enhanced build verification** with content validation
+- ✅ Poetry-based dependency management with optimized caching
+- ✅ Detailed release notes generation
 - ✅ Pre-release support (alpha, beta, RC)
-- ✅ Version validation and smart detection
-- ✅ Error handling and timeouts
+- ✅ **Smart retry mechanisms** for network operations
+- ✅ GitHub release creation with artifacts
 
 ### Supported Version Formats
 - **Stable**: `v1.2.3`
@@ -104,7 +156,7 @@ git push origin v2.0.0-rc.1
 Enforces branch naming conventions to maintain consistency and enable automation.
 
 ### Triggers
-- Pull Request events (opened, edited, synchronize)
+- Pull Request events (opened, edited, synchronize, reopened) targeting `main` or `develop`
 
 ### Allowed Branch Patterns
 - `feature/*` - New features
@@ -166,16 +218,24 @@ Runs comprehensive tests and quality checks on all code changes to ensure stabil
 - Pull Request events (opened, synchronize, reopened)
 - Push to main branch
 
+### Recent Improvements (September 2025)
+- **🚀 Python Setup v5**: Updated to latest setup-python action for better performance
+- **📦 Optimized Caching**: Removed unused lint cache paths, improved cache hit rates
+- **🔄 Retry Logic**: Standardized retry_with_backoff across all operations
+- **🛡️ Test Quality**: Fixed help command tests that were masking failures
+- **📝 Enhanced Logging**: Integrated workflow_utils.sh for consistent messaging
+
 ### Test Matrix
 - **Operating Systems**: Ubuntu, macOS, Windows
 - **Shells**: bash, zsh, dash (where applicable)
 
 ### Quality Checks
 - ✅ Syntax validation
-- ✅ ShellCheck static analysis
-- ✅ Script execution tests
+- ✅ ShellCheck static analysis (with optimized caching)
+- ✅ Script execution tests (with proper failure detection)
 - ✅ Configuration validation
 - ✅ Cross-platform compatibility
+- ✅ Help command validation (no longer masks failures)
 
 ---
 
@@ -247,7 +307,43 @@ git push origin v1.2.3
 
 ---
 
-## 🔧 Configuration & Setup
+## �️ Workflow Infrastructure
+
+### Workflow Utilities (`workflow_utils.sh`)
+
+Our workflows now use centralized utilities for consistent logging and error handling:
+
+**File**: [`.github/scripts/workflow_utils.sh`](.github/scripts/workflow_utils.sh)
+
+#### Logging Functions
+```bash
+# Standardized logging with timestamps and formatting
+log_info "Processing step..."       # Blue info messages
+log_success "✅ Step completed!"    # Green success messages  
+log_warning "⚠️ Non-critical issue" # Yellow warnings
+log_error "❌ Critical failure"     # Red error messages
+```
+
+#### Retry Mechanisms
+```bash
+# Smart retry with exponential backoff
+retry_with_backoff "command_to_retry" "description" max_attempts
+
+# Example usage in workflows
+retry_with_backoff "poetry install" "dependency installation" 3
+retry_with_backoff "pip index versions package" "PyPI verification" 5
+```
+
+#### Features
+- **Consistent formatting**: All workflows use unified message styling
+- **Automatic timestamps**: Every message includes execution time
+- **Smart retries**: Exponential backoff for transient failures
+- **Error aggregation**: Centralized error handling patterns
+- **Safe sourcing**: No global strict mode conflicts
+
+---
+
+## �🔧 Configuration & Setup
 
 ### Required Secrets
 | Secret | Purpose | Required For |
@@ -338,12 +434,26 @@ graph TD
    - Feature branches → Auto-release for development iterations
    - Git tags → Official release for production deployments
 4. **Review workflow changes carefully** as they affect the entire team
+5. **Test locally first**: Run `poetry run pytest` and linting before pushing
+
+### Modern Workflow Patterns (September 2025)
+- **🛠️ Use workflow utilities**: Leverage `workflow_utils.sh` functions for consistent logging
+- **🔒 OIDC Publishing**: No need to manage PyPI tokens - use trusted publishing
+- **🔄 Smart Retries**: Built-in exponential backoff handles transient failures automatically
+- **📦 Cache Efficiency**: Workflows now use optimized cache strategies for faster builds
+- **🛡️ Error Handling**: Comprehensive error reporting with proper exit codes
 
 ### Release Strategy
 - **Alpha/Beta releases**: Use for testing and early feedback
-- **Release candidates**: Use for final validation before stable
-- **Stable releases**: Use for production deployments
+- **Release candidates**: Use for final validation before stable  
+- **Stable releases**: Use for production deployments (now with OIDC security)
 - **Hotfix releases**: Use for critical bug fixes
+
+### Security & Maintenance
+- **🔒 OIDC Benefits**: Eliminates token rotation, reduces attack surface
+- **📊 Build Quality**: Enhanced verification prevents corrupted releases
+- **🔍 Cache Optimization**: Regular cleanup maintains build performance
+- **📝 Logging Standards**: Use centralized logging for better troubleshooting
 
 ---
 
@@ -377,5 +487,6 @@ The complete workflow suite provides robust automation for development, testing,
 
 ---
 
-*Last updated: September 1, 2025*  
+*Last updated: September 24, 2025*  
+*Recent Updates: OIDC PyPI Publishing, Workflow Utilities, Python v5, Cache Optimizations*  
 *Maintained by: Repository maintainers*
