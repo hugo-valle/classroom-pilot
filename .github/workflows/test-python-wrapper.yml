@@ -87,47 +87,11 @@ jobs:
           ${{ runner.os }}-py${{ matrix.python-version }}-poetry-${{ hashFiles('pyproject.toml') }}-
           ${{ runner.os }}-py${{ matrix.python-version }}-poetry-
 
-    - name: 📦 Install dependencies with retry and validation
+    - name: Install Python dependencies with validation
+      shell: bash
       run: |
-        source .github/scripts/workflow_utils.sh
-        
-        install_dependencies_with_validation() {
-          log_info "Installing Python dependencies for version ${{ matrix.python-version }}"
-          
-          # Install all dependencies (main + dev) in one go for testing
-          if ! retry_with_backoff "poetry install" "dependencies installation" 3 10; then
-            log_error "Failed to install dependencies"
-            return 1
-          fi
-          
-          local critical_packages=("pytest" "typer" "click" "yaml" "requests")
-          log_info "Validating critical package imports..."
-          for package in "${critical_packages[@]}"; do
-            if ! poetry run python -c "import $package; print(f'✅ {package} imported successfully')" 2>/dev/null; then
-              log_error "Critical package '$package' not properly installed"
-              log_info "Attempting to debug import issue..."
-              poetry run python -c "import $package" 2>&1 || true
-              return 1
-            fi
-          done
-          
-          log_info "Python environment information:"
-          poetry env info
-          poetry show --tree
-          
-          log_success "All dependencies installed and validated successfully"
-          return 0
-        }
-        
-        if ! install_dependencies_with_validation; then
-          log_error "Dependency installation failed completely"
-          
-          echo "::group::Poetry Debug Information"
-          poetry env info || true
-          poetry check || true
-          poetry show --outdated || true
-          echo "::endgroup::"
-          
+        if ! .github/scripts/install_python_dependencies.sh "${{ matrix.python-version }}"; then
+          echo "::error::Dependency installation or validation failed"
           exit 1
         fi
 
