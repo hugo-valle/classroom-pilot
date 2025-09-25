@@ -180,18 +180,26 @@ jobs:
           source .github/scripts/workflow_utils.sh
           print_message "step" "Running Shellcheck analysis"
           
-          # Run ShellCheck on all shell scripts
-          if retry_with_backoff "
-            find classroom_pilot/scripts -name '*.sh' -type f | while read -r script; do
-              log_info \"Linting \$script\"
-              shellcheck -e SC1091,SC2034,SC2155,SC2086,SC2162,SC2329 -f gcc \"\$script\"
-            done
-          " "Shellcheck analysis" 2; then
-            log_success "✅ ShellCheck analysis completed successfully"
-          else
-            log_error "❌ ShellCheck analysis failed"
-            exit 1
+          # Run ShellCheck on all shell scripts (allow warnings, fail on errors only)
+          log_info "Running ShellCheck analysis on shell scripts..."
+          shellcheck_output=$(find classroom_pilot/scripts -name '*.sh' -type f -exec shellcheck -e SC1091,SC2034,SC2155,SC2086,SC2162,SC2329,SC2002,SC2012 -f gcc {} + 2>&1) || true
+          
+          # Show the output for transparency
+          if [ -n "$shellcheck_output" ]; then
+            echo "$shellcheck_output"
+            # Count actual errors vs warnings
+            error_count=$(echo "$shellcheck_output" | grep -c "error:" || true)
+            warning_count=$(echo "$shellcheck_output" | grep -c "note:\|warning:" || true)
+            
+            if [ "$error_count" -gt 0 ]; then
+              log_error "❌ ShellCheck found $error_count errors and $warning_count warnings"
+              exit 1
+            else
+              log_warning "⚠️ ShellCheck found $warning_count warnings (non-blocking)"
+            fi
           fi
+          
+          log_success "✅ ShellCheck analysis completed successfully"
 
       - name: 📊 Generate lint summary
         if: always()

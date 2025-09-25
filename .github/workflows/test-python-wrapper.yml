@@ -94,13 +94,9 @@ jobs:
         install_dependencies_with_validation() {
           log_info "Installing Python dependencies for version ${{ matrix.python-version }}"
           
-          if ! retry_with_backoff "poetry install --no-dev" "main dependencies installation" 3 10; then
-            log_error "Failed to install main dependencies"
-            return 1
-          fi
-          
-          if ! retry_with_backoff "poetry install --only dev" "development dependencies installation" 3 10; then
-            log_error "Failed to install development dependencies"
+          # Install all dependencies (main + dev) in one go for testing
+          if ! retry_with_backoff "poetry install" "dependencies installation" 3 10; then
+            log_error "Failed to install dependencies"
             return 1
           fi
           
