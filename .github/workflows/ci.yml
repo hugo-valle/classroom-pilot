@@ -180,14 +180,18 @@ jobs:
           source .github/scripts/workflow_utils.sh
           print_message "step" "Running Shellcheck analysis"
           
-          shellcheck_cmd="
+          # Run ShellCheck on all shell scripts
+          if retry_with_backoff "
             find classroom_pilot/scripts -name '*.sh' -type f | while read -r script; do
-              print_message 'info' 'Linting \$script'
-              shellcheck -e SC1091,SC2034,SC2155,SC2086,SC2162,SC2329 -f gcc '\$script'
+              log_info \"Linting \$script\"
+              shellcheck -e SC1091,SC2034,SC2155,SC2086,SC2162,SC2329 -f gcc \"\$script\"
             done
-          "
-          
-          retry_with_backoff "$shellcheck_cmd" "Shellcheck analysis" 2
+          " "Shellcheck analysis" 2; then
+            log_success "✅ ShellCheck analysis completed successfully"
+          else
+            log_error "❌ ShellCheck analysis failed"
+            exit 1
+          fi
 
       - name: 📊 Generate lint summary
         if: always()
