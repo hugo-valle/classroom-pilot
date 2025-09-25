@@ -216,6 +216,7 @@ jobs:
   security:
     name: 🛡️ Security Scan
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
@@ -228,36 +229,163 @@ jobs:
           source .github/scripts/workflow_utils.sh
           echo "STEP_START_TIME=$(date +%s)" >> $GITHUB_ENV
 
-      - name: 💾 Cache security scan data
+      - name: �️ Setup security cache directories
+        run: |
+          source .github/scripts/workflow_utils.sh
+          setup_cache_directories "/tmp/security-cache"
+          mkdir -p /tmp/security-cache/{trufflehog,trivy,sbom,sarif}
+
+      - name: �💾 Cache security scan data
         uses: actions/cache@v4
         with:
           path: |
-            /tmp/trufflehog-cache
-          key: ${{ runner.os }}-security-${{ github.sha }}
+            /tmp/security-cache
+            ~/.cache/trivy
+          key: ${{ runner.os }}-security-${{ hashFiles('pyproject.toml', 'poetry.lock', 'requirements*.txt') }}-${{ env.CACHE_VERSION }}
           restore-keys: |
+            ${{ runner.os }}-security-${{ hashFiles('pyproject.toml', 'poetry.lock', 'requirements*.txt') }}-
             ${{ runner.os }}-security-
 
-      - name: 🔍 Scan for secrets with retry
+      - name: 🏗️ Setup Python for SBOM generation
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: 📦 Install Poetry for dependency analysis
+        uses: snok/install-poetry@v1
+        with:
+          version: latest
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
+      - name: 📦 Export Poetry dependencies for scanning
         run: |
           source .github/scripts/workflow_utils.sh
+          print_message "step" "Exporting Poetry dependencies"
+          poetry export -f requirements.txt --without-hashes -o requirements.txt
+          print_message "success" "Dependencies exported to requirements.txt"
+
+      - name: 🔧 Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: 📦 Load security utilities
+        run: |
+          chmod +x .github/scripts/security_utils.sh
+          source .github/scripts/security_utils.sh
+
+      - name: 📋 Generate SBOM
+        run: |
+          source .github/scripts/security_utils.sh
+          initialize_security_cache
+          generate_sbom . all
+
+      - name: 🔍 Vulnerability scan
+        timeout-minutes: 20
+        run: |
+          source .github/scripts/security_utils.sh
+          run_trivy_scan . all CRITICAL,HIGH,MEDIUM
+
+      - name: 🔍 Trivy dependency vulnerability scan
+        timeout-minutes: 15
+        run: |
+          source .github/scripts/workflow_utils.sh
+          print_message "step" "Running Trivy dependency vulnerability scan"
+          trivy fs \
+            --cache-dir ~/.cache/trivy \
+            --scanners vuln \
+            --format sarif \
+            --output /tmp/security-cache/sarif/trivy-deps.sarif \
+            requirements.txt || true
+
+      - name: 🔍 Secret detection
+        timeout-minutes: 15
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          source .github/scripts/security_utils.sh
+          run_secret_detection . all
+
+      - name: 🔍 Enhanced secret detection with TruffleHog
+        timeout-minutes: 10
+        run: |
+          source .github/scripts/workflow_utils.sh
+          print_message "step" "Running enhanced TruffleHog secret detection"
           
-          # Enhanced secret scanning with retry logic
-          scan_cmd="docker run --rm -v \"\$PWD:/pwd\" trufflesecurity/trufflehog:latest github --repo=https://github.com/${{ github.repository }} --since-commit=${{ github.event.before || 'HEAD~10' }} --only-verified"
+          # TruffleHog filesystem scan (more reliable than GitHub scan)
+          scan_cmd="docker run --rm -v \"\$PWD:/pwd\" trufflesecurity/trufflehog:latest filesystem /pwd --json --only-verified > /tmp/security-cache/trufflehog/secrets.json"
           
-          print_message "step" "Running enhanced security scan"
-          if retry_with_backoff "$scan_cmd" "security scan" 2; then
-            print_message "success" "Security scan completed successfully"
+          if retry_with_backoff "$scan_cmd" "TruffleHog secret scan" 2; then
+            print_message "success" "TruffleHog secret detection completed successfully"
           else
-            print_message "warning" "Security scan completed with warnings (non-blocking)"
+            print_message "warning" "TruffleHog secret detection completed with warnings"
           fi
         continue-on-error: true
 
-      - name: 📊 Generate security summary
+      - name: 📤 Upload security artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-artifacts-${{ github.sha }}
+          path: |
+            /tmp/security-cache/sbom/
+            /tmp/security-cache/sarif/
+            /tmp/security-cache/trufflehog/
+          retention-days: 30
+
+      - name: 📤 Upload SARIF to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: /tmp/security-cache/sarif/*.sarif
+        continue-on-error: true
+
+      - name: 📊 Generate comprehensive security summary
         if: always()
         run: |
           source .github/scripts/workflow_utils.sh
           step_duration=$(report_step_timing "Security Scan" "$STEP_START_TIME")
-          create_step_summary "Security Scan" "success" "| Scan Type | Secret Detection |\n| Duration | ${step_duration}s |"
+          
+          # Count findings from SARIF files with improved parsing
+          fs_findings=0
+          dep_findings=0
+          secret_findings=0
+          
+          if [[ -f "/tmp/security-cache/sarif/trivy-fs.sarif" ]]; then
+            fs_findings=$(jq -r '
+              .runs[]?.results[]? as $r |
+              ($r.level //
+               $r.properties.severity //
+               ( .runs[]?.tool.driver.rules[]? | select(.id==$r.ruleId) | (.properties.severity // .defaultConfiguration.level) ) //
+               "info")' /tmp/security-cache/sarif/trivy-fs.sarif 2>/dev/null | wc -l || echo "0")
+          fi
+          
+          if [[ -f "/tmp/security-cache/sarif/trivy-deps.sarif" ]]; then
+            dep_findings=$(jq '.runs[0].results | length' /tmp/security-cache/sarif/trivy-deps.sarif 2>/dev/null || echo "0")
+          fi
+          
+          if [[ -f "/tmp/security-cache/sarif/gitleaks.sarif" ]]; then
+            secret_findings=$(jq '.runs[0].results | length' /tmp/security-cache/sarif/gitleaks.sarif 2>/dev/null || echo "0")
+          fi
+          
+          # Generate SBOM summary
+          sbom_files=0
+          if [[ -f "/tmp/security-cache/sbom/spdx/sbom-spdx.json" ]]; then
+            sbom_files=$((sbom_files + 1))
+          fi
+          if [[ -f "/tmp/security-cache/sbom/cyclonedx/sbom-cyclonedx.json" ]]; then
+            sbom_files=$((sbom_files + 1))
+          fi
+          
+          security_summary="| Security Tool | Findings | Status |\n"
+          security_summary+="| --- | --- | --- |\n"
+          security_summary+="| Trivy Filesystem | ${fs_findings} | ✅ |\n"
+          security_summary+="| Trivy Dependencies | ${dep_findings} | ✅ |\n"
+          security_summary+="| Secret Detection | ${secret_findings} | ✅ |\n"
+          security_summary+="| SBOM Generated | ${sbom_files} files | ✅ |\n"
+          security_summary+="| **Duration** | **${step_duration}s** | ✅ |"
+          
+          create_step_summary "Comprehensive Security Scan" "success" "$security_summary"
+          print_message "success" "Comprehensive security scan completed with ${fs_findings} filesystem findings, ${dep_findings} dependency findings, ${secret_findings} secret findings"
 
   validate-docs:
     name: 📚 Documentation Validation
