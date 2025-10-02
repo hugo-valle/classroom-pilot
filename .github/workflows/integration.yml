@@ -414,7 +414,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     needs: setup-integration-environment
-    if: contains(fromJSON('["full"]'), env.TEST_SCOPE)
+    if: contains(fromJSON('["full"]'), github.event.inputs.test_scope || 'full')
     
     steps:
       - name: Checkout Repository
@@ -677,7 +677,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 25
     needs: setup-integration-environment
-    if: contains(fromJSON('["full"]'), env.TEST_SCOPE)
+    if: contains(fromJSON('["full"]'), github.event.inputs.test_scope || 'full')
     strategy:
       matrix:
         os: [ubuntu-latest, ubuntu-20.04]
