@@ -16,7 +16,7 @@ $CLASSROOM_PILOT_CMD --help
 
 # Test version command
 print_message "step" "Testing version command..."
-$CLASSROOM_PILOT_CMD --version
+$CLASSROOM_PILOT_CMD version
 
 # Test subcommand help
 print_message "step" "Testing assignments help..."
