@@ -395,24 +395,13 @@ EOF
     local trends_summary_file="$trends_dir/trends_summary.json"
     
     if command -v jq >/dev/null 2>&1; then
-        # Aggregate all trend data points
-        find "$trends_dir" -name "run_*.json" -exec cat {} \; | jq -s '
-        {
-            "workflow_name": "'"$workflow_name"'",
-            "total_runs": length,
-            "date_range": {
-                "earliest": (map(.timestamp) | min),
-                "latest": (map(.timestamp) | max)
-            },
-            "performance_trends": {
-                "average_duration": (map(.timing_data.total_duration // 0) | add) / (length | if . == 0 then 1 else . end),
-                "duration_trend": map(.timing_data.total_duration // 0),
-                "latest_duration": (map(.timing_data.total_duration // 0) | last)
-            },
-            "trend_analysis_timestamp": "'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'",
-            "version": "1.0"
-        }
-        ' > "$trends_summary_file"
+        # Check if any trend files exist before processing
+        if find "$trends_dir" -name "run_*.json" -type f | grep -q .; then
+            find "$trends_dir" -name "run_*.json" -exec cat {} \; | jq -s '{workflow_name: "'"$workflow_name"'", total_runs: length, trend_analysis_timestamp: "'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'", version: "1.0"}' > "$trends_summary_file"
+        else
+            # No trend files exist, create empty summary
+            jq -n '{workflow_name: "'"$workflow_name"'", total_runs: 0, date_range: {earliest: null, latest: null}, performance_trends: {average_duration: 0, duration_trend: [], latest_duration: 0}, trend_analysis_timestamp: "'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'", version: "1.0"}' > "$trends_summary_file"
+        fi
     else
         # Simple fallback without jq
         local run_count
