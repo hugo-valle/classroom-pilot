@@ -117,8 +117,26 @@ def assignment_orchestrate(
     setup_logging(verbose)
     logger.info("Starting assignment orchestration")
 
+    # Load and validate configuration
+    try:
+        config = ConfigLoader(Path(config_file)).load()
+        logger.info(f"Loaded configuration from {config_file}")
+    except Exception as e:
+        logger.error(f"Failed to load configuration: {e}")
+        raise typer.Exit(code=1)
+
+    # Validate configuration before proceeding
+    from .config.validator import ConfigValidator
+    is_valid, errors = ConfigValidator.validate_full_config(config)
+    if not is_valid:
+        logger.error("Configuration validation failed:")
+        for error in errors:
+            logger.error(f"  - {error}")
+        raise typer.Exit(code=1)
+
+    logger.info("Configuration validation passed")
+
     # Use bash wrapper for now - TODO: migrate to pure Python
-    config = ConfigLoader(Path(config_file)).load()
     wrapper = BashWrapper(config, dry_run=dry_run, verbose=verbose)
 
     success = wrapper.assignment_orchestrator(workflow_type="run")
