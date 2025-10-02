@@ -228,7 +228,7 @@ start_step_timing() {
     print_message "info" "Started timing: $step_name"
     
     # Export for GitHub Actions
-    if [ -n "${GITHUB_ENV:-}" ]; then
+    if [ -n "${GITHUB_ENV:-}" ] && [ -f "${GITHUB_ENV}" ]; then
         echo "$var_name=$start_time" >> "$GITHUB_ENV"
     fi
 }
@@ -267,7 +267,7 @@ end_step_timing() {
     fi
     
     # Export duration for use in other steps
-    if [ -n "${GITHUB_ENV:-}" ]; then
+    if [ -n "${GITHUB_ENV:-}" ] && [ -f "${GITHUB_ENV}" ]; then
         local duration_var="STEP_DURATION_$(echo "$step_name" | tr -c '[:alnum:]' '_' | tr '[:lower:]' '[:upper:]')"
         echo "$duration_var=$duration" >> "$GITHUB_ENV"
     fi
@@ -447,19 +447,26 @@ export_performance_metrics() {
     local total_time
     total_time=$(report_step_timing "Workflow" "$SCRIPT_START_TIME")
     
-    # Export for use in other steps
-    echo "WORKFLOW_DURATION=$total_time" >> "$GITHUB_ENV"
+    # Ensure total_time is a valid number
+    if ! [[ "$total_time" =~ ^[0-9]+$ ]]; then
+        total_time=0
+    fi
+    
+    # Export for use in other steps - only if GITHUB_ENV is available and not empty
+    if [ -n "${GITHUB_ENV:-}" ] && [ -f "${GITHUB_ENV}" ]; then
+        echo "WORKFLOW_DURATION=${total_time}" >> "$GITHUB_ENV"
+    fi
     
     # Create performance artifact
     if [ -n "${RUNNER_TEMP:-}" ]; then
         local perf_file="$RUNNER_TEMP/performance_metrics.json"
         {
             echo "{"
-            echo "  \"workflow_duration\": $total_time,"
+            echo "  \"workflow_duration\": ${total_time},"
             echo "  \"timestamp\": \"$(date -u '+%Y-%m-%d %H:%M:%S UTC')\","
-            echo "  \"runner_os\": \"$RUNNER_OS\","
-            echo "  \"github_run_id\": \"$GITHUB_RUN_ID\","
-            echo "  \"github_job\": \"$GITHUB_JOB\""
+            echo "  \"runner_os\": \"${RUNNER_OS:-unknown}\","
+            echo "  \"github_run_id\": \"${GITHUB_RUN_ID:-unknown}\","
+            echo "  \"github_job\": \"${GITHUB_JOB:-unknown}\""
             echo "}"
         } > "$perf_file"
         
