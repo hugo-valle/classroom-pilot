@@ -130,7 +130,7 @@ jobs:
           
           # Test assignment setup with dry-run
           echo "Testing assignment setup workflow..."
-          if poetry run classroom-pilot assignments setup \
+          if poetry run classroom-pilot assignments orchestrate \
             --config integration_test_data/test_assignment.conf \
             --dry-run \
             --verbose; then
@@ -213,7 +213,7 @@ jobs:
           echo "Testing complete multi-script workflow chain..."
           
           # Chain the workflows together
-          if poetry run classroom-pilot assignments setup \
+          if poetry run classroom-pilot assignments orchestrate \
             --config integration_test_data/test_assignment.conf --dry-run && \
            poetry run classroom-pilot assignments orchestrate \
             --config integration_test_data/test_assignment.conf --dry-run && \
@@ -460,7 +460,7 @@ jobs:
           echo "Testing invalid configuration handling..."
           
           # Test that the CLI properly handles invalid configuration
-          if ! poetry run classroom-pilot assignments setup \
+          if ! poetry run classroom-pilot assignments orchestrate \
             --config integration_test_data/invalid_assignment.conf \
             --dry-run 2>/dev/null; then
             echo "✅ Invalid configuration properly rejected"
@@ -591,7 +591,7 @@ jobs:
           DRY_RUN=true
           EOF
           
-          if poetry run classroom-pilot assignments setup \
+          if poetry run classroom-pilot assignments orchestrate \
             --config integration_test_data/minimal_assignment.conf \
             --dry-run; then
             echo "✅ Minimal configuration test passed"
@@ -625,7 +625,7 @@ jobs:
           VERBOSE=true
           EOF
           
-          if poetry run classroom-pilot assignments setup \
+          if poetry run classroom-pilot assignments orchestrate \
             --config integration_test_data/advanced_assignment.conf \
             --dry-run; then
             echo "✅ Advanced configuration test passed"
@@ -654,7 +654,7 @@ jobs:
           DRY_RUN=true
           EOF
           
-          if poetry run classroom-pilot assignments setup \
+          if poetry run classroom-pilot assignments orchestrate \
             --config integration_test_data/edge_case_assignment.conf \
             --dry-run; then
             echo "✅ Edge case configuration test passed"
@@ -738,7 +738,7 @@ jobs:
           echo "Testing CLI cross-platform compatibility..."
           
           # Test CLI commands across platforms
-          if poetry run classroom-pilot assignments setup \
+          if poetry run classroom-pilot assignments orchestrate \
             --config integration_test_data/test_assignment.conf \
             --dry-run; then
             echo "✅ CLI cross-platform compatibility test passed"
