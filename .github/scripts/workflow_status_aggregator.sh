@@ -149,24 +149,7 @@ aggregate_build_metrics() {
     local timing_summary_file="$aggregation_dir/timing_summary.json"
     
     if command -v jq >/dev/null 2>&1 && [[ -f "$step_timings_file" ]]; then
-        jq '
-        {
-            "workflow_name": "'"$workflow_name"'",
-            "total_steps": length,
-            "total_duration": map(.duration_seconds // 0) | add,
-            "average_step_duration": (map(.duration_seconds // 0) | add) / (length | if . == 0 then 1 else . end),
-            "longest_step": {
-                "name": (max_by(.duration_seconds // 0) | .step_name // "unknown"),
-                "duration": (map(.duration_seconds // 0) | max)
-            },
-            "shortest_step": {
-                "name": (min_by(.duration_seconds // 0) | .step_name // "unknown"), 
-                "duration": (map(.duration_seconds // 0) | min)
-            },
-            "aggregation_timestamp": "'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'",
-            "version": "1.0"
-        }
-        ' "$step_timings_file" > "$timing_summary_file"
+        jq '{workflow_name: "'"$workflow_name"'", total_steps: length, total_duration: (map(.duration_seconds // 0) | add), average_step_duration: ((map(.duration_seconds // 0) | add) / (length | if . == 0 then 1 else . end)), longest_step: {name: (max_by(.duration_seconds // 0) | .step_name // "unknown"), duration: (map(.duration_seconds // 0) | max)}, shortest_step: {name: (min_by(.duration_seconds // 0) | .step_name // "unknown"), duration: (map(.duration_seconds // 0) | min)}, aggregation_timestamp: "'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'", version: "1.0"}' "$step_timings_file" > "$timing_summary_file"
     else
         # Fallback if jq is not available
         cat > "$timing_summary_file" << EOF
