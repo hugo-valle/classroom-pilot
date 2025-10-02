@@ -1,0 +1,851 @@
+name: Integration Testing
+
+on:
+  pull_request:
+    branches: [main, develop]
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+    inputs:
+      test_scope:
+        description: 'Test scope to run'
+        required: false
+        default: 'full'
+        type: choice
+        options:
+          - 'full'
+          - 'api-only'
+          - 'workflow-only'
+          - 'config-only'
+      api_rate_limit_test:
+        description: 'Enable API rate limit testing'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  TEST_SCOPE: ${{ github.event.inputs.test_scope || 'full' }}
+  ENABLE_RATE_LIMIT_TEST: ${{ github.event.inputs.api_rate_limit_test || 'false' }}
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  setup-integration-environment:
+    name: Setup Integration Test Environment
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      test-org: ${{ steps.setup.outputs.test-org }}
+      test-repos: ${{ steps.setup.outputs.test-repos }}
+      
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Integration Test Environment
+        id: setup
+        run: |
+          source .github/scripts/workflow_utils.sh
+          
+          start_step_timing "integration_setup"
+          
+          # Create test organization and repository names
+          TEST_ORG="classroom-pilot-test-$(date +%s)"
+          TEST_REPOS="test-assignment-repo-1,test-assignment-repo-2,test-assignment-repo-3"
+          
+          echo "test-org=$TEST_ORG" >> $GITHUB_OUTPUT
+          echo "test-repos=$TEST_REPOS" >> $GITHUB_OUTPUT
+          
+          # Setup test directories
+          mkdir -p integration_test_data
+          mkdir -p integration_results
+          
+          # Create test assignment configuration based on conftest.py patterns
+          cat > integration_test_data/test_assignment.conf << 'EOF'
+          ASSIGNMENT_NAME="Integration Test Assignment"
+          ORGANIZATION="$TEST_ORG"
+          TEMPLATE_REPO="template-repo"
+          STUDENT_REPOS="$TEST_REPOS"
+          MAX_REPOS=3
+          SECRETS_FILE="test_secrets.yaml"
+          DRY_RUN=true
+          VERBOSE=true
+          EOF
+          
+          # Create test secrets file
+          cat > integration_test_data/test_secrets.yaml << 'EOF'
+          secrets:
+            TEST_SECRET_1: "test_value_1"
+            TEST_SECRET_2: "test_value_2"
+            API_KEY: "test_api_key"
+          EOF
+          
+          end_step_timing "integration_setup"
+
+      - name: Upload Integration Test Configuration
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-config
+          path: integration_test_data/
+          retention-days: 1
+
+  full-workflow-simulation:
+    name: Full Workflow Simulation
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    needs: setup-integration-environment
+    if: contains(fromJSON('["full", "workflow-only"]'), github.event.inputs.test_scope || 'full')
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python Environment
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install poetry
+          poetry install
+
+      - name: Download Integration Test Configuration
+        uses: actions/download-artifact@v4
+        with:
+          name: integration-test-config
+          path: integration_test_data/
+
+      - name: Load Workflow Utilities
+        run: |
+          source .github/scripts/workflow_utils.sh
+          echo "Loaded workflow utilities for integration testing"
+
+      - name: Test Assignment Setup Workflow
+        run: |
+          source .github/scripts/workflow_utils.sh
+          
+          start_step_timing "assignment_setup_integration"
+          
+          # Test assignment setup with dry-run
+          echo "Testing assignment setup workflow..."
+          if poetry run classroom-pilot assignments setup \
+            --config integration_test_data/test_assignment.conf \
+            --dry-run \
+            --verbose; then
+            echo "✅ Assignment setup workflow completed successfully"
+          else
+            echo "❌ Assignment setup workflow failed"
+            exit 1
+          fi
+          
+          end_step_timing "assignment_setup_integration"
+
+      - name: Test Assignment Orchestration Workflow
+        run: |
+          source .github/scripts/workflow_utils.sh
+          
+          start_step_timing "assignment_orchestration_integration"
+          
+          # Test full assignment orchestration
+          echo "Testing assignment orchestration workflow..."
+          if poetry run classroom-pilot assignments orchestrate \
+            --config integration_test_data/test_assignment.conf \
+            --dry-run \
+            --verbose; then
+            echo "✅ Assignment orchestration workflow completed successfully"
+          else
+            echo "❌ Assignment orchestration workflow failed"
+            exit 1
+          fi
+          
+          end_step_timing "assignment_orchestration_integration"
+
+      - name: Test Repository Fetch Workflow
+        run: |
+          source .github/scripts/workflow_utils.sh
+          
+          start_step_timing "repo_fetch_integration"
+          
+          # Test repository fetch with dry-run
+          echo "Testing repository fetch workflow..."
+          if poetry run classroom-pilot repos fetch \
+            --config integration_test_data/test_assignment.conf \
+            --dry-run \
+            --verbose; then
+            echo "✅ Repository fetch workflow completed successfully"
+          else
+            echo "❌ Repository fetch workflow failed"
+            exit 1
+          fi
+          
+          end_step_timing "repo_fetch_integration"
+
+      - name: Test Secrets Management Workflow
+        run: |
+          source .github/scripts/workflow_utils.sh
+          
+          start_step_timing "secrets_management_integration"
+          
+          # Test secrets management with dry-run
+          echo "Testing secrets management workflow..."
+          if poetry run classroom-pilot secrets manage \
+            --config integration_test_data/test_assignment.conf \
+            --secrets-file integration_test_data/test_secrets.yaml \
+            --dry-run \
+            --verbose; then
+            echo "✅ Secrets management workflow completed successfully"
+          else
+            echo "❌ Secrets management workflow failed"
+            exit 1
+          fi
+          
+          end_step_timing "secrets_management_integration"
+
+      - name: Test Complete Multi-Script Workflow
+        run: |
+          source .github/scripts/workflow_utils.sh
+          
+          start_step_timing "complete_workflow_integration"
+          
+          # Test complete workflow chain: setup → orchestrate → fetch → secrets
+          echo "Testing complete multi-script workflow chain..."
+          
+          # Chain the workflows together
+          if poetry run classroom-pilot assignments setup \
+            --config integration_test_data/test_assignment.conf --dry-run && \
+           poetry run classroom-pilot assignments orchestrate \
+            --config integration_test_data/test_assignment.conf --dry-run && \
+           poetry run classroom-pilot repos fetch \
+            --config integration_test_data/test_assignment.conf --dry-run && \
+           poetry run classroom-pilot secrets manage \
+            --config integration_test_data/test_assignment.conf \
+            --secrets-file integration_test_data/test_secrets.yaml --dry-run; then
+            echo "✅ Complete multi-script workflow completed successfully"
+          else
+            echo "❌ Complete multi-script workflow failed"
+            exit 1
+          fi
+          
+          end_step_timing "complete_workflow_integration"
+
+      - name: Export Workflow Metrics
+        run: |
+          source .github/scripts/workflow_utils.sh
+          
+          # Export workflow integration metrics
+          export_performance_metrics "workflow_integration" "integration_results/workflow_metrics.json"
+
+  github-api-integration-testing:
+    name: GitHub API Integration Testing
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: setup-integration-environment
+    if: contains(fromJSON('["full", "api-only"]'), github.event.inputs.test_scope || 'full')
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python Environment
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install poetry
+          poetry install
+
+      - name: Download Integration Test Configuration
+        uses: actions/download-artifact@v4
+        with:
+          name: integration-test-config
+          path: integration_test_data/
+
+      - name: Load Workflow Utilities
+        run: |
+          source .github/scripts/workflow_utils.sh
+          echo "Loaded utilities for API integration testing"
+
+      - name: Test Repository Discovery API Integration
+        run: |
+          source .github/scripts/workflow_utils.sh
+          
+          start_step_timing "repo_discovery_api_test"
+          
+          # Test GitHub API repository discovery functionality
+          echo "Testing repository discovery API integration..."
+          
+          # Use actual GitHub API to test repository discovery (read-only operations)
+          if poetry run python -c "
+          import requests
+          import os
+          token = os.environ.get('GITHUB_TOKEN')
+          headers = {'Authorization': f'token {token}', 'Accept': 'application/vnd.github.v3+json'}
+          response = requests.get('https://api.github.com/user/repos', headers=headers, params={'per_page': 5})
+          print(f'API Response Status: {response.status_code}')
+          print(f'Rate Limit Remaining: {response.headers.get(\"X-RateLimit-Remaining\", \"Unknown\")}')
+          assert response.status_code == 200, f'API request failed with status {response.status_code}'
+          repos = response.json()
+          print(f'Successfully discovered {len(repos)} repositories')
+          "; then
+            echo "✅ Repository discovery API integration test passed"
+          else
+            echo "❌ Repository discovery API integration test failed"
+            exit 1
+          fi
+          
+          end_step_timing "repo_discovery_api_test"
+
+      - name: Test Secret Management API Integration
+        run: |
+          source .github/scripts/workflow_utils.sh
+          
+          start_step_timing "secrets_api_test"
+          
+          # Test GitHub API secrets management functionality (read-only operations)
+          echo "Testing secrets management API integration..."
+          
+          # Test API access to repository secrets (read-only)
+          if poetry run python -c "
+          import requests
+          import os
+          token = os.environ.get('GITHUB_TOKEN')
+          headers = {'Authorization': f'token {token}', 'Accept': 'application/vnd.github.v3+json'}
+          # Test accessing the current repository's secrets
+          response = requests.get('https://api.github.com/repos/${{ github.repository }}/actions/secrets', headers=headers)
+          print(f'Secrets API Response Status: {response.status_code}')
+          print(f'Rate Limit Remaining: {response.headers.get(\"X-RateLimit-Remaining\", \"Unknown\")}')
+          assert response.status_code in [200, 403], f'Unexpected API response: {response.status_code}'
+          print('✅ Secrets API access test completed')
+          "; then
+            echo "✅ Secret management API integration test passed"
+          else
+            echo "❌ Secret management API integration test failed"
+            exit 1
+          fi
+          
+          end_step_timing "secrets_api_test"
+
+      - name: Test Collaborator Management API Integration
+        run: |
+          source .github/scripts/workflow_utils.sh
+          
+          start_step_timing "collaborator_api_test"
+          
+          # Test GitHub API collaborator management functionality
+          echo "Testing collaborator management API integration..."
+          
+          # Test API access to repository collaborators (read-only)
+          if poetry run python -c "
+          import requests
+          import os
+          token = os.environ.get('GITHUB_TOKEN')
+          headers = {'Authorization': f'token {token}', 'Accept': 'application/vnd.github.v3+json'}
+          response = requests.get('https://api.github.com/repos/${{ github.repository }}/collaborators', headers=headers)
+          print(f'Collaborators API Response Status: {response.status_code}')
+          print(f'Rate Limit Remaining: {response.headers.get(\"X-RateLimit-Remaining\", \"Unknown\")}')
+          assert response.status_code in [200, 403], f'Unexpected API response: {response.status_code}'
+          if response.status_code == 200:
+            collaborators = response.json()
+            print(f'Found {len(collaborators)} collaborators')
+          print('✅ Collaborators API access test completed')
+          "; then
+            echo "✅ Collaborator management API integration test passed"
+          else
+            echo "❌ Collaborator management API integration test failed"
+            exit 1
+          fi
+          
+          end_step_timing "collaborator_api_test"
+
+      - name: Test API Rate Limiting Behavior
+        if: env.ENABLE_RATE_LIMIT_TEST == 'true'
+        run: |
+          source .github/scripts/workflow_utils.sh
+          
+          start_step_timing "rate_limit_test"
+          
+          # Test API rate limiting behavior and recovery
+          echo "Testing API rate limiting behavior..."
+          
+          if poetry run python -c "
+          import requests
+          import time
+          import os
+          token = os.environ.get('GITHUB_TOKEN')
+          headers = {'Authorization': f'token {token}', 'Accept': 'application/vnd.github.v3+json'}
+          
+          # Check current rate limit status
+          response = requests.get('https://api.github.com/rate_limit', headers=headers)
+          rate_limit_info = response.json()
+          core_remaining = rate_limit_info['resources']['core']['remaining']
+          print(f'Rate limit remaining: {core_remaining}')
+          
+          # Make a few test requests to monitor rate limiting
+          for i in range(5):
+            response = requests.get('https://api.github.com/user', headers=headers)
+            remaining = response.headers.get('X-RateLimit-Remaining', 'Unknown')
+            print(f'Request {i+1}: Status {response.status_code}, Remaining: {remaining}')
+            time.sleep(1)
+          
+          print('✅ Rate limiting behavior test completed')
+          "; then
+            echo "✅ API rate limiting test passed"
+          else
+            echo "❌ API rate limiting test failed"
+            exit 1
+          fi
+          
+          end_step_timing "rate_limit_test"
+
+      - name: Export API Integration Metrics
+        run: |
+          source .github/scripts/workflow_utils.sh
+          
+          # Export API integration metrics
+          export_performance_metrics "api_integration" "integration_results/api_metrics.json"
+
+  error-recovery-testing:
+    name: Error Recovery Testing
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    needs: setup-integration-environment
+    if: contains(fromJSON('["full"]'), env.TEST_SCOPE)
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python Environment
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install poetry
+          poetry install
+
+      - name: Download Integration Test Configuration
+        uses: actions/download-artifact@v4
+        with:
+          name: integration-test-config
+          path: integration_test_data/
+
+      - name: Load Workflow Utilities
+        run: |
+          source .github/scripts/workflow_utils.sh
+          echo "Loaded utilities for error recovery testing"
+
+      - name: Test Invalid Configuration Handling
+        run: |
+          source .github/scripts/workflow_utils.sh
+          
+          start_step_timing "invalid_config_test"
+          
+          # Create invalid configuration file
+          cat > integration_test_data/invalid_assignment.conf << 'EOF'
+          ASSIGNMENT_NAME=""
+          ORGANIZATION=""
+          TEMPLATE_REPO=""
+          STUDENT_REPOS=""
+          MAX_REPOS=invalid
+          EOF
+          
+          echo "Testing invalid configuration handling..."
+          
+          # Test that the CLI properly handles invalid configuration
+          if ! poetry run classroom-pilot assignments setup \
+            --config integration_test_data/invalid_assignment.conf \
+            --dry-run 2>/dev/null; then
+            echo "✅ Invalid configuration properly rejected"
+          else
+            echo "❌ Invalid configuration was not properly rejected"
+            exit 1
+          fi
+          
+          end_step_timing "invalid_config_test"
+
+      - name: Test Network Failure Simulation
+        run: |
+          source .github/scripts/workflow_utils.sh
+          
+          start_step_timing "network_failure_test"
+          
+          echo "Testing network failure handling..."
+          
+          # Simulate network failure by using invalid GitHub API endpoint
+          if ! poetry run python -c "
+          import requests
+          import os
+          token = os.environ.get('GITHUB_TOKEN')
+          headers = {'Authorization': f'token {token}'}
+          try:
+            response = requests.get('https://invalid-github-api.com/user', headers=headers, timeout=5)
+          except requests.exceptions.RequestException as e:
+            print(f'✅ Network failure properly handled: {type(e).__name__}')
+            exit(0)
+          print('❌ Network failure was not properly handled')
+          exit(1)
+          "; then
+            echo "✅ Network failure handling test passed"
+          else
+            echo "❌ Network failure handling test failed"
+            exit 1
+          fi
+          
+          end_step_timing "network_failure_test"
+
+      - name: Test Missing Dependencies Handling
+        run: |
+          source .github/scripts/workflow_utils.sh
+          
+          start_step_timing "missing_deps_test"
+          
+          echo "Testing missing dependencies handling..."
+          
+          # Test behavior when required tools are missing
+          # Temporarily rename a required command to simulate missing dependency
+          if command -v gh >/dev/null 2>&1; then
+            # Test that scripts handle missing 'gh' command gracefully
+            PATH="/tmp:$PATH" bash -c "
+            mkdir -p /tmp
+            echo '#!/bin/bash' > /tmp/gh
+            echo 'echo \"gh: command not found\" >&2; exit 127' >> /tmp/gh
+            chmod +x /tmp/gh
+            
+            # Test that our scripts handle missing gh command
+            if ! classroom_pilot/scripts/assignment-orchestrator.sh --config integration_test_data/test_assignment.conf --dry-run 2>/dev/null; then
+              echo '✅ Missing gh command properly handled'
+            else
+              echo '❌ Missing gh command was not properly handled'
+              exit 1
+            fi
+            "
+          else
+            echo "✅ Missing dependencies test skipped (gh not available)"
+          fi
+          
+          end_step_timing "missing_deps_test"
+
+      - name: Export Error Recovery Metrics
+        run: |
+          source .github/scripts/workflow_utils.sh
+          
+          # Export error recovery metrics
+          export_performance_metrics "error_recovery" "integration_results/error_recovery_metrics.json"
+
+  configuration-validation-testing:
+    name: Configuration Validation Testing
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: setup-integration-environment
+    if: contains(fromJSON('["full", "config-only"]'), github.event.inputs.test_scope || 'full')
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python Environment
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install poetry
+          poetry install
+
+      - name: Download Integration Test Configuration
+        uses: actions/download-artifact@v4
+        with:
+          name: integration-test-config
+          path: integration_test_data/
+
+      - name: Load Workflow Utilities
+        run: |
+          source .github/scripts/workflow_utils.sh
+          echo "Loaded utilities for configuration validation testing"
+
+      - name: Test Basic Configuration Scenarios
+        run: |
+          source .github/scripts/workflow_utils.sh
+          
+          start_step_timing "basic_config_test"
+          
+          echo "Testing basic configuration scenarios..."
+          
+          # Test minimal valid configuration
+          cat > integration_test_data/minimal_assignment.conf << 'EOF'
+          ASSIGNMENT_NAME="Minimal Test Assignment"
+          ORGANIZATION="test-org"
+          TEMPLATE_REPO="template"
+          STUDENT_REPOS="repo1,repo2"
+          MAX_REPOS=2
+          DRY_RUN=true
+          EOF
+          
+          if poetry run classroom-pilot assignments setup \
+            --config integration_test_data/minimal_assignment.conf \
+            --dry-run; then
+            echo "✅ Minimal configuration test passed"
+          else
+            echo "❌ Minimal configuration test failed"
+            exit 1
+          fi
+          
+          end_step_timing "basic_config_test"
+
+      - name: Test Advanced Configuration Scenarios
+        run: |
+          source .github/scripts/workflow_utils.sh
+          
+          start_step_timing "advanced_config_test"
+          
+          echo "Testing advanced configuration scenarios..."
+          
+          # Test advanced configuration with all options
+          cat > integration_test_data/advanced_assignment.conf << 'EOF'
+          ASSIGNMENT_NAME="Advanced Test Assignment"
+          ORGANIZATION="test-org"
+          TEMPLATE_REPO="advanced-template"
+          STUDENT_REPOS="repo1,repo2,repo3,repo4,repo5"
+          MAX_REPOS=5
+          SECRETS_FILE="advanced_secrets.yaml"
+          COLLABORATOR_PERMISSIONS="write"
+          ENABLE_ISSUES=true
+          ENABLE_WIKI=false
+          DRY_RUN=true
+          VERBOSE=true
+          EOF
+          
+          if poetry run classroom-pilot assignments setup \
+            --config integration_test_data/advanced_assignment.conf \
+            --dry-run; then
+            echo "✅ Advanced configuration test passed"
+          else
+            echo "❌ Advanced configuration test failed"
+            exit 1
+          fi
+          
+          end_step_timing "advanced_config_test"
+
+      - name: Test Edge Case Configuration Scenarios
+        run: |
+          source .github/scripts/workflow_utils.sh
+          
+          start_step_timing "edge_case_config_test"
+          
+          echo "Testing edge case configuration scenarios..."
+          
+          # Test configuration with special characters and edge cases
+          cat > integration_test_data/edge_case_assignment.conf << 'EOF'
+          ASSIGNMENT_NAME="Edge-Case_Test.Assignment!"
+          ORGANIZATION="test-org-with-dashes"
+          TEMPLATE_REPO="template_with_underscores"
+          STUDENT_REPOS="repo-1,repo_2,repo.3"
+          MAX_REPOS=3
+          DRY_RUN=true
+          EOF
+          
+          if poetry run classroom-pilot assignments setup \
+            --config integration_test_data/edge_case_assignment.conf \
+            --dry-run; then
+            echo "✅ Edge case configuration test passed"
+          else
+            echo "❌ Edge case configuration test failed"
+            exit 1
+          fi
+          
+          end_step_timing "edge_case_config_test"
+
+      - name: Export Configuration Validation Metrics
+        run: |
+          source .github/scripts/workflow_utils.sh
+          
+          # Export configuration validation metrics
+          export_performance_metrics "config_validation" "integration_results/config_metrics.json"
+
+  cross-platform-compatibility:
+    name: Cross-Platform Compatibility Testing
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    needs: setup-integration-environment
+    if: contains(fromJSON('["full"]'), env.TEST_SCOPE)
+    strategy:
+      matrix:
+        os: [ubuntu-latest, ubuntu-20.04]
+        shell: [bash, sh]
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python Environment
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install poetry
+          poetry install
+
+      - name: Download Integration Test Configuration
+        uses: actions/download-artifact@v4
+        with:
+          name: integration-test-config
+          path: integration_test_data/
+
+      - name: Load Workflow Utilities
+        run: |
+          source .github/scripts/workflow_utils.sh
+          echo "Loaded utilities for cross-platform testing on ${{ matrix.os }} with ${{ matrix.shell }}"
+
+      - name: Test Shell Script Compatibility
+        run: |
+          source .github/scripts/workflow_utils.sh
+          
+          start_step_timing "shell_compatibility_test"
+          
+          echo "Testing shell script compatibility on ${{ matrix.os }} with ${{ matrix.shell }}..."
+          
+          # Test that our shell scripts work across different shells
+          if ${{ matrix.shell }} classroom_pilot/scripts/assignment-orchestrator.sh \
+            --config integration_test_data/test_assignment.conf \
+            --dry-run; then
+            echo "✅ Shell script compatibility test passed"
+          else
+            echo "❌ Shell script compatibility test failed"
+            exit 1
+          fi
+          
+          end_step_timing "shell_compatibility_test"
+
+      - name: Test CLI Cross-Platform Compatibility
+        run: |
+          source .github/scripts/workflow_utils.sh
+          
+          start_step_timing "cli_platform_test"
+          
+          echo "Testing CLI cross-platform compatibility..."
+          
+          # Test CLI commands across platforms
+          if poetry run classroom-pilot assignments setup \
+            --config integration_test_data/test_assignment.conf \
+            --dry-run; then
+            echo "✅ CLI cross-platform compatibility test passed"
+          else
+            echo "❌ CLI cross-platform compatibility test failed"
+            exit 1
+          fi
+          
+          end_step_timing "cli_platform_test"
+
+      - name: Export Cross-Platform Metrics
+        run: |
+          source .github/scripts/workflow_utils.sh
+          
+          # Export cross-platform compatibility metrics
+          export_performance_metrics "cross_platform_${{ matrix.os }}_${{ matrix.shell }}" \
+            "integration_results/cross_platform_metrics.json"
+
+  integration-test-reporting:
+    name: Integration Test Reporting
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [
+      full-workflow-simulation,
+      github-api-integration-testing,
+      error-recovery-testing,
+      configuration-validation-testing,
+      cross-platform-compatibility
+    ]
+    if: always()
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Download All Integration Test Results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: 'integration-*'
+          path: all_integration_results/
+          merge-multiple: true
+
+      - name: Load Workflow Utilities
+        run: |
+          source .github/scripts/workflow_utils.sh
+          echo "Loaded utilities for integration test reporting"
+
+      - name: Generate Integration Test Report
+        run: |
+          source .github/scripts/workflow_utils.sh
+          
+          start_step_timing "integration_report_generation"
+          
+          # Create comprehensive integration test report
+          cat > integration_test_report.md << 'EOF'
+          # Integration Test Results Summary
+          
+          ## Test Execution Overview
+          - **Test Scope**: ${{ env.TEST_SCOPE }}
+          - **Execution Time**: $(date)
+          - **Trigger**: ${{ github.event_name }}
+          
+          ## Test Coverage Summary
+          
+          ### ✅ Completed Test Categories
+          - Full Workflow Simulation
+          - GitHub API Integration Testing  
+          - Error Recovery Testing
+          - Configuration Validation Testing
+          - Cross-Platform Compatibility Testing
+          
+          ### 📊 Test Results
+          
+          | Test Category | Status | Details |
+          |---------------|--------|---------|
+          | Workflow Simulation | ${{ needs.full-workflow-simulation.result }} | End-to-end workflow testing |
+          | API Integration | ${{ needs.github-api-integration-testing.result }} | GitHub API functionality |
+          | Error Recovery | ${{ needs.error-recovery-testing.result }} | Error handling validation |
+          | Config Validation | ${{ needs.configuration-validation-testing.result }} | Configuration scenarios |
+          | Cross-Platform | ${{ needs.cross-platform-compatibility.result }} | Platform compatibility |
+          
+          ### 📈 Integration Metrics
+          
+          See attached artifacts for detailed performance and timing metrics.
+          
+          EOF
+          
+          # Create step summary with integration test results
+          create_step_summary "integration-testing" \
+            "Integration Testing Results" \
+            "integration_test_report.md"
+          
+          end_step_timing "integration_report_generation"
+
+      - name: Export Final Integration Metrics
+        run: |
+          source .github/scripts/workflow_utils.sh
+          
+          # Export final integration test metrics
+          export_performance_metrics "integration_testing" "all_integration_results/final_metrics.json"
+
+      - name: Upload Integration Test Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: integration-test-final-report
+          path: |
+            integration_test_report.md
+            all_integration_results/
+          retention-days: 30
