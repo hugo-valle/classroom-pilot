@@ -162,22 +162,17 @@ jobs:
         unzip -l dist/*.whl | head -20
         
     - name: 🚀 Publish to PyPI
-      env:
-        POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_API_TOKEN }}
-      run: |
-        echo "🚀 Publishing classroom-pilot v${{ env.VERSION }} to PyPI..."
-        poetry publish
-        echo "✅ Successfully published to PyPI!"
+      uses: pypa/gh-action-pypi-publish@v1.10.3
         
     - name: 📋 Create Release Notes
       id: release_notes
       run: |
         cat > release_notes.md << 'EOF'
-        ## 🎉 classroom-pilot v${{ env.VERSION }}
+        ## 🎉 classroom-pilot v${{ steps.version.outputs.version }}
         
         ### 📦 Installation
         ```bash
-        pip install classroom-pilot==${{ env.VERSION }}
+        pip install classroom-pilot==${{ steps.version.outputs.version }}
         ```
         
         ### 🚀 What's New
@@ -211,8 +206,7 @@ jobs:
         
     - name: 📢 Post-publish verification
       run: |
-        echo "⏳ Waiting for PyPI propagation..."
-        sleep 60  # Increased wait time
+        source .github/scripts/workflow_utils.sh
         
         echo "🔍 Verifying package availability..."
         # Try multiple times with increasing delays
@@ -236,10 +230,10 @@ jobs:
         echo "📦 Package: https://pypi.org/project/classroom-pilot/${{ env.VERSION }}/"
         
     - name: 💬 Notify on failure
-      if: failure()
+      if: failure() && !cancelled()
       run: |
-        echo "❌ Publication failed for classroom-pilot v$VERSION"
-        echo "Please check the workflow logs and try again."
+        source .github/scripts/workflow_utils.sh
+        log_error "❌ Publication failed for classroom-pilot v${VERSION:-unknown}"
         
   # Job 3: Update documentation
   update-docs:
