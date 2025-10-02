@@ -1,0 +1,141 @@
+# GitHub Labels Configuration for Classroom Pilot
+# This file defines all labels used in issue and pull request templates
+# Use GitHub CLI to sync: gh label sync --file .github/labels.yml
+
+# Issue Type Labels (from ISSUE_TEMPLATE)
+- name: "enhancement"
+  description: "New feature or request"
+  color: "a2eeef"
+
+- name: "feature"
+  description: "A new feature"
+  color: "0075ca"
+
+- name: "bug"
+  description: "Something isn't working"
+  color: "d73a4a"
+
+- name: "hotfix"
+  description: "Critical issue requiring immediate attention"
+  color: "b60205"
+
+- name: "critical"
+  description: "Critical priority issue"
+  color: "b60205"
+
+- name: "urgent"
+  description: "Urgent priority issue"
+  color: "d93f0b"
+
+- name: "documentation"
+  description: "Improvements or additions to documentation"
+  color: "0075ca"
+
+- name: "maintenance"
+  description: "Regular maintenance and upkeep"
+  color: "fef2c0"
+
+- name: "chore"
+  description: "Routine tasks and maintenance"
+  color: "fef2c0"
+
+- name: "release"
+  description: "Release preparation and management"
+  color: "0e8a16"
+
+# Priority Labels (from hotfix template)
+- name: "P0"
+  description: "Critical priority - System down or unusable"
+  color: "b60205"
+
+- name: "P1"
+  description: "High priority - Major functionality broken"
+  color: "d93f0b"
+
+- name: "P2"
+  description: "Medium priority - Important feature broken"
+  color: "fbca04"
+
+- name: "P3"
+  description: "Low priority - Minor issues"
+  color: "0e8a16"
+
+# Security Labels (from workflows)
+- name: "security"
+  description: "Security-related issues"
+  color: "d73a4a"
+
+- name: "vulnerability"
+  description: "Security vulnerability"
+  color: "b60205"
+
+- name: "high-priority"
+  description: "High priority item"
+  color: "d93f0b"
+
+# Workflow Labels
+- name: "dependencies"
+  description: "Pull requests that update a dependency file"
+  color: "0366d6"
+
+- name: "duplicate"
+  description: "This issue or pull request already exists"
+  color: "cfd3d7"
+
+- name: "good first issue"
+  description: "Good for newcomers"
+  color: "7057ff"
+
+- name: "help wanted"
+  description: "Extra attention is needed"
+  color: "008672"
+
+- name: "invalid"
+  description: "This doesn't seem right"
+  color: "e4e669"
+
+- name: "question"
+  description: "Further information is requested"
+  color: "d876e3"
+
+- name: "wontfix"
+  description: "This will not be worked on"
+  color: "ffffff"
+
+# Component Labels
+- name: "cli"
+  description: "Command-line interface related"
+  color: "c5def5"
+
+- name: "api"
+  description: "API related changes"
+  color: "c5def5"
+
+- name: "testing"
+  description: "Testing related changes"
+  color: "c5def5"
+
+- name: "automation"
+  description: "Automation and workflows"
+  color: "c5def5"
+
+- name: "config"
+  description: "Configuration changes"
+  color: "c5def5"
+
+# Status Labels
+- name: "ready for review"
+  description: "Ready for code review"
+  color: "0e8a16"
+
+- name: "work in progress"
+  description: "Work in progress"
+  color: "fbca04"
+
+- name: "blocked"
+  description: "Blocked by external dependency"
+  color: "d73a4a"
+
+- name: "needs more info"
+  description: "More information needed from author"
+  color: "d876e3"
