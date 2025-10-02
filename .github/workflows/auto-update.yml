@@ -43,47 +43,12 @@ jobs:
           echo "SECURITY_CHECK_START=$(date +%s)" >> $GITHUB_ENV
           print_message "info" "Starting security monitoring check"
 
-      - name: � Check for security vulnerabilities
+      - name: Check for security vulnerabilities
         id: security-check
-        run: |
-          source .github/scripts/workflow_utils.sh
-          print_message "step" "Checking for security advisories and vulnerable dependencies"
-          
-          # Initialize counters
-          advisories_count=0
-          vulnerable_deps=0
-          updates_needed=false
-          
-          # Basic security checks - placeholder for future enhancement
-          # In a real implementation, this would check for:
-          # - GitHub security advisories
-          # - Vulnerable Python dependencies
-          # - Outdated GitHub Actions
-          
-          # Set outputs
-          echo "advisories=$advisories_count" >> $GITHUB_OUTPUT
-          echo "vulnerabledeps=$vulnerable_deps" >> $GITHUB_OUTPUT
-          echo "updatesneeded=$updates_needed" >> $GITHUB_OUTPUT
-          
-          print_message "success" "Security check completed - Advisories: $advisories_count, Vulnerable deps: $vulnerable_deps"
+        run: ./.github/scripts/check_security_vulnerabilities.sh
 
       - name: 📊 Generate security monitoring summary
-        run: |
-          source .github/scripts/workflow_utils.sh
-          step_duration=$(report_step_timing "Security Monitoring" "$SECURITY_CHECK_START")
-          
-          advisories="${{ steps.security-check.outputs.advisories }}"
-          vulnerable_deps="${{ steps.security-check.outputs.vulnerabledeps }}"
-          updates_needed="${{ steps.security-check.outputs.updatesneeded }}"
-          
-          security_summary="| Security Metric | Count | Status |\n"
-          security_summary+="| --- | --- | --- |\n"
-          security_summary+="| Security Advisories | ${advisories} | $([ "$advisories" -eq 0 ] && echo "✅" || echo "⚠️") |\n"
-          security_summary+="| Vulnerable Dependencies | ${vulnerable_deps} | $([ "$vulnerable_deps" -eq 0 ] && echo "✅" || echo "⚠️") |\n"
-          security_summary+="| Security Updates Needed | $([ "$updates_needed" = "true" ] && echo "Yes" || echo "No") | $([ "$updates_needed" = "true" ] && echo "⚠️" || echo "✅") |\n"
-          security_summary+="| **Monitoring Duration** | **${step_duration}s** | ✅ |"
-          
-          create_step_summary "Security Monitoring" "$([ "$updates_needed" = "true" ] && echo "warning" || echo "success")" "$security_summary"
+        run: ./.github/scripts/generate_security_summary.sh "$SECURITY_CHECK_START" "${{ steps.security-check.outputs.advisories }}" "${{ steps.security-check.outputs.vulnerabledeps }}" "${{ steps.security-check.outputs.updatesneeded }}"
 
   update-dependencies:
     name: �📦 Update Dependencies
@@ -152,113 +117,13 @@ jobs:
           print_message "info" "Starting enhanced repository health check"
 
       - name: Check repository health
-        run: |
-          source .github/scripts/workflow_utils.sh
-          if [[ -f "./.github/scripts/repository_health_check.sh" ]]; then
-            print_message "step" "Running repository health check"
-            ./.github/scripts/repository_health_check.sh
-          else
-            print_message "warning" "Repository health check script not found"
-            print_message "info" "Running basic health checks"
-            
-            # Check for required files
-            required_files=("README.md" "LICENSE" "pyproject.toml")
-            missing_files=()
-            
-            for file in "${required_files[@]}"; do
-              if [[ ! -f "$file" ]]; then
-                missing_files+=("$file")
-              fi
-            done
-            
-            if [[ ${#missing_files[@]} -gt 0 ]]; then
-              print_message "warning" "Missing required files: ${missing_files[*]}"
-            else
-              print_message "success" "All required files present"
-            fi
-          fi
+        run: ./.github/scripts/repository_health_check.sh
 
       - name: 🛡️ Security health metrics
-        run: |
-          source .github/scripts/workflow_utils.sh
-          print_message "step" "Collecting security health metrics"
-          
-          # Basic security configuration checks
-          security_checks=0
-          
-          # Check for security workflows
-          if ls .github/workflows/*security* >/dev/null 2>&1; then
-            security_checks=$((security_checks + 1))
-            print_message "success" "✅ Security workflows found"
-          else
-            print_message "warning" "❌ No security workflows detected"
-          fi
-          
-          # Check for CI workflows
-          if [[ -f ".github/workflows/ci.yml" ]]; then
-            security_checks=$((security_checks + 1))
-            print_message "success" "✅ CI workflow present"
-          else
-            print_message "warning" "❌ CI workflow missing"
-          fi
-          
-          print_message "info" "Security configuration checks passed: $security_checks"
+        run: ./.github/scripts/collect_security_health_metrics.sh
 
       - name: 📊 Generate comprehensive health summary
-        run: |
-          source .github/scripts/workflow_utils.sh
-          step_duration=$(report_step_timing "Enhanced Health Check" "$HEALTH_CHECK_START")
-          
-          # Load workflow status aggregation utilities
-          if [[ -f ".github/scripts/workflow_status_aggregator.sh" ]]; then
-            chmod +x .github/scripts/workflow_status_aggregator.sh
-            source .github/scripts/workflow_status_aggregator.sh
-            
-            # Collect workflow status for auto-update
-            collect_workflow_status "auto-update" "enhanced-health-check" || true
-            
-            # Generate workflow status dashboard
-            generate_workflow_dashboard "auto_update_health_dashboard.md" || true
-            
-            # Track workflow trends
-            track_workflow_trends "auto-update" || true
-          fi
-          
-          # Collect metrics from security monitoring
-          advisories="${{ needs.security-monitoring.outputs.advisories }}"
-          vulnerable_deps="${{ needs.security-monitoring.outputs.vulnerabledeps }}"
-          updates_needed="${{ needs.security-monitoring.outputs.updatesneeded }}"
-          
-          # Overall health assessment
-          overall_health="🟢 Healthy"
-          if [[ $vulnerable_deps -gt 0 ]] || [[ "$updates_needed" = "true" ]]; then
-            overall_health="🟡 Minor Issues"
-          fi
-          
-          health_summary="# 🏥 Repository Health Report\n\n"
-          health_summary+="## 📊 Overall Assessment: $overall_health\n\n"
-          health_summary+="| Health Category | Status | Details |\n"
-          health_summary+="| --- | --- | --- |\n"
-          health_summary+="| **Security** | $([ $vulnerable_deps -eq 0 ] && echo "🟢 Secure" || echo "🟡 Needs Attention") | $vulnerable_deps vulnerable dependencies |\n"
-          health_summary+="| **Dependencies** | $([ "$updates_needed" = "true" ] && echo "🟡 Updates Available" || echo "🟢 Up to Date") | Security updates $([ "$updates_needed" = "true" ] && echo "needed" || echo "not needed") |\n"
-          health_summary+="| **Configuration** | 🟢 Good | Workflows and policies in place |\n"
-          health_summary+="| **Performance** | 📈 Monitored | Workflow trends tracked |\n"
-          health_summary+="| **Duration** | ⏱️ ${step_duration}s | Health check completed |\n\n"
-          
-          # Include workflow performance metrics if available
-          if [[ -f "auto_update_health_dashboard.md" ]]; then
-            health_summary+="\n## Workflow Performance Metrics\n\n"
-            health_summary+="$(cat auto_update_health_dashboard.md | grep -A 10 '### Workflow Metrics' || echo 'No detailed metrics available')\n\n"
-          fi
-          
-          health_summary+="---\n_Health check completed on $(date -u)_"
-          
-          create_step_summary "Enhanced Repository Health Check" "$([ "$overall_health" = "🟢 Healthy" ] && echo "success" || echo "warning")" "$health_summary"
-          
-          # Export final health check metrics
-          export_performance_metrics "enhanced_health_check" "/tmp/workflow_metrics.json"
-          
-          print_message "$([ "$overall_health" = "🟢 Healthy" ] && echo "success" || echo "warning")" "Repository health check completed - Status: $overall_health"
+        run: ./.github/scripts/generate_comprehensive_health_summary.sh "$HEALTH_CHECK_START" "${{ needs.security-monitoring.outputs.advisories }}" "${{ needs.security-monitoring.outputs.vulnerabledeps }}" "${{ needs.security-monitoring.outputs.updatesneeded }}"
 
       - name: 📤 Upload workflow status artifacts
         uses: actions/upload-artifact@v4
