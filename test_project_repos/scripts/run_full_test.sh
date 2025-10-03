@@ -354,9 +354,11 @@ run_integration_tests() {
     if [ "$TEST_ENV_ACTIVATED" = true ]; then
         log_info "Using already activated test environment: $TEST_ENV_NAME"
         run_test "Basic Integration" "$SCRIPT_DIR/test_integration.sh"
+        run_test "Secrets Management" "$SCRIPT_DIR/test_secrets_management.sh"
     else
         # Fallback to wrapper script if environment isn't activated
         run_test "Basic Integration" "$SCRIPT_DIR/run_integration_wrapper.sh"
+        run_test "Secrets Management" "$SCRIPT_DIR/test_secrets_management.sh"
     fi
 }
 

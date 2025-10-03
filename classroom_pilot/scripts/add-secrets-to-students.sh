@@ -459,14 +459,22 @@ process_single_student() {
 
 # Main function
 main() {
-    # Determine the assignment repository root when script is in tools submodule
+    # Determine the assignment repository root
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    if [[ "$SCRIPT_DIR" == */tools/scripts ]]; then
+    
+    # Check if we're being called from the CLI with a specific working directory
+    # If assignment.conf exists in current directory, use current directory as root
+    if [ -f "$(pwd)/assignment.conf" ]; then
+        ASSIGNMENT_ROOT="$(pwd)"
+        echo "[INFO] Using current working directory as assignment root: $ASSIGNMENT_ROOT"
+    elif [[ "$SCRIPT_DIR" == */tools/scripts ]]; then
         # Running from tools submodule - assignment root is two levels up
         ASSIGNMENT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+        echo "[INFO] Using tools submodule assignment root: $ASSIGNMENT_ROOT"
     else
         # Running from legacy scripts directory - assignment root is two levels up
         ASSIGNMENT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+        echo "[INFO] Using legacy scripts assignment root: $ASSIGNMENT_ROOT"
     fi
     
     # Load assignment configuration if available

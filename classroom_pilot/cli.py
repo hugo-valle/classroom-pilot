@@ -17,6 +17,7 @@ from .utils import setup_logging, get_logger
 from .assignments.setup import AssignmentSetup
 from .bash_wrapper import BashWrapper
 from .config import ConfigLoader
+from .config.global_config import load_global_config, get_global_config, is_config_loaded
 
 # Initialize logger
 logger = get_logger("cli")
@@ -45,12 +46,40 @@ def main(
         "--version",
         callback=version_callback,
         help="Show the application version and exit."
+    ),
+    config_file: str = typer.Option(
+        "assignment.conf",
+        "--config",
+        help="Configuration file to load (default: assignment.conf)"
+    ),
+    assignment_root: str = typer.Option(
+        None,
+        "--assignment-root",
+        help="Root directory containing assignment.conf file"
     )
 ):
     """
     Classroom Pilot - Comprehensive automation suite for managing GitHub Classroom assignments.
+
+    This tool automatically loads configuration from assignment.conf file and makes
+    all configuration variables globally available to all commands.
     """
-    pass
+    # Set up logging first
+    setup_logging()
+
+    # Try to load global configuration (don't fail if not found, some commands create it)
+    try:
+        assignment_root_path = Path(
+            assignment_root) if assignment_root else None
+        load_global_config(config_file, assignment_root_path)
+        logger.info("✅ Global configuration loaded and ready")
+    except FileNotFoundError:
+        # Config file not found - this is OK for commands like 'assignments setup'
+        logger.debug(
+            f"Configuration file {config_file} not found - will be created by setup command")
+    except Exception as e:
+        logger.warning(f"Failed to load configuration: {e}")
+        logger.info("Some commands may not work properly without configuration")
 
 
 # Create subcommand groups
@@ -428,38 +457,82 @@ def repos_cycle_collaborator(
 # Secret Commands
 @secrets_app.command("add")
 def secrets_add(
+    assignment_root: str = typer.Option(
+        None, "--assignment-root", "-r", help="Path to assignment template repository root directory"),
     dry_run: bool = typer.Option(
         False, "--dry-run", help="Show what would be done without executing"),
     verbose: bool = typer.Option(
         False, "--verbose", "-v", help="Enable verbose output"),
-    config_file: str = typer.Option(
-        "assignment.conf", "--config", "-c", help="Configuration file path")
+    repo_urls: str = typer.Option(
+        None, "--repos", help="Comma-separated list of repository URLs to process")
 ):
     """
-    Add or update secrets in student repositories.
+    Add or update secrets in student repositories using global configuration.
 
     This function manages the process of adding or updating secrets in student repositories
-    based on the provided configuration file. It supports dry-run and verbose modes for
-    testing and debugging purposes.
+    based on the global configuration loaded from assignment.conf. It supports dry-run and
+    verbose modes for testing and debugging purposes.
+
+    The command uses the globally loaded configuration, which contains all necessary
+    settings including SECRETS_CONFIG, GITHUB_ORGANIZATION, and INSTRUCTOR_TOKEN_FILE.
 
     Args:
+        assignment_root (str, optional): Path to assignment template repository root. 
+                                       If not provided, uses current directory.
         dry_run (bool): If True, displays the actions that would be performed without executing them.
         verbose (bool): If True, enables verbose logging output.
-        config_file (str): Path to the configuration file specifying repository and secret details.
+        repo_urls (str, optional): Comma-separated list of repository URLs. If not provided,
+                                  auto-discovery will be attempted (when implemented).
 
     Raises:
         typer.Exit: Exits with code 1 if secret management fails.
     """
+    from .secrets.github_secrets import GitHubSecretsManager
+
     setup_logging(verbose)
-    logger.info("Adding secrets to student repositories")
+    logger.info(
+        "Adding secrets to student repositories using global configuration")
 
-    # Use bash wrapper for now - TODO: migrate to pure Python
-    config = ConfigLoader(Path(config_file)).load()
-    wrapper = BashWrapper(config, dry_run=dry_run, verbose=verbose)
+    # Check if global configuration is loaded
+    global_config = get_global_config()
+    if not global_config:
+        logger.error("Global configuration not loaded")
+        logger.error(
+            "Please ensure you're running from a directory with assignment.conf")
+        logger.error(
+            "Or use --assignment-root to specify the assignment directory")
+        raise typer.Exit(code=1)
 
-    success = wrapper.add_secrets_to_students()
-    if not success:
-        logger.error("Secret management failed")
+    # Validate secrets configuration
+    if not global_config.secrets_config:
+        logger.error("No secrets configuration found in assignment.conf")
+        logger.error(
+            "Please configure SECRETS_CONFIG in your assignment.conf file")
+        raise typer.Exit(code=1)
+
+    # Parse repository URLs if provided
+    target_repos = None
+    if repo_urls:
+        target_repos = [url.strip()
+                        for url in repo_urls.split(',') if url.strip()]
+        logger.info(f"Processing {len(target_repos)} specified repositories")
+
+    # Create secrets manager with global configuration
+    try:
+        secrets_manager = GitHubSecretsManager(dry_run=dry_run)
+
+        # Add secrets using global configuration
+        success = secrets_manager.add_secrets_from_global_config(
+            repo_urls=target_repos)
+
+        if not success:
+            logger.error("Secret management failed")
+            raise typer.Exit(code=1)
+
+        logger.info("✅ Secret management completed successfully")
+
+    except Exception as e:
+        logger.error(f"Failed to initialize secrets manager: {e}")
         raise typer.Exit(code=1)
 
 
