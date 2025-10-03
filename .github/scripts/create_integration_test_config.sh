@@ -15,49 +15,76 @@ case "$CONFIG_TYPE" in
     "basic")
         print_message "step" "Creating basic test configuration"
         cat > "$OUTPUT_DIR/test_assignment.conf" << 'EOF'
-ASSIGNMENT_NAME="Test Assignment"
-ORGANIZATION="test-org"
-TEMPLATE_REPO="test-template"
-STUDENT_REPOS="repo1,repo2,repo3"
-MAX_REPOS=3
+# Basic test assignment configuration
+CLASSROOM_URL="https://classroom.github.com/classrooms/123456/assignments/test-assignment"
+TEMPLATE_REPO_URL="https://github.com/test-org/assignment-template"
+GITHUB_ORGANIZATION="test-org"
+ASSIGNMENT_NAME="test-assignment"
+ASSIGNMENT_FILE="assignment.ipynb"
+
+# Optional settings for testing
+SECRETS_LIST="API_KEY,DATABASE_URL"
+EXCLUDE_REPOS="template,example"
 DRY_RUN=true
 EOF
         ;;
     "minimal")
         print_message "step" "Creating minimal test configuration"
         cat > "$OUTPUT_DIR/minimal_assignment.conf" << 'EOF'
-ASSIGNMENT_NAME="Minimal Test Assignment"
-ORGANIZATION="test-org"
-TEMPLATE_REPO="template"
-STUDENT_REPOS="repo1,repo2"
-MAX_REPOS=2
-DRY_RUN=true
+# Minimal test assignment configuration
+CLASSROOM_URL="https://classroom.github.com/classrooms/123456/assignments/minimal-test"
+TEMPLATE_REPO_URL="https://github.com/test-org/minimal-template"
+GITHUB_ORGANIZATION="test-org"
+ASSIGNMENT_NAME="minimal-test"
+ASSIGNMENT_FILE="homework.py"
 EOF
         ;;
     "advanced")
         print_message "step" "Creating advanced test configuration"
         cat > "$OUTPUT_DIR/advanced_assignment.conf" << 'EOF'
-ASSIGNMENT_NAME="Advanced Test Assignment"
-ORGANIZATION="test-org"
-TEMPLATE_REPO="advanced-template"
-STUDENT_REPOS="repo1,repo2,repo3,repo4,repo5"
-MAX_REPOS=5
-SECRETS_FILE="advanced_secrets.yaml"
-COLLABORATOR_PERMISSIONS="write"
-ENABLE_ISSUES=true
-ENABLE_WIKI=false
+# Advanced test assignment configuration with all options
+CLASSROOM_URL="https://classroom.github.com/classrooms/123456/assignments/advanced-test"
+TEMPLATE_REPO_URL="https://github.com/test-org/advanced-template"
+GITHUB_ORGANIZATION="test-org"
+ASSIGNMENT_NAME="advanced-test"
+ASSIGNMENT_FILE="lab_notebook.ipynb"
+
+# Advanced features
+SECRETS_LIST="API_KEY,DATABASE_URL,SECRET_TOKEN,THIRD_PARTY_KEY"
+EXCLUDE_REPOS="template,example,demo,instructor-solution"
+INSTRUCTOR_REPOS="instructor-advanced-solution"
+MAX_REPOS=100
+SECRET_MAX_AGE_DAYS=90
+SECRET_FORCE_UPDATE=false
+
+# Workflow control
+STEP_SYNC_TEMPLATE=true
+STEP_DISCOVER_REPOS=true
+STEP_MANAGE_SECRETS=true
+STEP_ASSIST_STUDENTS=false
+STEP_CYCLE_COLLABORATORS=false
+
+# Output settings
+OUTPUT_DIR="advanced_scripts"
+STUDENT_REPOS_FILE="advanced-student-repos.txt"
 DRY_RUN=true
-VERBOSE=true
 EOF
         ;;
     "edge-case")
         print_message "step" "Creating edge case test configuration"
         cat > "$OUTPUT_DIR/edge_case_assignment.conf" << 'EOF'
-ASSIGNMENT_NAME="Edge-Case_Test.Assignment!"
-ORGANIZATION="test-org-with-dashes"
-TEMPLATE_REPO="template_with_underscores"
-STUDENT_REPOS="repo-1,repo_2,repo.3"
-MAX_REPOS=3
+# Edge case test assignment configuration
+CLASSROOM_URL="https://classroom.github.com/classrooms/999999/assignments/edge-case-test"
+TEMPLATE_REPO_URL="https://github.com/edge-case-org/special-chars-template"
+GITHUB_ORGANIZATION="edge-case-org"
+ASSIGNMENT_NAME="edge-case-test"
+ASSIGNMENT_FILE="special_assignment.md"
+
+# Edge case values
+SECRETS_LIST=""
+EXCLUDE_REPOS=""
+MAX_REPOS=1
+SECRET_MAX_AGE_DAYS=1
 DRY_RUN=true
 EOF
         ;;
