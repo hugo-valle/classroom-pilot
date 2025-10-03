@@ -21,11 +21,37 @@ from .config import ConfigLoader
 # Initialize logger
 logger = get_logger("cli")
 
+
+def version_callback(value: bool):
+    """Callback to handle --version flag."""
+    if value:
+        typer.echo("Classroom Pilot v3.1.0a2")
+        typer.echo("Modular Python CLI for GitHub Classroom automation")
+        typer.echo("https://github.com/hugo-valle/classroom-pilot")
+        raise typer.Exit()
+
+
 # Create the main Typer application
 app = typer.Typer(
     help="Classroom Pilot - Comprehensive automation suite for managing GitHub Classroom assignments.",
     no_args_is_help=True
 )
+
+
+@app.callback()
+def main(
+    version: bool = typer.Option(
+        False,
+        "--version",
+        callback=version_callback,
+        help="Show the application version and exit."
+    )
+):
+    """
+    Classroom Pilot - Comprehensive automation suite for managing GitHub Classroom assignments.
+    """
+    pass
+
 
 # Create subcommand groups
 assignments_app = typer.Typer(
@@ -73,6 +99,77 @@ def assignment_setup():
 
     setup = AssignmentSetup()
     setup.run_wizard()
+
+
+@assignments_app.command("validate-config")
+def assignment_validate_config(
+    config_file: str = typer.Option(
+        "assignment.conf", "--config-file", "-c", help="Configuration file path to validate"
+    ),
+    verbose: bool = typer.Option(
+        False, "--verbose", "-v", help="Enable verbose output"
+    )
+):
+    """
+    Validate assignment configuration file.
+
+    This command validates the structure and content of an assignment configuration 
+    file, checking for required fields, valid URLs, proper formatting, and other
+    configuration requirements.
+
+    The validation includes:
+    - Required field presence checks
+    - GitHub URL format validation
+    - Organization name validation  
+    - Assignment name validation
+    - File path validation
+
+    Example:
+        $ classroom-pilot assignments validate-config
+        $ classroom-pilot assignments validate-config --config-file custom.conf
+    """
+    setup_logging(verbose=verbose)
+    logger.info(f"Validating configuration file: {config_file}")
+
+    try:
+        from .config import ConfigLoader, ConfigValidator
+
+        # Load configuration
+        config_path = Path(config_file)
+        if not config_path.exists():
+            typer.echo(
+                f"❌ Configuration file not found: {config_file}", err=True)
+            raise typer.Exit(code=1)
+
+        loader = ConfigLoader(config_path)
+        config = loader.load()
+
+        if verbose:
+            typer.echo(f"📋 Loaded configuration from: {config_file}")
+            typer.echo(f"📊 Configuration contains {len(config)} entries")
+
+        # Validate configuration
+        validator = ConfigValidator()
+        is_valid, errors = validator.validate_full_config(config)
+
+        if is_valid:
+            typer.echo(f"✅ Configuration file is valid: {config_file}")
+            if verbose:
+                typer.echo("📝 Configuration details:")
+                for key, value in config.items():
+                    typer.echo(f"  {key}: {value}")
+        else:
+            typer.echo(
+                f"❌ Configuration validation failed: {config_file}", err=True)
+            typer.echo("📋 Validation errors:")
+            for error in errors:
+                typer.echo(f"  • {error}", err=True)
+            raise typer.Exit(code=1)
+
+    except Exception as e:
+        logger.error(f"Configuration validation failed: {e}")
+        typer.echo(f"❌ Error validating configuration: {e}", err=True)
+        raise typer.Exit(code=1)
 
 
 @assignments_app.command("orchestrate")
@@ -486,7 +583,7 @@ def version():
 
     This function prints the version number, a brief description, and the project's GitHub URL to the console.
     """
-    typer.echo("Classroom Pilot v3.1.0a1")
+    typer.echo("Classroom Pilot v3.1.0a2")
     typer.echo("Modular Python CLI for GitHub Classroom automation")
     typer.echo("https://github.com/hugo-valle/classroom-pilot")
 
