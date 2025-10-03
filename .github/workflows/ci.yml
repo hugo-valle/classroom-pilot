@@ -139,6 +139,9 @@ jobs:
           # Calculate step timing
           step_duration=$(report_step_timing "Test Scripts (${{ matrix.shell }})" "$STEP_START_TIME")
           
+          # Export performance metrics for aggregation
+          export_performance_metrics "test_scripts_${{ matrix.shell }}" "/tmp/workflow_metrics.json"
+          
           # Create comprehensive summary
           if [ "${{ job.status }}" = "success" ]; then
             create_step_summary "Test Scripts (${{ matrix.shell }})" "success" "| Shell | ${{ matrix.shell }} |\n| Duration | ${step_duration}s |"
@@ -207,6 +210,9 @@ jobs:
           source .github/scripts/workflow_utils.sh
           step_duration=$(report_step_timing "Lint & Code Quality" "$STEP_START_TIME")
           
+          # Export performance metrics for aggregation
+          export_performance_metrics "lint_code_quality" "/tmp/workflow_metrics.json"
+          
           if [ "${{ job.status }}" = "success" ]; then
             create_step_summary "Lint & Code Quality" "success" "| Tool | Shellcheck |\n| Duration | ${step_duration}s |"
           else
@@ -260,10 +266,8 @@ jobs:
 
       - name: 📦 Export Poetry dependencies for scanning
         run: |
-          source .github/scripts/workflow_utils.sh
-          print_message "step" "Exporting Poetry dependencies"
-          poetry export -f requirements.txt --without-hashes -o requirements.txt
-          print_message "success" "Dependencies exported to requirements.txt"
+          chmod +x .github/scripts/export_poetry_dependencies.sh
+          .github/scripts/export_poetry_dependencies.sh
 
       - name: 🔧 Install jq
         run: sudo apt-get update && sudo apt-get install -y jq
@@ -344,6 +348,9 @@ jobs:
         run: |
           source .github/scripts/workflow_utils.sh
           step_duration=$(report_step_timing "Security Scan" "$STEP_START_TIME")
+          
+          # Export performance metrics for aggregation
+          export_performance_metrics "security_scan" "/tmp/workflow_metrics.json"
           
           # Count findings from SARIF files with improved parsing
           fs_findings=0
@@ -482,6 +489,9 @@ jobs:
           source .github/scripts/workflow_utils.sh
           step_duration=$(report_step_timing "Documentation Validation" "$STEP_START_TIME")
           
+          # Export performance metrics for aggregation
+          export_performance_metrics "documentation_validation" "/tmp/workflow_metrics.json"
+          
           if [ "${{ job.status }}" = "success" ]; then
             create_step_summary "Documentation Validation" "success" "| Validation | Complete |\n| Duration | ${step_duration}s |"
           else
@@ -490,11 +500,91 @@ jobs:
             create_step_summary "Documentation Validation" "failure"
           fi
 
+  # Workflow status aggregation job
+  workflow-status-aggregation:
+    name: 📊 Workflow Status Aggregation
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [test, lint, security, validate-docs]
+    if: always()
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Load workflow utilities
+        run: |
+          chmod +x .github/scripts/workflow_utils.sh
+          chmod +x .github/scripts/workflow_status_aggregator.sh
+          source .github/scripts/workflow_utils.sh
+          source .github/scripts/workflow_status_aggregator.sh
+
+      - name: 🔄 Collect workflow metrics
+        run: |
+          source .github/scripts/workflow_utils.sh
+          source .github/scripts/workflow_status_aggregator.sh
+          
+          start_step_timing "workflow_metrics_collection"
+          
+          # Collect workflow status and metrics
+          collect_workflow_status "ci" "workflow-status-aggregation"
+          
+          end_step_timing "workflow_metrics_collection"
+
+      - name: ⏱️ Aggregate build times
+        run: |
+          source .github/scripts/workflow_utils.sh
+          source .github/scripts/workflow_status_aggregator.sh
+          
+          start_step_timing "build_time_aggregation"
+          
+          # Aggregate build metrics from all jobs
+          aggregate_build_metrics "ci"
+          
+          end_step_timing "build_time_aggregation"
+
+      - name: 📈 Generate workflow status summary
+        run: |
+          source .github/scripts/workflow_utils.sh
+          source .github/scripts/workflow_status_aggregator.sh
+          
+          start_step_timing "status_summary_generation"
+          
+          # Generate comprehensive workflow dashboard
+          generate_workflow_dashboard "ci_workflow_status.md"
+          
+          # Track workflow trends
+          track_workflow_trends "ci"
+          
+          # Calculate workflow health score
+          calculate_workflow_health_score "ci"
+          
+          end_step_timing "status_summary_generation"
+
+      - name: 📊 Export workflow performance metrics
+        run: |
+          source .github/scripts/workflow_utils.sh
+          
+          # Export performance metrics for cross-workflow analysis
+          export_performance_metrics "ci_workflow" "workflow_status/ci/aggregation/build_metrics.json"
+
+      - name: 📤 Upload workflow status artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ci-workflow-status
+          path: |
+            workflow_status/
+            workflow_trends/
+            workflow_health/
+            ci_workflow_status.md
+          retention-days: 30
+
   # Final summary job
   ci-summary:
     name: 📋 CI Summary
     if: always()
-    needs: [test, lint, security, validate-docs]
+    needs: [test, lint, security, validate-docs, workflow-status-aggregation]
     runs-on: ubuntu-latest
     steps:
       - name: 📥 Checkout code
@@ -505,57 +595,18 @@ jobs:
           chmod +x .github/scripts/workflow_utils.sh
           source .github/scripts/workflow_utils.sh
 
+      - name: � Download workflow status artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: ci-workflow-status
+          path: workflow_artifacts/
+        continue-on-error: true
+
       - name: 📊 Generate comprehensive CI summary
         run: |
-          source .github/scripts/workflow_utils.sh
-          
-          # Determine overall status
-          overall_status="success"
-          if [[ "${{ needs.test.result }}" != "success" ]] || [[ "${{ needs.lint.result }}" != "success" ]] || [[ "${{ needs.validate-docs.result }}" != "success" ]]; then
-            overall_status="failure"
-          fi
-          
-          # Security is allowed to fail, so only warn
-          security_status="${{ needs.security.result }}"
-          if [[ "$security_status" != "success" ]]; then
-            print_message "warning" "Security scan completed with warnings (non-blocking)"
-          fi
-          
-          # Create comprehensive summary
-          {
-            echo "# 🔄 CI Pipeline Summary"
-            echo ""
-            echo "## Job Status"
-            echo "| Job | Status | Duration |"
-            echo "|-----|--------|----------|"
-            echo "| 🧪 Test Scripts | ${{ needs.test.result }} | - |"
-            echo "| 🔍 Lint & Code Quality | ${{ needs.lint.result }} | - |"
-            echo "| 🛡️ Security Scan | ${{ needs.security.result }} | - |"
-            echo "| 📚 Documentation | ${{ needs.validate-docs.result }} | - |"
-            echo ""
-            
-            if [ "$overall_status" = "success" ]; then
-              echo "✅ **Overall Status:** All critical checks passed!"
-            else
-              echo "❌ **Overall Status:** Some checks failed"
-              echo ""
-              echo "## Troubleshooting"
-              echo "- Check individual job logs for detailed error information"
-              echo "- Ensure all scripts pass syntax validation"
-              echo "- Verify documentation structure follows project standards"
-              echo "- Review linting errors and apply suggested fixes"
-            fi
-            
-            echo ""
-            echo "## Next Steps"
-            if [ "$overall_status" = "success" ]; then
-              echo "- ✅ Ready for merge/deployment"
-              echo "- 🚀 All quality gates passed successfully"
-            else
-              echo "- 🔧 Address failing checks before proceeding"
-              echo "- 📝 Review job-specific error reports above"
-              echo "- 🔄 Re-run workflow after fixes"
-            fi
-          } >> $GITHUB_STEP_SUMMARY
-          
-          print_message "$overall_status" "CI Pipeline completed with status: $overall_status"
+          chmod +x .github/scripts/generate_ci_summary.sh
+          .github/scripts/generate_ci_summary.sh \
+            "${{ needs.test.result }}" \
+            "${{ needs.lint.result }}" \
+            "${{ needs.security.result }}" \
+            "${{ needs.validate-docs.result }}"

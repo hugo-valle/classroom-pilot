@@ -52,29 +52,7 @@ jobs:
           ${{ runner.os }}-py${{ matrix.python-version }}-pip-
 
     - name: 🔧 Install Poetry with retry
-      run: |
-        source .github/scripts/workflow_utils.sh
-        
-        install_poetry_with_retry() {
-          log_info "Installing Poetry for Python ${{ matrix.python-version }}"
-          
-          if ! retry_with_backoff "pip install poetry" "Poetry installation" 3 5; then
-            log_error "Failed to install Poetry after 3 attempts"
-            return 1
-          fi
-          
-          poetry config virtualenvs.create true
-          poetry config virtualenvs.in-project true
-          poetry --version
-          
-          log_success "Poetry installation completed successfully"
-          return 0
-        }
-        
-        if ! install_poetry_with_retry; then
-          log_error "Poetry installation failed completely"
-          exit 1
-        fi
+      run: ./.github/scripts/install_poetry_with_retry.sh "${{ matrix.python-version }}"
 
     - name: 💾 Cache Poetry dependencies
       uses: actions/cache@v4
@@ -96,47 +74,7 @@ jobs:
         fi
 
     - name: 🧪 Test with pytest (comprehensive)
-      run: |
-        source .github/scripts/workflow_utils.sh
-        
-        run_comprehensive_tests() {
-          log_info "Running comprehensive test suite for Python ${{ matrix.python-version }}"
-          
-          local test_start_time=$(date +%s)
-          
-          mkdir -p test-results/python${{ matrix.python-version }}
-          
-          local pytest_cmd=(
-            "poetry" "run" "pytest"
-            "tests/"
-            "-v"
-            "--tb=short"
-            "--strict-markers"
-            "--disable-warnings"
-            "--cov=classroom_pilot"
-            "--cov-branch"
-            "--cov-report=term-missing:skip-covered"
-            "--cov-report=xml:test-results/python${{ matrix.python-version }}/coverage.xml"
-            "--cov-report=html:test-results/python${{ matrix.python-version }}/htmlcov"
-            "--junitxml=test-results/python${{ matrix.python-version }}/pytest-results.xml"
-          )
-          
-          if ! "${pytest_cmd[@]}"; then
-            log_error "Test execution failed for Python ${{ matrix.python-version }}"
-            return 1
-          fi
-          
-          local test_end_time=$(date +%s)
-          local test_duration=$((test_end_time - test_start_time))
-          
-          log_success "All tests passed for Python ${{ matrix.python-version }} (${test_duration}s)"
-          return 0
-        }
-        
-        if ! run_comprehensive_tests; then
-          log_error "Comprehensive test execution failed"
-          exit 1
-        fi
+      run: ./.github/scripts/run_comprehensive_tests.sh "${{ matrix.python-version }}"
 
     - name: 📊 Upload test results and coverage
       uses: actions/upload-artifact@v4
@@ -163,28 +101,4 @@ jobs:
         source .github/scripts/workflow_utils.sh
     
     - name: 📊 Generate test matrix summary
-      run: |
-        source .github/scripts/workflow_utils.sh
-        
-        log_info "Python Test Matrix Summary"
-        echo "=================================="
-        
-        success_count=0
-        failure_count=0
-        
-        if [ "${{ needs.test-python-wrapper.result }}" = "success" ]; then
-          log_success "Python wrapper tests: PASSED"
-          success_count=$((success_count + 1))
-        else
-          log_error "Python wrapper tests: FAILED"
-          failure_count=$((failure_count + 1))
-        fi
-        
-        echo "Summary: $success_count passed, $failure_count failed"
-        
-        if [ $failure_count -gt 0 ]; then
-          log_error "Some Python versions failed testing"
-          exit 1
-        else
-          log_success "All Python versions passed testing successfully!"
-        fi
+      run: ./.github/scripts/generate_test_matrix_summary.sh "${{ needs.test-python-wrapper.result }}"

@@ -556,6 +556,80 @@ def command_name(
 - **Check logs**: Enable verbose mode for debugging
 - **Verify config**: Ensure configuration files are valid
 
+🛠️ Workflow Authoring Guidelines
+
+This project uses GitHub Actions workflows to automate testing, packaging, and deployment. To keep workflows clean, maintainable, and consistent, follow these rules:
+
+⸻
+
+📂 Workflow File Format
+        •       Location: .github/workflows/*.yml
+        •       Each workflow should have:
+        •       Name: A descriptive name (e.g., CI - Tests, Release Build).
+        •       Triggers: Define when it runs (push, pull_request, schedule).
+        •       Jobs: Break logic into jobs (e.g., test, build, deploy).
+        •       Steps: Keep inline steps short, clean, and readable.
+
+Example:
+
+name: CI - Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: poetry install
+      - run: poetry run pytest -v
+
+
+⸻
+
+📏 Step Size Rule
+        •       Keep inline run: scripts ≤ 6 lines of code.
+        •       If logic is more than 6 lines, move it into a dedicated script.
+
+Why?
+        •       Keeps workflows readable.
+        •       Easier to reuse across workflows.
+        •       Simplifies debugging and version control.
+
+⸻
+
+📂 Script Location
+        •       Long scripts must live under:
+
+.github/scripts/
+
+
+        •       Scripts must be executable (chmod +x) and well-commented.
+        •       Use descriptive names (e.g., setup-poetry.sh, publish-pypi.sh).
+
+Example (workflow referencing a script):
+
+- name: Publish to PyPI
+  run: ./.github/scripts/publish-pypi.sh
+
+
+⸻
+
+✅ Best Practices
+        •       Use official actions (like actions/checkout) when available.
+        •       Use matrix builds for multiple Python versions.
+        •       Cache dependencies where possible (actions/cache).
+        •       Fail fast: configure set -e in scripts to stop on errors.
+        •       Log clearly: echo progress messages for better CI visibility.
+
+
 ## 📚 Key Resources
 
 ### Documentation Files

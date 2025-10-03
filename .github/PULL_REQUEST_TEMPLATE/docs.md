@@ -106,7 +106,7 @@
 **Examples Added:**
 ```bash
 # New command examples
-classroom-pilot assignments setup --config example.conf
+classroom-pilot assignments orchestrate --config example.conf
 classroom-pilot repos fetch --organization myorg
 ```
 

@@ -208,6 +208,74 @@ install_with_retry() {
 }
 
 #######################################
+# Start timing a step
+# Arguments:
+#   $1: Step name
+# Returns:
+#   Sets STEP_START_TIME_<step_name> environment variable
+#######################################
+start_step_timing() {
+    local step_name="$1"
+    local start_time
+    start_time=$(date +%s)
+    
+    # Create a valid environment variable name by replacing non-alphanumeric chars with underscores
+    local var_name="STEP_START_TIME_$(echo "$step_name" | tr -c '[:alnum:]' '_' | tr '[:lower:]' '[:upper:]')"
+    
+    # Set the start time in an environment variable
+    export "$var_name=$start_time"
+    
+    print_message "info" "Started timing: $step_name"
+    
+    # Export for GitHub Actions
+    if [ -n "${GITHUB_ENV:-}" ] && [ -f "${GITHUB_ENV}" ]; then
+        echo "$var_name=$start_time" >> "$GITHUB_ENV"
+    fi
+}
+
+#######################################
+# End timing a step and report duration
+# Arguments:
+#   $1: Step name
+# Returns:
+#   Duration in seconds
+#######################################
+end_step_timing() {
+    local step_name="$1"
+    local end_time
+    end_time=$(date +%s)
+    
+    # Create the corresponding variable name
+    local var_name="STEP_START_TIME_$(echo "$step_name" | tr -c '[:alnum:]' '_' | tr '[:lower:]' '[:upper:]')"
+    
+    # Get the start time from the environment variable
+    local start_time
+    eval "start_time=\$$var_name"
+    
+    if [ -z "$start_time" ]; then
+        print_message "warning" "No start time found for step: $step_name"
+        return 1
+    fi
+    
+    local duration=$((end_time - start_time))
+    
+    print_message "info" "$step_name completed in ${duration}s"
+    
+    # Export for GitHub Actions step summary
+    if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+        echo "| $step_name | ${duration}s |" >> "$GITHUB_STEP_SUMMARY"
+    fi
+    
+    # Export duration for use in other steps
+    if [ -n "${GITHUB_ENV:-}" ] && [ -f "${GITHUB_ENV}" ]; then
+        local duration_var="STEP_DURATION_$(echo "$step_name" | tr -c '[:alnum:]' '_' | tr '[:lower:]' '[:upper:]')"
+        echo "$duration_var=$duration" >> "$GITHUB_ENV"
+    fi
+    
+    echo "$duration"
+}
+
+#######################################
 # Monitor build performance and report timing
 # Arguments:
 #   $1: Step name
@@ -379,19 +447,26 @@ export_performance_metrics() {
     local total_time
     total_time=$(report_step_timing "Workflow" "$SCRIPT_START_TIME")
     
-    # Export for use in other steps
-    echo "WORKFLOW_DURATION=$total_time" >> "$GITHUB_ENV"
+    # Ensure total_time is a valid number
+    if ! [[ "$total_time" =~ ^[0-9]+$ ]]; then
+        total_time=0
+    fi
+    
+    # Export for use in other steps - only if GITHUB_ENV is available and not empty
+    if [ -n "${GITHUB_ENV:-}" ] && [ -f "${GITHUB_ENV}" ]; then
+        echo "WORKFLOW_DURATION=${total_time}" >> "$GITHUB_ENV"
+    fi
     
     # Create performance artifact
     if [ -n "${RUNNER_TEMP:-}" ]; then
         local perf_file="$RUNNER_TEMP/performance_metrics.json"
         {
             echo "{"
-            echo "  \"workflow_duration\": $total_time,"
+            echo "  \"workflow_duration\": ${total_time},"
             echo "  \"timestamp\": \"$(date -u '+%Y-%m-%d %H:%M:%S UTC')\","
-            echo "  \"runner_os\": \"$RUNNER_OS\","
-            echo "  \"github_run_id\": \"$GITHUB_RUN_ID\","
-            echo "  \"github_job\": \"$GITHUB_JOB\""
+            echo "  \"runner_os\": \"${RUNNER_OS:-unknown}\","
+            echo "  \"github_run_id\": \"${GITHUB_RUN_ID:-unknown}\","
+            echo "  \"github_job\": \"${GITHUB_JOB:-unknown}\""
             echo "}"
         } > "$perf_file"
         
@@ -410,6 +485,8 @@ export -f generate_cache_key
 export -f generate_cache_key_with_hash
 export -f command_exists
 export -f install_with_retry
+export -f start_step_timing
+export -f end_step_timing
 export -f report_step_timing
 export -f generate_error_report
 export -f create_step_summary
