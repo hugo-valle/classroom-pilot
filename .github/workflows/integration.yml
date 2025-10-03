@@ -264,8 +264,8 @@ jobs:
     if: contains(fromJSON('["full"]'), github.event.inputs.test_scope || 'full')
     strategy:
       matrix:
-        os: [ubuntu-latest, ubuntu-20.04]
-        shell: [bash, sh]
+        os: [ubuntu-latest]
+        shell: [bash, zsh]
     
     steps:
       - name: Checkout Repository

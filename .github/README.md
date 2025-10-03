@@ -77,7 +77,7 @@ Enhanced permission model with OIDC integration:
 
 - **Configuration Validation**: Comprehensive validation before workflow execution
 - **Graceful Failure Management**: Proper error recovery and meaningful error messages
-- **Cross-Platform Compatibility**: Testing across ubuntu-latest, ubuntu-20.04 with bash/sh
+- **Cross-Platform Compatibility**: Testing across ubuntu-latest with bash/zsh shells
 
 ### 🧪 Enhanced Testing Infrastructure
 
@@ -297,7 +297,7 @@ Runs comprehensive tests and quality checks on all code changes to ensure stabil
 ### Test Matrix
 
 - **Operating Systems**: Ubuntu, macOS, Windows
-- **Shells**: bash, zsh, dash (where applicable)
+- **Shells**: bash, zsh
 
 ### Quality Checks
 
@@ -348,7 +348,7 @@ Automatically updates dependencies and creates pull requests for review.
 
 ### Key Features
 
-- ✅ **Cross-Platform Testing**: Ubuntu Latest & Ubuntu 20.04 for compatibility
+- ✅ **Cross-Platform Testing**: Ubuntu Latest with multiple shell environments for compatibility
 - ✅ **Real GitHub API Integration**: Tests actual API calls with authentication
 - ✅ **Configuration Validation**: Multiple test scenarios with different config setups
 - ✅ **Error Recovery Testing**: Validates graceful failure handling
