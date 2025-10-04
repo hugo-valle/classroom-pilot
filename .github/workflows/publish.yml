@@ -149,20 +149,37 @@ jobs:
         echo "VERSION=$VERSION" >> $GITHUB_ENV
         
     - name: 🔄 Update version if needed
-      if: github.event.inputs.version != ''
+      if: github.event.inputs.version != '' || startsWith(github.ref, 'refs/tags/')
       run: |
-        poetry version ${{ github.event.inputs.version }}
+        if [[ -n "${{ github.event.inputs.version }}" ]]; then
+          echo "Setting version from manual input: ${{ github.event.inputs.version }}"
+          poetry version ${{ github.event.inputs.version }}
+        elif [[ $GITHUB_REF == refs/tags/* ]]; then
+          echo "Setting version from tag: ${{ steps.version.outputs.version }}"
+          poetry version ${{ steps.version.outputs.version }}
+        fi
+        echo "Current version after update: $(poetry version -s)"
+        
+    - name: 🧹 Clean previous builds
+      run: |
+        rm -rf dist/ build/ *.egg-info/
+        echo "✅ Cleaned previous build artifacts"
         
     - name: ✅ Validate package configuration
       run: |
         poetry check
         echo "✅ Package configuration is valid"
+        echo "Final version: $(poetry version -s)"
         
     - name: 🏗️ Build package
       run: |
+        echo "Building package with version: $(poetry version -s)"
         poetry build
         echo "✅ Package built successfully"
+        echo "📦 Built artifacts:"
         ls -la dist/
+        echo "🔍 Checking wheel metadata:"
+        python -m zipfile -l dist/*.whl | head -10
         
     - name: 🔍 Verify build contents
       run: |
@@ -170,6 +187,15 @@ jobs:
         tar -tzf dist/*.tar.gz | head -20
         echo "🔍 Wheel contents:"
         unzip -l dist/*.whl | head -20
+        
+    - name: ✅ Validate package metadata
+      run: |
+        echo "🔍 Validating package metadata..."
+        # Install twine for checking
+        pip install twine
+        # Check the distribution
+        twine check dist/*
+        echo "✅ Package metadata validation completed"
         
     - name: 🚀 Publish to PyPI
       uses: pypa/gh-action-pypi-publish@v1.10.3
