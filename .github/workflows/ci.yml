@@ -266,10 +266,8 @@ jobs:
       - name: 🔍 Security audit
         run: |
           chmod +x .github/scripts/security_utils.sh
-          source .github/scripts/security_utils.sh
-          run_comprehensive_security_audit
+          .github/scripts/security_utils.sh audit
 
       - name: 📊 Security report summary
         run: |
-          source .github/scripts/security_utils.sh
-          generate_security_summary
+          .github/scripts/security_utils.sh summary

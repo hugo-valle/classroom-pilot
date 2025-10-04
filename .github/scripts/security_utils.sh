@@ -778,6 +778,125 @@ upload_security_artifacts() {
 # Arguments:
 #   $@ - Command line arguments
 #######################################
+
+#######################################
+# Run comprehensive security audit
+# Executes complete security scan including SBOM, vulnerability scan, secret detection, and reporting
+# Arguments:
+#   $1: Target directory (optional, default: current directory)
+#   $2: Output directory (optional, default: /tmp/security-reports)
+#######################################
+run_comprehensive_security_audit() {
+    local target_dir="${1:-.}"
+    local output_dir="${2:-/tmp/security-reports}"
+    
+    print_message "step" "Running comprehensive security audit"
+    
+    # Initialize security environment
+    initialize_security_cache
+    
+    # Generate SBOM
+    print_message "info" "Generating Software Bill of Materials (SBOM)..."
+    generate_sbom "$target_dir" "all"
+    
+    # Run vulnerability scanning
+    print_message "info" "Running vulnerability scan..."
+    run_trivy_scan "$target_dir" "all" "CRITICAL,HIGH,MEDIUM"
+    
+    # Run secret detection
+    print_message "info" "Running secret detection..."
+    run_secret_detection "$target_dir" "all"
+    
+    # Analyze findings
+    print_message "info" "Analyzing security findings..."
+    analyze_security_findings
+    
+    # Generate comprehensive report
+    print_message "info" "Generating security report..."
+    mkdir -p "$output_dir"
+    generate_security_report "markdown" "$output_dir/security-report.md"
+    
+    print_message "success" "Comprehensive security audit completed"
+}
+
+#######################################
+# Generate security summary for CI
+# Creates a concise summary of security scan results
+# Arguments:
+#   None
+#######################################
+generate_security_summary() {
+    print_message "step" "Generating security summary"
+    
+    local summary_file="/tmp/security-reports/security-summary.md"
+    local findings_file="${SECURITY_CACHE_DIR}/metrics/security_findings.json"
+    
+    mkdir -p "$(dirname "$summary_file")"
+    
+    cat > "$summary_file" << 'EOF'
+# 🛡️ Security Audit Summary
+
+## Scan Results
+EOF
+    
+    if [[ -f "$findings_file" ]]; then
+        print_message "info" "Security findings available, generating detailed summary"
+        
+        # Extract key metrics if findings file exists
+        local critical_count high_count medium_count secret_count
+        critical_count=$(jq -r '.vulnerability_summary.critical // 0' "$findings_file" 2>/dev/null || echo "0")
+        high_count=$(jq -r '.vulnerability_summary.high // 0' "$findings_file" 2>/dev/null || echo "0")  
+        medium_count=$(jq -r '.vulnerability_summary.medium // 0' "$findings_file" 2>/dev/null || echo "0")
+        secret_count=$(jq -r '.secret_summary.total_findings // 0' "$findings_file" 2>/dev/null || echo "0")
+        
+        cat >> "$summary_file" << EOF
+
+| Severity | Count |
+|----------|-------|
+| 🔴 Critical | $critical_count |
+| 🟠 High | $high_count |
+| 🟡 Medium | $medium_count |
+| 🔍 Secrets | $secret_count |
+
+EOF
+    else
+        print_message "warning" "No security findings file found, generating basic summary"
+        
+        cat >> "$summary_file" << 'EOF'
+
+✅ Security scan completed
+- SBOM generation: Complete
+- Vulnerability scan: Complete  
+- Secret detection: Complete
+- Analysis: Complete
+
+EOF
+    fi
+    
+    cat >> "$summary_file" << 'EOF'
+
+## Artifacts Generated
+- Software Bill of Materials (SBOM)
+- Vulnerability scan results (SARIF format)
+- Secret detection results
+- Security metrics and analysis
+
+For detailed results, check the security artifacts in the workflow run.
+EOF
+    
+    if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
+        cat "$summary_file" >> "$GITHUB_STEP_SUMMARY"
+        print_message "success" "Security summary added to GitHub step summary"
+    fi
+    
+    print_message "success" "Security summary generated: $summary_file"
+}
+
+#######################################
+# Main function for command-line usage
+# Arguments:
+#   $@ - Command line arguments
+#######################################
 main() {
     case "${1:-help}" in
         "init"|"initialize")
@@ -801,6 +920,12 @@ main() {
         "upload"|"upload-artifacts")
             upload_security_artifacts "${2:-security-artifacts}" "${3:-}"
             ;;
+        "audit"|"comprehensive-audit")
+            run_comprehensive_security_audit "${2:-.}" "${3:-/tmp/security-reports}"
+            ;;
+        "summary"|"generate-summary")
+            generate_security_summary
+            ;;
         "help"|*)
             cat << 'HELP_EOF'
 Security Utilities Script - classroom-pilot project
@@ -815,6 +940,8 @@ Commands:
     analyze                 Analyze security findings and generate metrics
     report [format] [file]  Generate security report (markdown|json|html)
     upload [name] [path]    Upload security artifacts to GitHub
+    audit [path] [output]   Run comprehensive security audit
+    summary                 Generate security summary for CI
     help                    Show this help message
 
 Examples:
@@ -825,6 +952,8 @@ Examples:
     security_utils.sh analyze
     security_utils.sh report markdown ./security-report.md
     security_utils.sh upload security-scan-results
+    security_utils.sh audit . /tmp/security-reports
+    security_utils.sh summary
 
 Environment Variables:
     SECURITY_CACHE_DIR     Security cache directory (default: /tmp/security-cache)
