@@ -16,6 +16,9 @@ env:
   # Performance monitoring
   CI_START_TIME: ${{ github.event.head_commit.timestamp }}
   CACHE_VERSION: v2
+  # Python testing environment
+  PYTHONDONTWRITEBYTECODE: 1
+  PYTHONUNBUFFERED: 1
 
 jobs:
   test:
@@ -93,6 +96,38 @@ jobs:
           poetry run python -m classroom_pilot automation --help > /dev/null
           
           print_message "success" "All Python CLI help commands working"
+
+      - name: 🧪 Run comprehensive test suite
+        run: |
+          source .github/scripts/workflow_utils.sh
+          print_message "info" "Running comprehensive pytest test suite"
+          
+          # Create test results directory
+          mkdir -p test-results/python${{ matrix.python-version }}
+          
+          # Run pytest with comprehensive coverage
+          poetry run pytest tests/ \
+            -v \
+            --tb=short \
+            --strict-markers \
+            --disable-warnings \
+            --cov=classroom_pilot \
+            --cov-branch \
+            --cov-report=term-missing:skip-covered \
+            --cov-report=xml:test-results/python${{ matrix.python-version }}/coverage.xml \
+            --cov-report=html:test-results/python${{ matrix.python-version }}/htmlcov \
+            --junitxml=test-results/python${{ matrix.python-version }}/pytest-results.xml
+          
+          print_message "success" "All tests passed for Python ${{ matrix.python-version }}"
+
+      - name: 📊 Upload test results and coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-python${{ matrix.python-version }}
+          path: |
+            test-results/python${{ matrix.python-version }}/
+          retention-days: 30
 
       - name: 📊 Generate test summary
         if: always()
@@ -177,6 +212,24 @@ jobs:
           else
             create_step_summary "Python Code Quality" "failure"
           fi
+
+  test-matrix-summary:
+    name: 📊 Test Matrix Summary
+    runs-on: ubuntu-latest
+    needs: [test]
+    if: always()
+    
+    steps:
+    - name: 📥 Checkout code (for utilities)
+      uses: actions/checkout@v4
+    
+    - name: 📦 Load workflow utilities
+      run: |
+        chmod +x .github/scripts/workflow_utils.sh
+        source .github/scripts/workflow_utils.sh
+    
+    - name: 📊 Generate test matrix summary
+      run: ./.github/scripts/generate_test_matrix_summary.sh "${{ needs.test.result }}"
 
   security:
     name: 🛡️ Security Scan
