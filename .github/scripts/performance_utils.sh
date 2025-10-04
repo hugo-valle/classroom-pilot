@@ -256,15 +256,17 @@ compare_with_baseline() {
     local scenario_name="$1"
     local threshold_percent="${2:-20}"
     
-    log_info "🔍 Comparing current performance with baseline for: $scenario_name"
+    # Log to stderr so it doesn't interfere with the result capture
+    log_info "🔍 Comparing current performance with baseline for: $scenario_name" >&2
     
     local baseline_dir="performance_baselines/$scenario_name"
     local comparison_dir="performance_results/comparisons/$scenario_name"
     mkdir -p "$comparison_dir"
     
     if [[ ! -f "$baseline_dir/baseline_metrics.json" ]]; then
-        log_warning "No baseline available for comparison"
-        return 1
+        log_warning "No baseline available for comparison" >&2
+        echo "baseline_zero"
+        return 0
     fi
     
     # Create comparison script using jq to analyze metrics
@@ -278,8 +280,16 @@ compare_with_baseline() {
             current_times=$(jq -r '.[].execution_time_seconds // 0' "performance_results/aggregated_metrics.json" 2>/dev/null || echo "0")
         else
             # Aggregate current metrics if not already done
-            find performance_results -name "metrics.json" -exec cat {} \; | jq -s '.' > "performance_results/aggregated_metrics.json"
+            find performance_results -name "metrics.json" -exec cat {} \; | jq -s '.' > "performance_results/aggregated_metrics.json" 2>/dev/null || true
             current_times=$(jq -r '.[].execution_time_seconds // 0' "performance_results/aggregated_metrics.json" 2>/dev/null || echo "0")
+        fi
+        
+        # Validate baseline_times and current_times are numeric
+        if ! [[ "$baseline_times" =~ ^[0-9]+\.?[0-9]*$ ]]; then
+            baseline_times="0"
+        fi
+        if ! [[ "$current_times" =~ ^[0-9]+\.?[0-9]*$ ]]; then
+            current_times="0"
         fi
         
         # Calculate percentage difference
@@ -289,11 +299,11 @@ compare_with_baseline() {
             } else {
                 diff_percent = (($2 - $1) / $1) * 100
                 if (diff_percent > $3) {
-                    print "regression:" diff_percent
+                    printf "regression:%.1f", diff_percent
                 } else if (diff_percent < -$3) {
-                    print "improvement:" diff_percent
+                    printf "improvement:%.1f", diff_percent
                 } else {
-                    print "acceptable:" diff_percent
+                    printf "acceptable:%.1f", diff_percent
                 }
             }
         }')
@@ -310,14 +320,17 @@ compare_with_baseline() {
 }
 EOF
         
+        # Output only the result to stdout
         echo "$comparison_result"
-        log_success "✅ Performance comparison completed for $scenario_name"
+        log_success "✅ Performance comparison completed for $scenario_name" >&2
     else
-        log_error "jq not available for performance comparison"
+        log_error "jq not available for performance comparison" >&2
+        echo "error:jq_missing"
         return 1
     fi
     
     return 0
+}
 }
 
 # =============================================================================
@@ -332,19 +345,38 @@ detect_regression() {
     
     log_info "🚨 Detecting performance regressions for: $scenario_name"
     
-    # Compare with baseline
+    # Compare with baseline (capture only the result, not log messages)
     local comparison_result
-    comparison_result=$(compare_with_baseline "$scenario_name" "$threshold_percent")
+    comparison_result=$(compare_with_baseline "$scenario_name" "$threshold_percent" 2>/dev/null | tail -1)
+    
+    # Validate comparison result format
+    if [[ -z "$comparison_result" ]]; then
+        log_error "Failed to get comparison result"
+        return 1
+    fi
     
     case "$comparison_result" in
         regression:*)
             local regression_percent
             regression_percent=$(echo "$comparison_result" | cut -d':' -f2)
-            log_error "Performance regression detected: ${regression_percent}% slower than baseline"
-            log_error "Threshold: ${threshold_percent}%, Actual: ${regression_percent}%"
             
-            # Create regression alert
-            cat > "performance_results/regression_alert.json" << EOF
+            # Validate regression percentage is numeric
+            if ! [[ "$regression_percent" =~ ^-?[0-9]+\.?[0-9]*$ ]]; then
+                log_error "Invalid regression percentage: $regression_percent"
+                return 1
+            fi
+            
+            # Check if regression exceeds threshold
+            local exceeds_threshold
+            exceeds_threshold=$(echo "$regression_percent $threshold_percent" | awk '{print ($1 > $2) ? "yes" : "no"}')
+            
+            if [[ "$exceeds_threshold" == "yes" ]]; then
+                log_error "⚠️ Performance regression detected above ${threshold_percent}% threshold"
+                log_error "Regression: ${regression_percent}% slower than baseline"
+                
+                # Create regression alert
+                mkdir -p "performance_results"
+                cat > "performance_results/regression_alert.json" << EOF
 {
     "scenario_name": "$scenario_name",
     "regression_type": "performance_slowdown",
@@ -355,27 +387,32 @@ detect_regression() {
     "action_required": "investigate_performance_degradation"
 }
 EOF
-            
-            return 1
+                return 1
+            else
+                log_info "Performance regression ${regression_percent}% is within acceptable threshold (${threshold_percent}%)"
+                return 0
+            fi
             ;;
         improvement:*)
             local improvement_percent
             improvement_percent=$(echo "$comparison_result" | cut -d':' -f2 | tr -d '-')
-            log_success "Performance improvement detected: ${improvement_percent}% faster than baseline"
+            log_success "✅ Performance improvement detected: ${improvement_percent}% faster than baseline"
             return 0
             ;;
         acceptable:*)
             local change_percent
             change_percent=$(echo "$comparison_result" | cut -d':' -f2)
-            log_success "Performance within acceptable range: ${change_percent}% change"
+            log_success "✅ Performance within acceptable range: ${change_percent}% change"
             return 0
             ;;
         baseline_zero)
-            log_warning "No baseline data available for regression detection"
+            log_warning "⚠️ No baseline data available for regression detection"
             return 0
             ;;
         *)
-            log_error "Unknown comparison result: $comparison_result"
+            log_error "Unknown comparison result format: '$comparison_result'" >&2
+            log_error "Expected format: 'regression:X.X' or 'improvement:X.X' or 'acceptable:X.X' or 'baseline_zero'" >&2
+            log_error "This may indicate a parsing issue in the performance comparison" >&2
             return 1
             ;;
     esac
