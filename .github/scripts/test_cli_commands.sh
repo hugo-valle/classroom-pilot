@@ -14,9 +14,9 @@ print_message "step" "Testing CLI commands and help system"
 print_message "step" "Testing main help..."
 $CLASSROOM_PILOT_CMD --help
 
-# Test version command
-print_message "step" "Testing version command..."
-$CLASSROOM_PILOT_CMD version
+# Test version flag
+print_message "step" "Testing version flag..."
+$CLASSROOM_PILOT_CMD --version
 
 # Test subcommand help
 print_message "step" "Testing assignments help..."
