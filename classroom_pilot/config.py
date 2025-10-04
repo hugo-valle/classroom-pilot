@@ -252,7 +252,7 @@ class Configuration:
 
     def to_env_dict(self) -> Dict[str, str]:
         """
-        Export configuration as environment variables for bash script compatibility.
+        Export configuration as environment variables for system compatibility.
 
         Returns:
             Dictionary of environment variables

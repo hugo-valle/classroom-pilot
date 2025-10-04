@@ -223,7 +223,7 @@ class GitHubClassroomAPI:
         """
         Discover all student repositories for a classroom assignment using organization API.
 
-        This method uses the same approach as fetch-student-repos.sh:
+        This method uses the same approach as the repository fetch functionality:
         1. Extract assignment name from classroom URL or use organization pattern
         2. List all repositories in the organization
         3. Filter by assignment prefix pattern

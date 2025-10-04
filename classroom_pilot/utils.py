@@ -26,7 +26,7 @@ logger = get_logger("utils")
 
 def setup_logging(verbose: bool = False) -> None:
     """
-    Set up logging with colored output matching bash scripts.
+    Set up logging with colored output for consistency.
 
     Args:
         verbose: Enable verbose (DEBUG) logging

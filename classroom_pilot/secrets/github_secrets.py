@@ -1,7 +1,7 @@
 """
 Python implementation of add-secrets-to-students functionality.
 
-This module replaces the bash script with a pure Python implementation
+This module provides a comprehensive Python implementation
 for adding secrets to student GitHub repositories using global configuration.
 """
 
