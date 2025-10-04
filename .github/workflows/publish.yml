@@ -162,14 +162,24 @@ jobs:
         
     - name: 🧹 Clean previous builds
       run: |
-        rm -rf dist/ build/ *.egg-info/
-        echo "✅ Cleaned previous build artifacts"
+        rm -rf dist/ build/ *.egg-info/ __pycache__/
+        find . -name "*.pyc" -delete
+        find . -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
+        echo "✅ Cleaned previous build artifacts and cache"
+        
+    - name: 🔄 Refresh Poetry environment
+      run: |
+        poetry env remove --all || true
+        poetry cache clear pypi --all
+        poetry install --no-interaction
+        echo "✅ Poetry environment refreshed"
         
     - name: ✅ Validate package configuration
       run: |
         poetry check
         echo "✅ Package configuration is valid"
         echo "Final version: $(poetry version -s)"
+        echo "Package name: $(poetry version | cut -d' ' -f1)"
         
     - name: 🏗️ Build package
       run: |
@@ -180,6 +190,23 @@ jobs:
         ls -la dist/
         echo "🔍 Checking wheel metadata:"
         python -m zipfile -l dist/*.whl | head -10
+        
+    - name: 🔍 Debug package metadata
+      run: |
+        echo "🔍 Inspecting package metadata..."
+        cd dist/
+        for file in *.whl; do
+          echo "=== Checking $file ==="
+          python -m zipfile -e "$file" temp_extract/
+          if [ -f temp_extract/*/METADATA ]; then
+            echo "METADATA file found:"
+            cat temp_extract/*/METADATA | head -20
+          else
+            echo "❌ METADATA file not found in wheel"
+            find temp_extract/ -name "*" -type f | head -10
+          fi
+          rm -rf temp_extract/
+        done
         
     - name: 🔍 Verify build contents
       run: |
@@ -192,9 +219,23 @@ jobs:
       run: |
         echo "🔍 Validating package metadata..."
         # Install twine for checking
-        pip install twine
-        # Check the distribution
-        twine check dist/*
+        pip install twine build
+        echo "✅ Package metadata validation tools installed"
+        
+        # Try alternative build method if Poetry build fails validation
+        echo "🔍 Testing Poetry build..."
+        if ! twine check dist/*; then
+          echo "❌ Poetry build failed validation, trying alternative build..."
+          rm -rf dist/
+          
+          echo "🏗️ Building with pip build..."
+          python -m build
+          echo "📦 Alternative build artifacts:"
+          ls -la dist/
+          
+          echo "🔍 Re-checking metadata..."
+          twine check dist/*
+        fi
         echo "✅ Package metadata validation completed"
         
     - name: 🚀 Publish to PyPI
