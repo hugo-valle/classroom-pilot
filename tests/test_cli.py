@@ -43,7 +43,9 @@ Dependencies and Integration:
 import shlex
 import subprocess
 import sys
+import os
 from pathlib import Path
+import pytest
 
 
 def run_cli_command(cmd: str, cwd: Path | None = None) -> tuple[bool, str, str]:
@@ -215,6 +217,11 @@ class TestWorkflowCommands:
         # Dry run message appears in stderr from logger
         assert "[DRY RUN]" in stderr or "Dry run:" in stderr or "DRY RUN:" in stderr
 
+    @pytest.mark.skipif(
+        os.getenv("CI") and not (
+            os.getenv("GITHUB_TOKEN") or os.getenv("GH_TOKEN")),
+        reason="Skipping orchestration test in CI without GitHub token"
+    )
     def test_assist_command_dry_run(self):
         """Test the assignment orchestrate command (full workflow) in dry-run mode."""
         success, stdout, stderr = run_cli_command(

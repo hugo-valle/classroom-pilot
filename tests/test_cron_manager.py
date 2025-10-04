@@ -609,7 +609,8 @@ class TestCronRemoval:
         result, message = cron_manager.remove_cron_job(["sync"])
 
         assert result == CronOperationResult.NOT_FOUND
-        assert "not found" in message
+        # Handle both possible error messages: specific job not found vs no crontab exists
+        assert "not found" in message or "No crontab exists" in message
 
     @patch('classroom_pilot.automation.cron_manager.CronManager.job_exists')
     @patch('classroom_pilot.automation.cron_manager.CronManager._get_current_crontab')
