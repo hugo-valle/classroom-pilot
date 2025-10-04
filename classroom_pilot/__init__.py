@@ -5,7 +5,9 @@ A comprehensive automation suite for managing Classroom assignments
 with advanced workflow orchestration, repository discovery, and secret management capabilities.
 """
 
-__version__ = "3.1.0b1"
+from ._version import get_version
+
+__version__ = get_version()
 __author__ = "Hugo Valle"
 __description__ = "Classroom Pilot - Comprehensive automation suite for managing assignments"
 
