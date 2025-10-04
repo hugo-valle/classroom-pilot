@@ -191,7 +191,7 @@ classroom_pilot/
 │   ├── logger.py               # Rich logging with structured output
 │   ├── git.py                  # Git operations with error recovery
 │   └── paths.py                # Path management with validation
-└── scripts/                     # Legacy bash scripts (maintained for compatibility)
+└── scripts_legacy/              # Legacy bash scripts (maintained for compatibility)
     └── ...
 ```
 

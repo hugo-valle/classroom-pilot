@@ -31,7 +31,7 @@ classifiers = [
 packages = [{include = "classroom_pilot"}]
 exclude = ["tests"]
 include = [
-    "classroom_pilot/scripts/*.sh",
+    "classroom_pilot/scripts_legacy/*.sh",
     "classroom_pilot/utils/*.sh", 
     "classroom_pilot/docs/*.md",
     "classroom_pilot/docs/*.yml",

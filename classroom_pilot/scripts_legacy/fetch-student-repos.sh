@@ -37,16 +37,16 @@ show_help() {
 GitHub Classroom Student Repository Fetcher
 
 USAGE:
-    ./scripts/fetch-student-repos.sh [assignment-prefix] [organization]          # Fetch repos with custom settings
-    ./scripts/fetch-student-repos.sh --output [file-path]                       # Specify output file
-    ./scripts/fetch-student-repos.sh --assignment [prefix]                      # Set assignment prefix
-    ./scripts/fetch-student-repos.sh --org [organization]                       # Set GitHub organization
-    ./scripts/fetch-student-repos.sh --help                                     # Show this help
+    ./scripts_legacy/fetch-student-repos.sh [assignment-prefix] [organization]          # Fetch repos with custom settings
+    ./scripts_legacy/fetch-student-repos.sh --output [file-path]                       # Specify output file
+    ./scripts_legacy/fetch-student-repos.sh --assignment [prefix]                      # Set assignment prefix
+    ./scripts_legacy/fetch-student-repos.sh --org [organization]                       # Set GitHub organization
+    ./scripts_legacy/fetch-student-repos.sh --help                                     # Show this help
 
 PARAMETERS:
     assignment-prefix     Repository prefix pattern (default: ${DEFAULT_ASSIGNMENT_PREFIX})
     organization         GitHub organization name (default: ${DEFAULT_ORGANIZATION})
-    --output             Output file path (default: scripts/student-repos-batch.txt)
+    --output             Output file path (default: scripts_legacy/student-repos-batch.txt)
     --assignment         Assignment prefix (alternative to positional arg)
     --org                Organization name (alternative to positional arg)
     --classroom-url      GitHub Classroom assignment URL (extracts assignment name automatically)
@@ -56,28 +56,28 @@ PARAMETERS:
 
 EXAMPLES:
     # Fetch all ${DEFAULT_ASSIGNMENT_PREFIX} student repos from ${DEFAULT_ORGANIZATION} organization
-    ./scripts/fetch-student-repos.sh
+    ./scripts_legacy/fetch-student-repos.sh
 
     # Fetch with custom assignment and organization
-    ./scripts/fetch-student-repos.sh my-assignment MY-ORG
+    ./scripts_legacy/fetch-student-repos.sh my-assignment MY-ORG
 
     # Save to custom file
-    ./scripts/fetch-student-repos.sh --output my-students.txt
+    ./scripts_legacy/fetch-student-repos.sh --output my-students.txt
 
     # Dry run to see what would be fetched
-    ./scripts/fetch-student-repos.sh --dry-run
+    ./scripts_legacy/fetch-student-repos.sh --dry-run
 
     # Include template repository in the list
-    ./scripts/fetch-student-repos.sh --include-template
+    ./scripts_legacy/fetch-student-repos.sh --include-template
 
     # Exclude instructor repositories (students only)
-    ./scripts/fetch-student-repos.sh --exclude-instructor
+    ./scripts_legacy/fetch-student-repos.sh --exclude-instructor
 
     # Use GitHub Classroom URL directly
-    ./scripts/fetch-student-repos.sh --classroom-url "${DEFAULT_CLASSROOM_URL}"
+    ./scripts_legacy/fetch-student-repos.sh --classroom-url "${DEFAULT_CLASSROOM_URL}"
 
     # Fetch specific assignment with custom output
-    ./scripts/fetch-student-repos.sh --assignment final-project --output final-project-repos.txt
+    ./scripts_legacy/fetch-student-repos.sh --assignment final-project --output final-project-repos.txt
 
 OUTPUT FORMAT:
     The output file will contain one repository URL per line:
@@ -92,8 +92,8 @@ REQUIREMENTS:
 
 INTEGRATION:
     Use the generated file with other scripts:
-    ./scripts/add-secrets-to-students.sh INSTRUCTOR_TESTS_TOKEN --batch scripts/student-repos-batch.txt
-    ./scripts/student-update-helper.sh --batch scripts/student-repos-batch.txt
+    ./scripts_legacy/add-secrets-to-students.sh INSTRUCTOR_TESTS_TOKEN --batch scripts_legacy/student-repos-batch.txt
+    ./scripts_legacy/student-update-helper.sh --batch scripts_legacy/student-repos-batch.txt
 
 EOF
 }
@@ -242,8 +242,8 @@ save_repos_to_file() {
 # Total repositories: ${#repos[@]}
 #
 # Use this file with batch scripts:
-# ./scripts/add-secrets-to-students.sh INSTRUCTOR_TESTS_TOKEN --batch $output_file
-# ./scripts/student-update-helper.sh --batch $output_file
+# ./scripts_legacy/add-secrets-to-students.sh INSTRUCTOR_TESTS_TOKEN --batch $output_file
+# ./scripts_legacy/student-update-helper.sh --batch $output_file
 
 EOF
     
@@ -435,8 +435,8 @@ main() {
         echo
         print_success "Repository fetch completed successfully!"
         print_status "Use the generated file with:"
-        print_status "  ./scripts/add-secrets-to-students.sh INSTRUCTOR_TESTS_TOKEN --batch $output_file"
-        print_status "  ./scripts/student-update-helper.sh --batch $output_file"
+        print_status "  ./scripts_legacy/add-secrets-to-students.sh INSTRUCTOR_TESTS_TOKEN --batch $output_file"
+        print_status "  ./scripts_legacy/student-update-helper.sh --batch $output_file"
     fi
 }
 

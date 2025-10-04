@@ -28,12 +28,12 @@ show_help() {
 Add Secrets to Student Repositories - Instructor Tool
 
 USAGE:
-    ./scripts/add-secrets-to-students.sh [SECRET_NAME] [student-repo-url]              # Add secret to specific student
-    ./scripts/add-secrets-to-students.sh [SECRET_NAME] --batch [file-with-urls]       # Add secrets to multiple students
-    ./scripts/add-secrets-to-students.sh [SECRET_NAME] --token-file [file-path]       # Specify custom token file
-    ./scripts/add-secrets-to-students.sh [SECRET_NAME] --max-age [days]               # Set expiration threshold (default: 90)
-    ./scripts/add-secrets-to-students.sh --check-token                                # Verify your GitHub token works
-    ./scripts/add-secrets-to-students.sh --help                                       # Show this help
+    ./scripts_legacy/add-secrets-to-students.sh [SECRET_NAME] [student-repo-url]              # Add secret to specific student
+    ./scripts_legacy/add-secrets-to-students.sh [SECRET_NAME] --batch [file-with-urls]       # Add secrets to multiple students
+    ./scripts_legacy/add-secrets-to-students.sh [SECRET_NAME] --token-file [file-path]       # Specify custom token file
+    ./scripts_legacy/add-secrets-to-students.sh [SECRET_NAME] --max-age [days]               # Set expiration threshold (default: 90)
+    ./scripts_legacy/add-secrets-to-students.sh --check-token                                # Verify your GitHub token works
+    ./scripts_legacy/add-secrets-to-students.sh --help                                       # Show this help
 
 PARAMETERS:
     SECRET_NAME       Name of the secret to add (default: INSTRUCTOR_TESTS_TOKEN)
@@ -44,28 +44,28 @@ PARAMETERS:
 
 EXAMPLES:
     # Add INSTRUCTOR_TESTS_TOKEN to a specific student (using default token file)
-    ./scripts/add-secrets-to-students.sh INSTRUCTOR_TESTS_TOKEN https://github.com/${DEFAULT_ORGANIZATION}/${DEFAULT_ASSIGNMENT_PREFIX}-student123
+    ./scripts_legacy/add-secrets-to-students.sh INSTRUCTOR_TESTS_TOKEN https://github.com/${DEFAULT_ORGANIZATION}/${DEFAULT_ASSIGNMENT_PREFIX}-student123
 
     # Add custom secret using default token file
-    ./scripts/add-secrets-to-students.sh MY_CUSTOM_TOKEN https://github.com/${DEFAULT_ORGANIZATION}/${DEFAULT_ASSIGNMENT_PREFIX}-student123
+    ./scripts_legacy/add-secrets-to-students.sh MY_CUSTOM_TOKEN https://github.com/${DEFAULT_ORGANIZATION}/${DEFAULT_ASSIGNMENT_PREFIX}-student123
 
     # Add secrets to multiple students from a file
-    ./scripts/add-secrets-to-students.sh INSTRUCTOR_TESTS_TOKEN --batch student-repos.txt
+    ./scripts_legacy/add-secrets-to-students.sh INSTRUCTOR_TESTS_TOKEN --batch student-repos.txt
 
     # Use custom token file
-    ./scripts/add-secrets-to-students.sh INSTRUCTOR_TESTS_TOKEN --token-file my_token.txt https://github.com/${DEFAULT_ORGANIZATION}/${DEFAULT_ASSIGNMENT_PREFIX}-student123
+    ./scripts_legacy/add-secrets-to-students.sh INSTRUCTOR_TESTS_TOKEN --token-file my_token.txt https://github.com/${DEFAULT_ORGANIZATION}/${DEFAULT_ASSIGNMENT_PREFIX}-student123
 
     # Update secrets older than 30 days instead of default 90
-    ./scripts/add-secrets-to-students.sh INSTRUCTOR_TESTS_TOKEN --max-age 30 https://github.com/${DEFAULT_ORGANIZATION}/${DEFAULT_ASSIGNMENT_PREFIX}-student123
+    ./scripts_legacy/add-secrets-to-students.sh INSTRUCTOR_TESTS_TOKEN --max-age 30 https://github.com/${DEFAULT_ORGANIZATION}/${DEFAULT_ASSIGNMENT_PREFIX}-student123
 
     # Force update all secrets regardless of age
-    ./scripts/add-secrets-to-students.sh INSTRUCTOR_TESTS_TOKEN --force-update --batch student-repos.txt
+    ./scripts_legacy/add-secrets-to-students.sh INSTRUCTOR_TESTS_TOKEN --force-update --batch student-repos.txt
 
     # Add a database password (skip GitHub token validation)
-    ./scripts/add-secrets-to-students.sh DB_PASSWORD --token-file db_password.txt --no-validate --batch student-repos.txt
+    ./scripts_legacy/add-secrets-to-students.sh DB_PASSWORD --token-file db_password.txt --no-validate --batch student-repos.txt
 
     # Check if your GitHub token has the necessary permissions
-    ./scripts/add-secrets-to-students.sh --check-token
+    ./scripts_legacy/add-secrets-to-students.sh --check-token
 
 REQUIREMENTS:
     - GitHub CLI (gh) must be installed and authenticated
@@ -87,7 +87,7 @@ SETUP:
     1. Make sure you have GitHub CLI installed: https://cli.github.com/
     2. Authenticate with GitHub: gh auth login
     3. Create token file: echo "your_token_here" > instructor_token.txt
-    4. Test with: ./scripts/add-secrets-to-students.sh --check-token
+    4. Test with: ./scripts_legacy/add-secrets-to-students.sh --check-token
 
 EOF
 }

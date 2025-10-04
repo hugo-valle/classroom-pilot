@@ -6,18 +6,18 @@
 # specific workflow steps like template sync, secret management, or 
 # repository access cycling.
 #
-# Usage: ./scripts/cron-sync.sh [config-file] [step1] [step2] [...]
+# Usage: ./scripts_legacy/cron-sync.sh [config-file] [step1] [step2] [...]
 #
 # Examples:
-# ./scripts/cron-sync.sh assignment.conf sync
-# ./scripts/cron-sync.sh assignment.conf secrets cycle
-# ./scripts/cron-sync.sh assignment.conf sync secrets cycle discover
+# ./scripts_legacy/cron-sync.sh assignment.conf sync
+# ./scripts_legacy/cron-sync.sh assignment.conf secrets cycle
+# ./scripts_legacy/cron-sync.sh assignment.conf sync secrets cycle discover
 #
 # Cron Example (every 4 hours for sync only):
-# 0 */4 * * * /path/to/assignment/tools/scripts/cron-sync.sh assignment.conf sync >/dev/null 2>&1
+# 0 */4 * * * /path/to/assignment/tools/scripts_legacy/cron-sync.sh assignment.conf sync >/dev/null 2>&1
 #
 # Cron Example (daily for secrets management):
-# 0 2 * * * /path/to/assignment/tools/scripts/cron-sync.sh assignment.conf secrets >/dev/null 2>&1
+# 0 2 * * * /path/to/assignment/tools/scripts_legacy/cron-sync.sh assignment.conf secrets >/dev/null 2>&1
 #
 
 set -euo pipefail
@@ -113,7 +113,7 @@ main() {
         esac
         
         # Run the orchestrator for this step
-        local orchestrator_cmd="$TOOLS_ROOT/scripts/assignment-orchestrator.sh"
+        local orchestrator_cmd="$TOOLS_ROOT/scripts_legacy/assignment-orchestrator.sh"
         local orchestrator_args=(
             "$CONFIG_FILE"
             "--step" "$step"

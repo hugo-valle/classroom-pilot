@@ -68,7 +68,7 @@ jobs:
           print_message "step" "Testing script syntax with ${{ matrix.shell }}"
           
           syntax_check_cmd="
-            for script in classroom_pilot/scripts/*.sh; do
+            for script in classroom_pilot/scripts_legacy/*.sh; do
               if [ -f \"\$script\" ]; then
                 print_message 'info' 'Checking \$script'
                 ${{ matrix.shell }} -n \"\$script\"
@@ -104,7 +104,7 @@ jobs:
           echo '{"test_secret": "test_value"}' > test-secrets.json
           
           # Copy scripts for testing
-          cp -r ./classroom_pilot/scripts ./ || {
+          cp -r ./classroom_pilot/scripts_legacy ./ || {
             log_warning "Scripts directory not found, creating mock scripts for testing"
             mkdir -p scripts
             echo '#!/bin/bash\necho "Mock script help"' > scripts/mock_script.sh
@@ -185,7 +185,7 @@ jobs:
           
           # Run ShellCheck on all shell scripts (allow warnings, fail on errors only)
           log_info "Running ShellCheck analysis on shell scripts..."
-          shellcheck_output=$(find classroom_pilot/scripts -name '*.sh' -type f -exec shellcheck -e SC1091,SC2034,SC2155,SC2086,SC2162,SC2329,SC2002,SC2012 -f gcc {} + 2>&1) || true
+          shellcheck_output=$(find classroom_pilot/scripts_legacy -name '*.sh' -type f -exec shellcheck -e SC1091,SC2034,SC2155,SC2086,SC2162,SC2329,SC2002,SC2012 -f gcc {} + 2>&1) || true
           
           # Show the output for transparency
           if [ -n "$shellcheck_output" ]; then

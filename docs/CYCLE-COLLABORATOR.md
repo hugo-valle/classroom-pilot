@@ -16,22 +16,22 @@ GitHub Classroom occasionally experiences permission glitches where students los
 ### Configuration Mode (Recommended)
 ```bash
 # Basic usage with configuration file
-./scripts/cycle-collaborator.sh --config assignment.conf --batch student-repos.txt --repo-urls
+./scripts_legacy/cycle-collaborator.sh --config assignment.conf --batch student-repos.txt --repo-urls
 
 # Preview actions without making changes
-./scripts/cycle-collaborator.sh --config assignment.conf --batch student-repos.txt --repo-urls --dry-run
+./scripts_legacy/cycle-collaborator.sh --config assignment.conf --batch student-repos.txt --repo-urls --dry-run
 
 # Force cycling even when access appears correct
-./scripts/cycle-collaborator.sh --config assignment.conf --batch student-repos.txt --repo-urls --force
+./scripts_legacy/cycle-collaborator.sh --config assignment.conf --batch student-repos.txt --repo-urls --force
 ```
 
 ### Traditional Mode
 ```bash
 # Fix specific student
-./scripts/cycle-collaborator.sh assignment1 student-username organization
+./scripts_legacy/cycle-collaborator.sh assignment1 student-username organization
 
 # List status without making changes
-./scripts/cycle-collaborator.sh --list assignment1 student-username organization
+./scripts_legacy/cycle-collaborator.sh --list assignment1 student-username organization
 ```
 
 ## 📋 Command Line Options
@@ -48,7 +48,7 @@ GitHub Classroom occasionally experiences permission glitches where students los
 
 ### Traditional Mode Parameters
 ```bash
-./scripts/cycle-collaborator.sh [assignment_prefix] [username] [organization]
+./scripts_legacy/cycle-collaborator.sh [assignment_prefix] [username] [organization]
 ```
 
 ## 🧠 Intelligent Cycling Logic
@@ -129,10 +129,10 @@ The cycle-collaborator script integrates seamlessly with the assignment orchestr
 STEP_CYCLE_COLLABORATORS=true
 
 # Run specific step
-./scripts/assignment-orchestrator.sh --step cycle
+./scripts_legacy/assignment-orchestrator.sh --step cycle
 
 # Include in full workflow
-./scripts/assignment-orchestrator.sh
+./scripts_legacy/assignment-orchestrator.sh
 ```
 
 ## 📊 Output and Status Reporting

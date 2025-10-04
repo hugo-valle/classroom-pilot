@@ -9,10 +9,10 @@
 # having difficulty updating their repositories with template changes.
 #
 # Usage: 
-#   ./scripts/student-update-helper.sh [student-repo-url]
-#   ./scripts/student-update-helper.sh --batch [file-with-repo-urls] [--yes]
-#   ./scripts/student-update-helper.sh --status [student-repo-url]
-#   ./scripts/student-update-helper.sh --yes  # Auto-confirm all prompts
+#   ./scripts_legacy/student-update-helper.sh [student-repo-url]
+#   ./scripts_legacy/student-update-helper.sh --batch [file-with-repo-urls] [--yes]
+#   ./scripts_legacy/student-update-helper.sh --status [student-repo-url]
+#   ./scripts_legacy/student-update-helper.sh --yes  # Auto-confirm all prompts
 # =============================================================================
 
 set -e  # Exit on any error
@@ -161,7 +161,7 @@ check_classroom_ready() {
         print_success "Classroom repository is up to date with local template"
     else
         print_warning "Classroom repository may not have latest changes"
-        print_warning "Consider running: ./scripts/push-to-classroom.sh"
+        print_warning "Consider running: ./scripts_legacy/push-to-classroom.sh"
     fi
     
     return 0
@@ -209,7 +209,7 @@ check_student_status() {
     else
         print_warning "Student needs to update their repository"
         echo
-        print_student "Student should run: ./scripts/update-assignment.sh"
+        print_student "Student should run: ./scripts_legacy/update-assignment.sh"
         print_student "Or follow manual instructions in: docs/UPDATE-GUIDE.md"
         return 2  # Needs update
     fi
@@ -631,7 +631,7 @@ There are updates available for the assignment template. Please follow these ste
 
 OPTION 1 - Automated Script (Recommended):
 1. Open your terminal in your assignment directory
-2. Run: ./scripts/update-assignment.sh
+2. Run: ./scripts_legacy/update-assignment.sh
 3. Follow the prompts
 
 OPTION 2 - Manual Process:

@@ -437,7 +437,7 @@ DESCRIPTION:
     token storage, and configures .gitignore for instructor-only files.
 
 USAGE:
-    ./tools/scripts/setup-assignment.sh [options]
+    ./tools/scripts_legacy/setup-assignment.sh [options]
 
 OPTIONS:
     --help              Show this help message
@@ -464,9 +464,9 @@ GENERATED FILES:
 
 NEXT STEPS:
     After running this setup wizard, use:
-    • ./tools/scripts/assignment-orchestrator.sh - Complete automation workflow
-    • ./tools/scripts/fetch-student-repos.sh - Discover student repositories
-    • ./tools/scripts/add-secrets-to-students.sh - Add secrets to student repos
+    • ./tools/scripts_legacy/assignment-orchestrator.sh - Complete automation workflow
+    • ./tools/scripts_legacy/fetch-student-repos.sh - Discover student repositories
+    • ./tools/scripts_legacy/add-secrets-to-students.sh - Add secrets to student repos
 
 DOCUMENTATION:
     • docs/ORCHESTRATOR-WORKFLOW.md - Complete workflow guide
@@ -545,11 +545,11 @@ show_completion() {
     echo -e "${GREEN}║                                                                              ║${NC}"
     echo -e "${GREEN}║${NC}  ${YELLOW}🚀 Next Steps:${NC}"
     echo -e "${GREEN}║${NC}     1. Run the complete workflow:"
-    echo -e "${GREEN}║${NC}        ./tools/scripts/assignment-orchestrator.sh"
+    echo -e "${GREEN}║${NC}        ./tools/scripts_legacy/assignment-orchestrator.sh"
     echo -e "${GREEN}║                                                                              ║${NC}"
     echo -e "${GREEN}║${NC}     2. Or run individual tools:"
-    echo -e "${GREEN}║${NC}        ./tools/scripts/fetch-student-repos.sh"
-    echo -e "${GREEN}║${NC}        ./tools/scripts/add-secrets-to-students.sh"
+    echo -e "${GREEN}║${NC}        ./tools/scripts_legacy/fetch-student-repos.sh"
+    echo -e "${GREEN}║${NC}        ./tools/scripts_legacy/add-secrets-to-students.sh"
     echo -e "${GREEN}║                                                                              ║${NC}"
     echo -e "${GREEN}║${NC}  ${BLUE}📚 Documentation:${NC}"
     echo -e "${GREEN}║${NC}     • docs/ORCHESTRATOR-WORKFLOW.md - Complete workflow guide"

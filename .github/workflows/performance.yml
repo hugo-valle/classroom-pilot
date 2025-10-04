@@ -89,7 +89,7 @@ jobs:
           
           # Benchmark assignment orchestrator with dry-run
           benchmark_script "assignment-orchestrator" \
-            "classroom_pilot/scripts/assignment-orchestrator.sh" \
+            "classroom_pilot/scripts_legacy/assignment-orchestrator.sh" \
             "--config performance_test_data/test_assignment.conf --dry-run"
           
           end_step_timing "assignment_orchestrator_benchmark"
@@ -103,7 +103,7 @@ jobs:
           
           # Benchmark repo fetch script with dry-run
           benchmark_script "fetch-student-repos" \
-            "classroom_pilot/scripts/fetch-student-repos.sh" \
+            "classroom_pilot/scripts_legacy/fetch-student-repos.sh" \
             "--config performance_test_data/test_assignment.conf --dry-run"
           
           end_step_timing "repo_fetch_benchmark"
@@ -117,7 +117,7 @@ jobs:
           
           # Benchmark secrets script with dry-run
           benchmark_script "add-secrets-to-students" \
-            "classroom_pilot/scripts/add-secrets-to-students.sh" \
+            "classroom_pilot/scripts_legacy/add-secrets-to-students.sh" \
             "--config performance_test_data/test_assignment.conf --dry-run"
           
           end_step_timing "secrets_benchmark"
@@ -131,7 +131,7 @@ jobs:
           
           # Monitor system resources during combined script execution
           monitor_resources "combined_workflow_simulation" \
-            "classroom_pilot/scripts/assignment-orchestrator.sh --config performance_test_data/test_assignment.conf --dry-run"
+            "classroom_pilot/scripts_legacy/assignment-orchestrator.sh --config performance_test_data/test_assignment.conf --dry-run"
           
           end_step_timing "resource_monitoring"
 

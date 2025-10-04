@@ -5,7 +5,7 @@
 # This script helps install, remove, and manage automated workflow cron jobs
 # for different assignment management steps.
 #
-# Usage: ./scripts/manage-cron.sh [command] [options]
+# Usage: ./scripts_legacy/manage-cron.sh [command] [options]
 #
 
 set -euo pipefail
@@ -25,7 +25,7 @@ log_warning() { print_warning "$@"; }
 log_error() { print_error "$@"; }
 
 # Configuration
-CRON_SCRIPT="$TOOLS_ROOT/scripts/cron-sync.sh"
+CRON_SCRIPT="$TOOLS_ROOT/scripts_legacy/cron-sync.sh"
 LOG_FILE="$REPO_ROOT/tools/generated/cron-workflow.log"
 CRON_COMMENT_PREFIX="# GitHub Classroom Assignment Auto"
 
@@ -44,7 +44,7 @@ show_help() {
 Cron Job Management Helper
 
 USAGE:
-    ./scripts/manage-cron.sh [command] [options]
+    ./scripts_legacy/manage-cron.sh [command] [options]
 
 COMMANDS:
     install [steps] [schedule]  Install cron job for specified steps
@@ -56,26 +56,26 @@ COMMANDS:
 
 INSTALL EXAMPLES:
     # Install sync job (every 4 hours)
-    ./scripts/manage-cron.sh install sync
+    ./scripts_legacy/manage-cron.sh install sync
 
     # Install secrets management (daily at 2 AM)
-    ./scripts/manage-cron.sh install secrets
+    ./scripts_legacy/manage-cron.sh install secrets
 
     # Install cycle job (weekly on Sunday at 6 AM)
-    ./scripts/manage-cron.sh install cycle
+    ./scripts_legacy/manage-cron.sh install cycle
 
     # Install multiple steps together (daily at 1 AM)
-    ./scripts/manage-cron.sh install "sync secrets" "0 1 * * *"
+    ./scripts_legacy/manage-cron.sh install "sync secrets" "0 1 * * *"
 
     # Install with custom schedule
-    ./scripts/manage-cron.sh install sync "0 */2 * * *"
+    ./scripts_legacy/manage-cron.sh install sync "0 */2 * * *"
 
 REMOVE EXAMPLES:
     # Remove specific step cron job
-    ./scripts/manage-cron.sh remove sync
+    ./scripts_legacy/manage-cron.sh remove sync
 
     # Remove all assignment-related cron jobs
-    ./scripts/manage-cron.sh remove all
+    ./scripts_legacy/manage-cron.sh remove all
 
 WORKFLOW STEPS:
     sync        Template synchronization with GitHub Classroom
@@ -213,8 +213,8 @@ install_cron() {
     log_info "Logs will be written to: $LOG_FILE"
     
     echo
-    log_info "You can check the status with: ./scripts/manage-cron.sh status"
-    log_info "You can view logs with: ./scripts/manage-cron.sh logs"
+    log_info "You can check the status with: ./scripts_legacy/manage-cron.sh status"
+    log_info "You can view logs with: ./scripts_legacy/manage-cron.sh logs"
 }
 
 # Remove cron job
@@ -290,12 +290,12 @@ show_status() {
         else
             log_warning "No assignment cron jobs are installed"
             echo
-            log_info "To install one, run: ./scripts/manage-cron.sh install [steps]"
+            log_info "To install one, run: ./scripts_legacy/manage-cron.sh install [steps]"
         fi
     else
         log_warning "No crontab exists for current user"
         echo
-        log_info "To install a cron job, run: ./scripts/manage-cron.sh install [steps]"
+        log_info "To install a cron job, run: ./scripts_legacy/manage-cron.sh install [steps]"
     fi
 }
 

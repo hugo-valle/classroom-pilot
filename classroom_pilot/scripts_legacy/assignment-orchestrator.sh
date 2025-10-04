@@ -8,7 +8,7 @@
 # 3. Secret management across all repositories
 # 4. Optional student assistance
 #
-# Usage: ./scripts/assignment-orchestrator.sh [config-file] [options]
+# Usage: ./scripts_legacy/assignment-orchestrator.sh [config-file] [options]
 #
 
 set -euo pipefail
@@ -63,7 +63,7 @@ show_help() {
 Assignment Workflow Orchestrator
 
 USAGE:
-    ./scripts/assignment-orchestrator.sh [config-file] [options]
+    ./scripts_legacy/assignment-orchestrator.sh [config-file] [options]
 
 PARAMETERS:
     config-file          Path to assignment configuration file (default: assignment.conf)
@@ -95,26 +95,26 @@ WORKFLOW STEPS:
 
 EXAMPLES:
     # Run complete workflow with default config
-    ./scripts/assignment-orchestrator.sh
+    ./scripts_legacy/assignment-orchestrator.sh
 
     # Use custom config file
-    ./scripts/assignment-orchestrator.sh my-assignment.conf
+    ./scripts_legacy/assignment-orchestrator.sh my-assignment.conf
 
     # Dry run to preview actions
-    ./scripts/assignment-orchestrator.sh --dry-run
+    ./scripts_legacy/assignment-orchestrator.sh --dry-run
 
     # Run only secret management step
-    ./scripts/assignment-orchestrator.sh --step secrets
+    ./scripts_legacy/assignment-orchestrator.sh --step secrets
 
     # Skip template sync and run everything else
-    ./scripts/assignment-orchestrator.sh --skip sync
+    ./scripts_legacy/assignment-orchestrator.sh --skip sync
 
     # Verbose output with no prompts
-    ./scripts/assignment-orchestrator.sh --verbose --yes
+    ./scripts_legacy/assignment-orchestrator.sh --verbose --yes
 
 REQUIREMENTS:
     - GitHub CLI (gh) installed and authenticated
-    - All component scripts in scripts/ directory
+    - All component scripts in scripts_legacy/ directory
     - Valid assignment configuration file
     - Appropriate GitHub permissions
 
@@ -212,8 +212,8 @@ check_initial_setup() {
             echo -e "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
             
             # Run the setup script
-            if [[ -f "$TOOLS_ROOT/scripts/setup-assignment.sh" ]]; then
-                "$TOOLS_ROOT/scripts/setup-assignment.sh"
+            if [[ -f "$TOOLS_ROOT/scripts_legacy/setup-assignment.sh" ]]; then
+                "$TOOLS_ROOT/scripts_legacy/setup-assignment.sh"
                 
                 # Check if setup was successful
                 if [[ -f "$CONFIG_FILE" ]]; then
@@ -225,14 +225,14 @@ check_initial_setup() {
                     exit 1
                 fi
             else
-                log_error "Setup script not found: $TOOLS_ROOT/scripts/setup-assignment.sh"
+                log_error "Setup script not found: $TOOLS_ROOT/scripts_legacy/setup-assignment.sh"
                 log_error "Please run the setup script manually or create assignment.conf"
                 exit 1
             fi
         else
             echo -e "\n${YELLOW}Setup cancelled.${NC}"
             echo -e "To proceed, you can:"
-            echo -e "  ${CYAN}1.${NC} Run the setup wizard: $TOOLS_ROOT/scripts/setup-assignment.sh"
+            echo -e "  ${CYAN}1.${NC} Run the setup wizard: $TOOLS_ROOT/scripts_legacy/setup-assignment.sh"
             echo -e "  ${CYAN}2.${NC} Create assignment.conf manually in: $REPO_ROOT"
             echo -e "  ${CYAN}3.${NC} Use a custom config file: ./assignment-orchestrator.sh /path/to/config\n"
             exit 0
@@ -371,14 +371,14 @@ check_prerequisites() {
     
     # Check required scripts in tools submodule
     local required_scripts=(
-        "tools/scripts/push-to-classroom.sh"
-        "tools/scripts/fetch-student-repos.sh"
-        "tools/scripts/add-secrets-to-students.sh"
+        "tools/scripts_legacy/push-to-classroom.sh"
+        "tools/scripts_legacy/fetch-student-repos.sh"
+        "tools/scripts_legacy/add-secrets-to-students.sh"
     )
     
     # Optional scripts (don't fail if missing, just warn)
     local optional_scripts=(
-        "tools/scripts/cycle-collaborator.sh"
+        "tools/scripts_legacy/cycle-collaborator.sh"
     )
     
     for script in "${required_scripts[@]}"; do
@@ -449,7 +449,7 @@ step_sync_template() {
     
     log_header "Step 1: Synchronizing Template with Classroom"
     
-    local cmd="$REPO_ROOT/tools/scripts/push-to-classroom.sh"
+    local cmd="$REPO_ROOT/tools/scripts_legacy/push-to-classroom.sh"
     local args=()
     
     # Pass force flag for non-interactive execution
@@ -481,7 +481,7 @@ step_discover_repositories() {
     
     log_header "Step 2: Discovering Student Repositories"
     
-    local cmd="$REPO_ROOT/tools/scripts/fetch-student-repos.sh"
+    local cmd="$REPO_ROOT/tools/scripts_legacy/fetch-student-repos.sh"
     local output_file="$REPO_ROOT/$OUTPUT_DIR/$STUDENT_REPOS_FILE"
     local args=(
         "--classroom-url" "$CLASSROOM_URL"
@@ -566,7 +566,7 @@ step_manage_secrets() {
         
         log_info "Managing secret: $secret_name ($description)"
         
-        local cmd="$REPO_ROOT/tools/scripts/add-secrets-to-students.sh"
+        local cmd="$REPO_ROOT/tools/scripts_legacy/add-secrets-to-students.sh"
         local args=(
             "$secret_name"
             "--batch" "$batch_file"
@@ -620,7 +620,7 @@ step_assist_students() {
         return 1
     fi
     
-    local cmd="$REPO_ROOT/tools/scripts/student-update-helper.sh"
+    local cmd="$REPO_ROOT/tools/scripts_legacy/student-update-helper.sh"
     local args=("--batch" "$students_file")
     
     if [[ "$DRY_RUN" == "true" ]]; then
@@ -669,7 +669,7 @@ step_cycle_collaborators() {
         return 0
     fi
     
-    local cmd="$REPO_ROOT/tools/scripts/cycle-collaborator.sh"
+    local cmd="$REPO_ROOT/tools/scripts_legacy/cycle-collaborator.sh"
     local args=(
         "--config" "$CONFIG_FILE"
         "--batch" "$students_file"

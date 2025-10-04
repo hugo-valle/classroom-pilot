@@ -53,7 +53,7 @@ classroom_pilot/
 │   ├── ui_components.py # UI elements & colors
 │   ├── input_handlers.py # Input validation
 │   └── file_operations.py # File management
-└── scripts/            # Legacy bash scripts (preserved)
+└── scripts_legacy/     # Legacy bash scripts (preserved)
     └── *.sh            # All original bash scripts
 ```
 

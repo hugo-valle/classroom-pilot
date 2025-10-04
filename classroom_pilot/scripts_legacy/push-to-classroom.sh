@@ -8,7 +8,7 @@
 # This script automates the process of updating the GitHub Classroom copy
 # when you make changes to your original template repository.
 #
-# Usage: ./scripts/push-to-classroom.sh [--force]
+# Usage: ./scripts_legacy/push-to-classroom.sh [--force]
 # =============================================================================
 
 set -e  # Exit on any error
@@ -225,7 +225,7 @@ show_next_steps() {
     echo "     - Canvas/LMS message"
     echo
     echo "  2. Direct students to update their repositories using:"
-    echo "     - Automated script: ./scripts/update-assignment.sh"
+    echo "     - Automated script: ./scripts_legacy/update-assignment.sh"
     echo "     - Manual process: docs/UPDATE-GUIDE.md"
     echo
     echo "  3. Monitor for student questions and provide support"
