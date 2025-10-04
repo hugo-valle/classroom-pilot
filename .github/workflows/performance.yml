@@ -24,8 +24,8 @@ env:
   RESET_BASELINE: ${{ github.event.inputs.baseline_reset || 'false' }}
 
 jobs:
-  script-performance-benchmarking:
-    name: Script Performance Benchmarking
+  python-cli-performance-benchmarking:
+    name: Python CLI Performance Benchmarking
     runs-on: ubuntu-latest
     timeout-minutes: 45
     strategy:
@@ -46,6 +46,21 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Setup Python Environment
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: latest
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
+      - name: Install Dependencies
+        run: poetry install
 
       - name: Setup Performance Environment
         run: |
@@ -77,7 +92,7 @@ jobs:
             echo "Resetting baseline as requested"
           fi
 
-      - name: Benchmark Assignment Orchestrator Script
+      - name: Benchmark Assignment Orchestrator (Python CLI)
         run: |
           source .github/scripts/workflow_utils.sh
           source .github/scripts/performance_utils.sh
@@ -87,51 +102,51 @@ jobs:
           # Create test configuration for this scenario
           sed -i "s/MAX_REPOS=.*/MAX_REPOS=${{ matrix.scenario.repo_count }}/" performance_test_data/test_assignment.conf
           
-          # Benchmark assignment orchestrator with dry-run
-          benchmark_script "assignment-orchestrator" \
-            "classroom_pilot/scripts/assignment-orchestrator.sh" \
-            "--config performance_test_data/test_assignment.conf --dry-run"
+          # Benchmark Python CLI assignment orchestrator with dry-run
+          benchmark_script "assignments-orchestrate" \
+            "python -m classroom_pilot assignments --dry-run --verbose orchestrate" \
+            "--config performance_test_data/test_assignment.conf"
           
           end_step_timing "assignment_orchestrator_benchmark"
 
-      - name: Benchmark Repository Fetch Script
+      - name: Benchmark Repository Fetch (Python CLI)
         run: |
           source .github/scripts/workflow_utils.sh
           source .github/scripts/performance_utils.sh
           
           start_step_timing "repo_fetch_benchmark"
           
-          # Benchmark repo fetch script with dry-run
-          benchmark_script "fetch-student-repos" \
-            "classroom_pilot/scripts/fetch-student-repos.sh" \
-            "--config performance_test_data/test_assignment.conf --dry-run"
+          # Benchmark Python CLI repo fetch with dry-run
+          benchmark_script "repos-fetch" \
+            "python -m classroom_pilot repos --dry-run --verbose fetch" \
+            "--config performance_test_data/test_assignment.conf"
           
           end_step_timing "repo_fetch_benchmark"
 
-      - name: Benchmark Secrets Management Script
+      - name: Benchmark Secrets Management (Python CLI)
         run: |
           source .github/scripts/workflow_utils.sh
           source .github/scripts/performance_utils.sh
           
           start_step_timing "secrets_benchmark"
           
-          # Benchmark secrets script with dry-run
-          benchmark_script "add-secrets-to-students" \
-            "classroom_pilot/scripts/add-secrets-to-students.sh" \
-            "--config performance_test_data/test_assignment.conf --dry-run"
+          # Benchmark Python CLI secrets management with dry-run
+          benchmark_script "secrets-add" \
+            "python -m classroom_pilot secrets --dry-run --verbose add" \
+            "--assignment-root performance_test_data/"
           
           end_step_timing "secrets_benchmark"
 
-      - name: Monitor Resource Usage
+      - name: Monitor Resource Usage (Python CLI)
         run: |
           source .github/scripts/workflow_utils.sh
           source .github/scripts/performance_utils.sh
           
           start_step_timing "resource_monitoring"
           
-          # Monitor system resources during combined script execution
-          monitor_resources "combined_workflow_simulation" \
-            "classroom_pilot/scripts/assignment-orchestrator.sh --config performance_test_data/test_assignment.conf --dry-run"
+          # Monitor system resources during Python CLI execution
+          monitor_resources "python_cli_workflow_simulation" \
+            "python -m classroom_pilot assignments --dry-run --verbose orchestrate --config performance_test_data/test_assignment.conf"
           
           end_step_timing "resource_monitoring"
 
@@ -185,7 +200,7 @@ jobs:
     name: CLI Performance Testing
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    needs: script-performance-benchmarking
+    needs: python-cli-performance-benchmarking
     
     steps:
       - name: Checkout Repository
@@ -217,13 +232,13 @@ jobs:
           
           # Benchmark assignment orchestration CLI command
           benchmark_script "cli_assignments_orchestrate" \
-            "poetry run classroom-pilot assignments orchestrate" \
-            "--dry-run --config assignment.conf"
+            "poetry run classroom-pilot assignments --dry-run orchestrate" \
+            "--config assignment.conf"
           
           # Benchmark assignment setup CLI command
           benchmark_script "cli_assignments_setup" \
-            "poetry run classroom-pilot assignments setup" \
-            "--dry-run --config assignment.conf"
+            "poetry run classroom-pilot assignments --dry-run setup" \
+            "--config assignment.conf"
           
           end_step_timing "cli_assignments_benchmark"
 
@@ -236,13 +251,13 @@ jobs:
           
           # Benchmark repository fetch CLI command
           benchmark_script "cli_repos_fetch" \
-            "poetry run classroom-pilot repos fetch" \
-            "--dry-run --config assignment.conf"
+            "poetry run classroom-pilot repos --dry-run fetch" \
+            "--config assignment.conf"
           
           # Benchmark collaborator management CLI command
           benchmark_script "cli_repos_collaborator" \
-            "poetry run classroom-pilot repos collaborator" \
-            "--dry-run --config assignment.conf"
+            "poetry run classroom-pilot repos --dry-run collaborator" \
+            "--config assignment.conf"
           
           end_step_timing "cli_repos_benchmark"
 
@@ -255,8 +270,8 @@ jobs:
           
           # Benchmark secrets management CLI command
           benchmark_script "cli_secrets_manage" \
-            "poetry run classroom-pilot secrets manage" \
-            "--dry-run --config assignment.conf"
+            "poetry run classroom-pilot secrets --dry-run manage" \
+            "--config assignment.conf"
           
           end_step_timing "cli_secrets_benchmark"
 
@@ -283,7 +298,7 @@ jobs:
     name: Performance Trend Analysis
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    needs: [script-performance-benchmarking, cli-performance-testing]
+    needs: [python-cli-performance-benchmarking, cli-performance-testing]
     if: always()
     
     steps:

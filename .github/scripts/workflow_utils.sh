@@ -66,6 +66,36 @@ log_error() {
 }
 
 #######################################
+# Create directory if it doesn't exist
+# Arguments:
+#   $1: Directory path to create
+# Returns:
+#   0 on success, 1 on failure
+#######################################
+create_directory_if_not_exists() {
+    local dir_path="$1"
+    
+    if [[ -z "$dir_path" ]]; then
+        log_error "Directory path cannot be empty"
+        return 1
+    fi
+    
+    if [[ ! -d "$dir_path" ]]; then
+        log_info "Creating directory: $dir_path"
+        if mkdir -p "$dir_path"; then
+            log_success "Directory created successfully: $dir_path"
+            return 0
+        else
+            log_error "Failed to create directory: $dir_path"
+            return 1
+        fi
+    else
+        log_info "Directory already exists: $dir_path"
+        return 0
+    fi
+}
+
+#######################################
 # Execute command with retry logic and exponential backoff
 # Arguments:
 #   $1: Command to execute
@@ -477,9 +507,10 @@ export_performance_metrics() {
 # Export functions for use in workflows
 export -f print_message
 export -f log_info
-export -f log_success  
+export -f log_success
 export -f log_warning
 export -f log_error
+export -f create_directory_if_not_exists
 export -f retry_with_backoff
 export -f generate_cache_key
 export -f generate_cache_key_with_hash

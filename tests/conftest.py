@@ -12,7 +12,6 @@ from typing import Dict, Any
 import pytest
 
 from classroom_pilot.config.loader import ConfigLoader
-from classroom_pilot.bash_wrapper import BashWrapper
 
 
 @pytest.fixture
@@ -41,17 +40,6 @@ def test_config_loader(temp_config_file) -> ConfigLoader:
 def test_config(test_config_data) -> Dict[str, str]:
     """Provide test config data as a dict."""
     return test_config_data
-
-
-@pytest.fixture
-def test_wrapper(test_config_data) -> BashWrapper:
-    """Provide a test BashWrapper instance with dry-run enabled."""
-    return BashWrapper(
-        config=test_config_data,
-        dry_run=True,
-        verbose=True,
-        auto_yes=True
-    )
 
 
 @pytest.fixture

@@ -9,5 +9,6 @@ This package handles:
 """
 
 from .scheduler import AutomationScheduler
+from .cron_manager import CronManager
 
-__all__ = ["AutomationScheduler"]
+__all__ = ["AutomationScheduler", "CronManager"]

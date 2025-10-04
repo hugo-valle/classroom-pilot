@@ -25,9 +25,8 @@ EOF
     
     # Test that the CLI properly handles invalid configuration
     set +e
-    poetry run classroom-pilot assignments orchestrate \
-        --config "$TEST_CONFIG_DIR/invalid_assignment.conf" \
-        --dry-run 2>/dev/null
+    poetry run classroom-pilot assignments --dry-run orchestrate \
+        --config "$TEST_CONFIG_DIR/invalid_assignment.conf" 2>/dev/null
     exit_code=$?
     set -e
     

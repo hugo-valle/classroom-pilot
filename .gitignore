@@ -76,9 +76,21 @@ htmlcov/
 .tox/
 coverage.xml
 
+# Test environment directories (from automated testing)
+test_project_repos/test_environments/
+test_project_repos/dist/
+test_project_repos/build/
+test_project_repos/*.egg-info/
+
+# Clean environment test directories
+clean_install_test_*/
+
 # MkDocs build artifacts
 site/
 .mkdocs_cache/
 
 # Documentation build artifacts
 docs-site/.mkdocs_cache/
+
+# Ignore test environment directories
+test_project_repos/test_environments/*

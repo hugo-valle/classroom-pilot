@@ -6,7 +6,8 @@ include requirements.txt
 include requirements-dev.txt
 
 recursive-include classroom_pilot *.py
-recursive-include classroom_pilot/scripts *.sh
+# Include shell scripts (legacy)
+recursive-include classroom_pilot/scripts_legacy *.sh
 recursive-include classroom_pilot/utils *.sh
 recursive-include classroom_pilot/docs *.md
 recursive-include classroom_pilot/docs *.yml
