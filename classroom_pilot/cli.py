@@ -26,7 +26,7 @@ logger = get_logger("cli")
 def version_callback(value: bool):
     """Callback to handle --version flag."""
     if value:
-        typer.echo("Classroom Pilot v3.1.0a2")
+        typer.echo("Classroom Pilot v3.1.0b1")
         typer.echo("Modular Python CLI for GitHub Classroom automation")
         typer.echo("https://github.com/hugo-valle/classroom-pilot")
         raise typer.Exit()
