@@ -2,135 +2,272 @@ name: 🔄 CI
 
 on:
   push:
-    branches: [ main, develop, feature/python-migration ]
+    branches: [ main, develop, feature/* ]
   pull_request:
     branches: [ main, develop ]
 
+# Permissions for GITHUB_TOKEN
 permissions:
   contents: read       # Required to checkout code
   issues: read         # Required for security scanning
   pull-requests: read  # Required for PR context
 
+env:
+  # Performance monitoring
+  CI_START_TIME: ${{ github.event.head_commit.timestamp }}
+  CACHE_VERSION: v2
+  # Python testing environment
+  PYTHONDONTWRITEBYTECODE: 1
+  PYTHONUNBUFFERED: 1
+
 jobs:
   test:
-    name: 🧪 Test Scripts
+    name: 🐍 Test Python CLI (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        shell: [bash, zsh]
+        python-version: ['3.10', '3.11', '3.12']
     steps:
-      - name: Checkout code
+      - name: 📥 Checkout code
         uses: actions/checkout@v4
 
-      - name: Install shell
+      - name: 🐍 Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: 📦 Load workflow utilities
         run: |
-          if [ "${{ matrix.shell }}" = "zsh" ]; then
-            sudo apt-get update
-            sudo apt-get install -y zsh
+          chmod +x .github/scripts/workflow_utils.sh
+          source .github/scripts/workflow_utils.sh
+          echo "STEP_START_TIME=$(date +%s)" >> $GITHUB_ENV
+
+      - name: 🔧 Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: latest
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
+      - name: 📚 Install dependencies
+        run: |
+          source .github/scripts/workflow_utils.sh
+          poetry install
+
+      - name: ✅ Validate environment
+        run: |
+          source .github/scripts/workflow_utils.sh
+          validate_environment "python${{ matrix.python-version }}" "git curl poetry"
+
+      - name: 🐍 Test Python CLI syntax
+        run: |
+          source .github/scripts/workflow_utils.sh
+          print_message "step" "Validating Python CLI syntax"
+          
+          # Test Python syntax and imports
+          poetry run python -m py_compile classroom_pilot/__main__.py
+          poetry run python -m py_compile classroom_pilot/cli.py
+          
+          # Test CLI help commands
+          poetry run python -m classroom_pilot --help
+          poetry run python -m classroom_pilot assignments --help
+          poetry run python -m classroom_pilot repos --help
+          poetry run python -m classroom_pilot secrets --help
+          poetry run python -m classroom_pilot automation --help
+          
+          print_message "success" "Python CLI validation completed"
+
+      - name: 🧪 Test CLI functionality
+        run: |
+          source .github/scripts/workflow_utils.sh
+          
+          # Create comprehensive test files
+          echo '{"assignment":"test","version":"1.0"}' > assignment.json
+          echo '{"cells":[],"metadata":{},"nbformat":4,"nbformat_minor":4}' > test.ipynb
+          echo '{"test_secret": "test_value"}' > test-secrets.json
+          
+          # Test Python CLI help commands
+          print_message "info" "Testing Python CLI help commands"
+          poetry run python -m classroom_pilot --help > /dev/null
+          poetry run python -m classroom_pilot assignments --help > /dev/null
+          poetry run python -m classroom_pilot repos --help > /dev/null
+          poetry run python -m classroom_pilot secrets --help > /dev/null
+          poetry run python -m classroom_pilot automation --help > /dev/null
+          
+          print_message "success" "All Python CLI help commands working"
+
+      - name: 🧪 Run comprehensive test suite
+        run: |
+          source .github/scripts/workflow_utils.sh
+          print_message "info" "Running comprehensive pytest test suite"
+          
+          # Create test results directory
+          mkdir -p test-results/python${{ matrix.python-version }}
+          
+          # Run pytest with comprehensive coverage
+          poetry run pytest tests/ \
+            -v \
+            --tb=short \
+            --strict-markers \
+            --disable-warnings \
+            --cov=classroom_pilot \
+            --cov-branch \
+            --cov-report=term-missing:skip-covered \
+            --cov-report=xml:test-results/python${{ matrix.python-version }}/coverage.xml \
+            --cov-report=html:test-results/python${{ matrix.python-version }}/htmlcov \
+            --junitxml=test-results/python${{ matrix.python-version }}/pytest-results.xml
+          
+          print_message "success" "All tests passed for Python ${{ matrix.python-version }}"
+
+      - name: 📊 Upload test results and coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-python${{ matrix.python-version }}
+          path: |
+            test-results/python${{ matrix.python-version }}/
+          retention-days: 30
+
+      - name: 📊 Generate test summary
+        if: always()
+        run: |
+          source .github/scripts/workflow_utils.sh
+          
+          # Calculate step timing
+          step_duration=$(report_step_timing "Test Python CLI (Python ${{ matrix.python-version }})" "$STEP_START_TIME")
+          
+          # Export performance metrics for aggregation
+          export_performance_metrics "test_python_cli_${{ matrix.python-version }}" "/tmp/workflow_metrics.json"
+          
+          # Create comprehensive summary
+          if [ "${{ job.status }}" = "success" ]; then
+            create_step_summary "Test Python CLI (Python ${{ matrix.python-version }})" "success" "| Python Version | ${{ matrix.python-version }} |\n| Duration | ${step_duration}s |"
+          else
+            error_report=$(generate_error_report "Test Python CLI (Python ${{ matrix.python-version }})" "Python CLI testing failed" "Matrix: Python ${{ matrix.python-version }}" "- Check Python installation\n- Verify CLI module imports\n- Review command implementation")
+            echo "$error_report" >> $GITHUB_STEP_SUMMARY
+            create_step_summary "Test Python CLI (Python ${{ matrix.python-version }})" "failure"
           fi
 
-      - name: Test script syntax
-        run: |
-          echo "🔍 Testing script syntax with ${{ matrix.shell }}..."
-          for script in classroom_pilot/scripts/*.sh; do
-            echo "Checking $script..."
-            ${{ matrix.shell }} -n "$script"
-          done
-
-      - name: Test help commands
-        run: |
-          echo "🧪 Testing help commands..."
-          
-          # Create mock directory structure for testing
-          mkdir -p ../mock-assignment
-          cd ../mock-assignment
-          
-          # Create mock assignment.conf
-          cat > assignment.conf << 'EOF'
-          CLASSROOM_URL="https://classroom.github.com/classrooms/12345/assignments/test"
-          TEMPLATE_REPO_URL="https://github.com/test-org/test-template"
-          GITHUB_ORGANIZATION="test-org"
-          ASSIGNMENT_NOTEBOOK="test.ipynb"
-          INSTRUCTOR_TESTS_TOKEN="test-token"
-          SECRETS_CONFIG="test-secrets.json"
-          STEP_MANAGE_SECRETS="true"
-          EOF
-          
-          # Create test files for tool integration testing
-          echo '{"assignment":"test"}' > assignment.json
-          echo 'Test notebook content' > test.ipynb
-          echo '{"cells":[],"metadata":{},"nbformat":4,"nbformat_minor":4}' > test.ipynb
-          
-          # Test help commands with proper context
-          echo "Testing setup-assignment.sh --help..."
-          bash -x classroom_pilot/scripts/setup-assignment.sh --help || echo "Setup help completed with status $?"
-          
-          echo "Testing assignment-orchestrator.sh --help..."
-          bash classroom_pilot/scripts/assignment-orchestrator.sh --help || echo "Orchestrator help completed with status $?"
-          
-          echo "Testing fetch-student-repos.sh --help..."
-          bash classroom_pilot/scripts/fetch-student-repos.sh --help || echo "Fetch help completed with status $?"
-
   lint:
-    name: 🔍 Lint
+    name: 🔍 Python Code Quality
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: 📥 Checkout code
         uses: actions/checkout@v4
 
-      - name: Run Shellcheck
-        uses: ludeeus/action-shellcheck@master
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v4
         with:
-          scandir: './scripts'
-          severity: error
-          ignore_paths: '.git'
-        env:
-          SHELLCHECK_OPTS: -e SC1091,SC2034,SC2155,SC2086,SC2162,SC2329
+          python-version: '3.11'
+
+      - name: 📦 Load workflow utilities
+        run: |
+          chmod +x .github/scripts/workflow_utils.sh
+          source .github/scripts/workflow_utils.sh
+          echo "STEP_START_TIME=$(date +%s)" >> $GITHUB_ENV
+
+      - name: 🔧 Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: latest
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
+      - name: 📚 Install dependencies
+        run: |
+          source .github/scripts/workflow_utils.sh
+          poetry install
+
+      - name: 🔍 Run Python code quality checks
+        run: |
+          source .github/scripts/workflow_utils.sh
+          print_message "step" "Running Python code quality analysis"
+          
+          # Check Python syntax
+          log_info "Checking Python syntax..."
+          poetry run python -m py_compile classroom_pilot/*.py
+          
+          # Test imports
+          log_info "Testing module imports..."
+          poetry run python -c "import classroom_pilot; print('✅ Package imports successfully')"
+          
+          # Test CLI functionality
+          log_info "Testing CLI functionality..."
+          poetry run python -m classroom_pilot --help > /dev/null
+          
+          print_message "success" "Python code quality checks passed"
+
+      - name: 📊 Generate lint summary
+        if: always()
+        run: |
+          source .github/scripts/workflow_utils.sh
+          step_duration=$(report_step_timing "Python Code Quality" "$STEP_START_TIME")
+          
+          # Export performance metrics for aggregation
+          export_performance_metrics "python_code_quality" "/tmp/workflow_metrics.json"
+          
+          if [ "${{ job.status }}" = "success" ]; then
+            create_step_summary "Python Code Quality" "success" "| Tool | Python syntax + imports |\n| Duration | ${step_duration}s |"
+          else
+            create_step_summary "Python Code Quality" "failure"
+          fi
+
+  test-matrix-summary:
+    name: 📊 Test Matrix Summary
+    runs-on: ubuntu-latest
+    needs: [test]
+    if: always()
+    
+    steps:
+    - name: 📥 Checkout code (for utilities)
+      uses: actions/checkout@v4
+    
+    - name: 📦 Load workflow utilities
+      run: |
+        chmod +x .github/scripts/workflow_utils.sh
+        source .github/scripts/workflow_utils.sh
+    
+    - name: 📊 Generate test matrix summary
+      run: ./.github/scripts/generate_test_matrix_summary.sh "${{ needs.test.result }}"
 
   security:
-    name: 🛡️ Security
+    name: 🛡️ Security Scan
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
-      - name: Checkout code
+      - name: 📥 Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Scan for secrets
-        uses: trufflesecurity/trufflehog@main
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v4
         with:
-          path: ./
-          base: ${{ github.event.before || 'HEAD~1' }}
-          head: HEAD
-        continue-on-error: true  # Don't fail CI for security scan issues
+          python-version: '3.11'
 
-  validate-docs:
-    name: 📚 Validate Docs
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Check CHANGELOG format
+      - name: 📦 Load workflow utilities
         run: |
-          echo "📝 Validating CHANGELOG.md..."
-          if [ ! -f "docs/CHANGELOG.md" ]; then
-            echo "❌ CHANGELOG.md not found"
-            exit 1
-          fi
-          
-          # Check for required sections
-          if ! grep -q "## \[Unreleased\]" docs/CHANGELOG.md; then
-            echo "❌ CHANGELOG.md missing [Unreleased] section"
-            exit 1
-          fi
-          
-          echo "✅ CHANGELOG.md format is valid"
+          chmod +x .github/scripts/workflow_utils.sh
+          source .github/scripts/workflow_utils.sh
+          echo "STEP_START_TIME=$(date +%s)" >> $GITHUB_ENV
 
-      - name: Check README exists
+      - name: 🗂️ Setup security cache directories
         run: |
-          if [ ! -f "README.md" ] && [ ! -f "docs/README.md" ]; then
-            echo "⚠️ No README.md found"
-          else
-            echo "✅ README.md found"
-          fi
+          source .github/scripts/workflow_utils.sh
+          create_directory_if_not_exists "/tmp/security-scan-cache"
+          create_directory_if_not_exists "/tmp/security-reports"
+
+      - name: 📦 Export Poetry dependencies
+        run: |
+          chmod +x .github/scripts/export_poetry_dependencies.sh
+          .github/scripts/export_poetry_dependencies.sh
+
+      - name: 🔍 Security audit
+        run: |
+          chmod +x .github/scripts/security_utils.sh
+          .github/scripts/security_utils.sh audit
+
+      - name: 📊 Security report summary
+        run: |
+          .github/scripts/security_utils.sh summary

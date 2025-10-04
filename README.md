@@ -400,20 +400,21 @@ poetry run pytest tests/test_github_exceptions.py -v --tb=short
 
 ### Version Information
 
-- **Current Version**: 3.1.0a1 (Alpha with production-ready features)
+- **Current Version**: 3.1.0b1 (Beta release with advanced features ready for broader testing)
 - **Python Support**: 3.10, 3.11, 3.12
 - **Package Distribution**: PyPI with automated CI/CD
 - **Release Cycle**: Semantic versioning with [PEP 440](https://peps.python.org/pep-0440/) compliant identifiers
 - **Versioning Strategy**: [Development Documentation](docs-site/development/versioning.md)
 
-#### Recent Improvements (v3.1.0a1)
+#### Recent Improvements (v3.1.0b1)
 
-- **🛡️ Centralized Error Handling** - Comprehensive GitHub API error management
-- **🔄 Retry Mechanisms** - Automatic retry with exponential backoff
-- **🏗️ Enhanced CLI** - Improved command structure with legacy compatibility
-- **🧪 Robust Testing** - 70+ tests with comprehensive coverage
-- **📚 Professional Documentation** - Complete docstrings and examples
-- **🔒 Production Quality** - Type safety and security enhancements
+- **🎯 Universal CLI Options** - All commands support `--help`, `--verbose`, `--dry-run`
+- **🏗️ CLI Modernization** - Complete Typer-based architecture with consistent UX
+- **📁 Legacy Preservation** - Scripts moved to `scripts_legacy/` for backward compatibility
+- **🔄 Workflow Consolidation** - Eliminated duplicate testing, enhanced CI/CD pipeline
+- **🧪 Enhanced Testing** - 496+ comprehensive tests with consolidated coverage reporting
+- **📚 Documentation Updates** - Complete modernization documentation across all resources
+- **� Beta Release** - Ready for broader community testing and feedback
 
 ## 🆘 Support
 

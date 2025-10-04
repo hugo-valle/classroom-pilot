@@ -7,10 +7,10 @@ Thank you for your interest in contributing to Classroom Pilot! This guide will 
 Classroom Pilot is a modern Python CLI tool for GitHub Classroom automation, built with:
 
 - **Python 3.10+** with type hints and modern syntax
-- **Typer** for CLI interface with rich help and output
+- **Typer** for CLI interface with universal options (`--help`, `--verbose`, `--dry-run`)
 - **Poetry** for dependency management and packaging
-- **pytest** for comprehensive testing (153+ tests)
-- **GitHub Actions** for CI/CD and automated PyPI publishing
+- **pytest** for comprehensive testing (496+ tests)
+- **GitHub Actions** for consolidated CI/CD and automated PyPI publishing
 
 ## 🚀 Quick Setup
 
@@ -37,8 +37,10 @@ poetry install
 # Activate virtual environment
 poetry shell
 
-# Verify installation
+# Verify installation and universal options
 classroom-pilot --help
+classroom-pilot assignments --help --verbose
+classroom-pilot repos --help --dry-run
 ```
 
 ### 3. Run Tests
@@ -81,9 +83,10 @@ git checkout -b feature/your-feature-name
 # Run tests
 poetry run pytest tests/ -v
 
-# Test CLI locally
+# Test CLI locally with universal options
 poetry run classroom-pilot --help
 poetry run classroom-pilot assignments --help
+poetry run classroom-pilot repos --verbose --dry-run list
 
 # Check code formatting
 poetry run black classroom_pilot/ --check

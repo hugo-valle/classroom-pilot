@@ -256,15 +256,47 @@ class BashWrapper:
         logger.info("📥 Fetching student repositories")
         return self._execute_script("fetch-student-repos.sh")
 
-    def add_secrets_to_students(self) -> bool:
+    def add_secrets_to_students(self, assignment_root: Optional[Path] = None) -> bool:
         """
-        Execute the add secrets to students script.
+        Execute the add secrets to students functionality using Python implementation.
+
+        Args:
+            assignment_root: Root directory of assignment template repository
+                           (where assignment.conf and assignment files are located)
 
         Returns:
             True if successful, False otherwise
         """
         logger.info("🔐 Adding secrets to student repositories")
-        return self._execute_script("add-secrets-to-students.sh")
+
+        # Use Python implementation instead of bash script
+        try:
+            from .secrets.github_secrets import add_secrets_to_students
+
+            # Change to assignment root directory if specified
+            original_cwd = None
+            if assignment_root:
+                original_cwd = Path.cwd()
+                os.chdir(assignment_root)
+
+            try:
+                # Use the Python implementation
+                success = add_secrets_to_students(
+                    config=self.config,
+                    dry_run=self.dry_run
+                )
+                return success
+            finally:
+                # Restore original working directory
+                if original_cwd:
+                    os.chdir(original_cwd)
+
+        except ImportError as e:
+            logger.error(
+                f"Failed to import Python secrets implementation: {e}")
+            logger.info("Falling back to bash script implementation")
+            # Fallback to bash script
+            return self._execute_script("add-secrets-to-students.sh", cwd=assignment_root)
 
     def student_update_helper(self) -> bool:
         """

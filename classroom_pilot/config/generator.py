@@ -137,7 +137,7 @@ class ConfigGenerator:
 # Example: https://classroom.github.com/classrooms/12345/assignments/assignment-name
 CLASSROOM_URL="{}"
 
-# GitHub Classroom repository URL (OPTIONAL - only needed for push-to-classroom.sh)
+# GitHub Classroom repository URL (OPTIONAL - only needed for template synchronization)
 # This is the actual repository URL created by GitHub Classroom for the assignment
 # Different from CLASSROOM_URL above - this is the git repository URL
 # Format: https://github.com/[ORG]/[classroom-semester-assignment-name]
@@ -147,7 +147,7 @@ CLASSROOM_URL="{}"
         if config_values.get('CLASSROOM_REPO_URL'):
             section += f'CLASSROOM_REPO_URL="{config_values["CLASSROOM_REPO_URL"]}"\n'
         else:
-            section += '# CLASSROOM_REPO_URL=""  # Optional - add if using push-to-classroom.sh\n'
+            section += '# CLASSROOM_REPO_URL=""  # Optional - add if using template synchronization\n'
 
         section += f"""
 # Template repository URL (source of truth for updates)

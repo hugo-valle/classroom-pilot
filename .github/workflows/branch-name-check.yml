@@ -2,7 +2,8 @@ name: Enforce Branch Naming
 
 on:
   pull_request:
-    branches: [ develop ]
+    types: [opened, edited, synchronize, reopened]
+    branches: [ main, develop ]
 
 jobs:
   check:
@@ -11,8 +12,8 @@ jobs:
       - name: Check branch name
         run: |
           BRANCH_NAME="${{ github.head_ref }}"
-          if [[ ! "$BRANCH_NAME" =~ ^(feature|bugfix|hotfix|release)\/.+$ ]]; then
+          if [[ ! "$BRANCH_NAME" =~ ^(feature|bugfix|hotfix|release|docs|chore)\/.+$ ]]; then
             echo "❌ Invalid branch name: $BRANCH_NAME"
-            echo "Branch name must start with feature/, bugfix/, hotfix/, or release/"
+            echo "Branch name must start with feature/, bugfix/, hotfix/, release/, docs/, or chore/"
             exit 1
           fi

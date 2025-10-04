@@ -122,6 +122,335 @@ except SpecificException as e:
     raise typer.Exit(code=1)
 ```
 
+## 🌐 GitHub API Integration Methodology
+
+**CRITICAL**: This section documents the systematic approach for updating modules to use the GitHub API, ensuring consistency, reliability, and maintainability across all integrations.
+
+### Phase 1: Infrastructure Setup
+
+#### 1.1 GitHub API Error Handling (Foundation)
+- **Location**: `classroom_pilot/utils/github_exceptions.py`
+- **Purpose**: Centralized error handling for all GitHub API interactions
+- **Components**:
+  ```python
+  # Core exception classes
+  class GitHubAPIError(Exception): pass
+  class RateLimitError(GitHubAPIError): pass
+  class AuthenticationError(GitHubAPIError): pass
+  class ResourceNotFoundError(GitHubAPIError): pass
+  class PermissionError(GitHubAPIError): pass
+  
+  # Smart retry decorator with exponential backoff
+  @retry_on_github_error(max_retries=3, base_delay=1)
+  def api_operation():
+      # API call implementation
+  ```
+
+#### 1.2 HTTP Client Wrapper
+- **Pattern**: Create wrapper around `requests` with GitHub-specific handling
+- **Features**:
+  - Automatic authentication header injection
+  - Rate limiting respect (X-RateLimit headers)
+  - Intelligent retry logic for transient failures
+  - Standardized error response parsing
+  - Request/response logging for debugging
+
+### Phase 2: Module Conversion Strategy
+
+#### 2.1 Analysis Phase
+**Before touching any code:**
+1. **Identify current bash commands** used in the module
+2. **Map bash operations to GitHub API endpoints**
+3. **Document required permissions** and scopes
+4. **List all error scenarios** that need handling
+5. **Determine data transformation** requirements
+
+#### 2.2 Implementation Pattern
+**Standard conversion workflow:**
+
+1. **Import GitHub Error Handling**:
+   ```python
+   from classroom_pilot.utils.github_exceptions import (
+       GitHubAPIError, RateLimitError, AuthenticationError,
+       retry_on_github_error, handle_github_response
+   )
+   ```
+
+2. **Replace BashWrapper with HTTP Client**:
+   ```python
+   # OLD: bash_wrapper.run(['gh', 'api', '/repos/owner/repo'])
+   # NEW: 
+   response = self._make_github_request('GET', f'/repos/{owner}/{repo}')
+   ```
+
+3. **Add Comprehensive Error Handling**:
+   ```python
+   @retry_on_github_error(max_retries=3)
+   def _make_github_request(self, method: str, endpoint: str, **kwargs):
+       try:
+           response = requests.request(method, f"{self.base_url}{endpoint}", **kwargs)
+           return handle_github_response(response)
+       except requests.RequestException as e:
+           raise GitHubAPIError(f"Request failed: {e}")
+   ```
+
+#### 2.3 Data Transformation
+**Standardize response handling:**
+- **Parse JSON responses** into Python dictionaries
+- **Extract relevant fields** for business logic
+- **Handle paginated responses** with proper iteration
+- **Maintain backward compatibility** with existing interfaces
+
+### Phase 3: Testing Integration
+
+#### 3.1 Mock Strategy
+**Comprehensive mocking approach:**
+```python
+@pytest.fixture
+def mock_github_api(mocker):
+    """Mock GitHub API responses for testing."""
+    mock_response = mocker.Mock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {"id": 123, "name": "test-repo"}
+    mock_response.headers = {"X-RateLimit-Remaining": "4999"}
+    
+    mocker.patch('requests.request', return_value=mock_response)
+    return mock_response
+```
+
+#### 3.2 Test Categories
+**Required test coverage:**
+1. **Success scenarios** - Normal API operation
+2. **Authentication failures** - Invalid token handling
+3. **Rate limiting** - Retry logic validation
+4. **Network failures** - Connection error handling
+5. **Resource not found** - 404 response handling
+6. **Permission errors** - 403 response handling
+7. **Malformed responses** - Invalid JSON handling
+
+### Phase 4: Module-Specific Patterns
+
+#### 4.1 Repository Operations (`repos/`)
+**Key API endpoints:**
+- `GET /repos/{owner}/{repo}` - Repository information
+- `GET /repos/{owner}/{repo}/collaborators` - Collaborator management
+- `POST /repos/{owner}/{repo}/collaborators/{username}` - Add collaborators
+- `GET /repos/{owner}/{repo}/contents/{path}` - File operations
+
+**Bash to API mapping:**
+```python
+# OLD: gh repo view owner/repo --json name,description
+# NEW: GET /repos/owner/repo -> response['name'], response['description']
+
+# OLD: gh api repos/owner/repo/collaborators
+# NEW: GET /repos/owner/repo/collaborators -> list of collaborator objects
+```
+
+#### 4.2 Secret Management (`secrets/`)
+**Key API endpoints:**
+- `GET /repos/{owner}/{repo}/actions/secrets` - List secrets
+- `PUT /repos/{owner}/{repo}/actions/secrets/{secret_name}` - Update secret
+- `GET /repos/{owner}/{repo}/actions/secrets/public-key` - Get public key
+
+**Special considerations:**
+- **Secret encryption** using repository public key
+- **Base64 encoding** for secret values
+- **Batch operations** for multiple secrets
+
+#### 4.3 Assignment Management (`assignments/`)
+**Integration points:**
+- **Repository creation** via GitHub API
+- **Template cloning** and customization
+- **Webhook configuration** for assignment events
+- **Issue/PR automation** for feedback
+
+### Phase 5: Quality Assurance
+
+#### 5.1 Code Review Checklist
+**Before merging GitHub API integration:**
+- [ ] **Error handling** covers all GitHub API error types
+- [ ] **Retry logic** implemented with exponential backoff
+- [ ] **Rate limiting** respected and handled gracefully
+- [ ] **Authentication** properly configured and tested
+- [ ] **Logging** adequate for debugging and monitoring
+- [ ] **Tests** cover success and failure scenarios
+- [ ] **Documentation** updated with new API usage
+- [ ] **Backward compatibility** maintained where possible
+
+#### 5.2 Performance Considerations
+**Optimization strategies:**
+- **Batch API calls** where possible to reduce requests
+- **Cache responses** for frequently accessed data
+- **Implement pagination** properly for large result sets
+- **Use conditional requests** (ETags) to avoid unnecessary transfers
+- **Monitor rate limit usage** and adjust request patterns
+
+### Phase 6: Migration Execution
+
+#### 6.1 Module Priority Order
+**Recommended conversion sequence:**
+1. **Core utilities** (`utils/github_exceptions.py`) - Foundation first
+2. **Repository operations** (`repos/fetch.py`, `repos/collaborator.py`) - High usage
+3. **Secret management** (`secrets/manager.py`) - Security critical
+4. **Assignment operations** (`assignments/setup.py`) - Business logic
+5. **Automation workflows** (`automation/`) - Lower priority
+
+#### 6.2 Rollback Strategy
+**Safety measures:**
+- **Maintain bash wrapper** as fallback during transition
+- **Feature flags** to enable/disable API usage
+- **Comprehensive logging** for issue identification
+- **Gradual rollout** with monitoring at each step
+
+### Phase 7: Documentation and Maintenance
+
+#### 7.1 API Documentation
+**Required documentation:**
+- **Endpoint mapping** - Bash command to API endpoint reference
+- **Error scenarios** - Common failures and resolutions
+- **Rate limiting** - Current usage and optimization strategies
+- **Authentication** - Token requirements and permissions
+
+#### 7.2 Monitoring and Observability
+**Production considerations:**
+- **API usage metrics** - Request counts and patterns
+- **Error rate tracking** - Failure analysis and alerting
+- **Performance monitoring** - Response times and bottlenecks
+- **Rate limit tracking** - Usage against GitHub quotas
+
+### Phase 8: Practical Implementation Examples
+
+#### 8.1 Error Handling Infrastructure
+**Real implementation from `classroom_pilot/utils/github_exceptions.py`:**
+```python
+class GitHubAPIError(Exception):
+    """Base exception for GitHub API errors."""
+    def __init__(self, message: str, response=None, status_code=None):
+        super().__init__(message)
+        self.response = response
+        self.status_code = status_code
+
+@retry_on_github_error(max_retries=3, base_delay=1)
+def make_github_request(method: str, url: str, **kwargs) -> requests.Response:
+    """Make authenticated GitHub API request with retry logic."""
+    headers = kwargs.get('headers', {})
+    headers.update({
+        'Authorization': f'token {get_github_token()}',
+        'Accept': 'application/vnd.github.v3+json'
+    })
+    kwargs['headers'] = headers
+    
+    response = requests.request(method, url, **kwargs)
+    return handle_github_response(response)
+```
+
+#### 8.2 Module Conversion Example
+**From `classroom_pilot/repos/fetch.py` - bash to API conversion:**
+```python
+# BEFORE: Bash wrapper approach
+def get_repo_info(self, repo_url: str) -> dict:
+    result = self.bash_wrapper.run(['gh', 'repo', 'view', repo_url, '--json', 'name,description'])
+    return json.loads(result.stdout)
+
+# AFTER: Direct GitHub API approach  
+def get_repo_info(self, repo_url: str) -> dict:
+    owner, repo = self._parse_repo_url(repo_url)
+    response = self._make_github_request('GET', f'/repos/{owner}/{repo}')
+    return {
+        'name': response['name'],
+        'description': response['description'],
+        'clone_url': response['clone_url'],
+        'private': response['private']
+    }
+```
+
+#### 8.3 Testing Pattern Implementation
+**Comprehensive test coverage example:**
+```python
+class TestReposFetch:
+    def test_get_repo_info_success(self, mock_github_api, repo_fetch):
+        """Test successful repository information retrieval."""
+        mock_github_api.return_value.json.return_value = {
+            'name': 'test-repo',
+            'description': 'Test repository',
+            'clone_url': 'https://github.com/owner/test-repo.git',
+            'private': False
+        }
+        
+        result = repo_fetch.get_repo_info('https://github.com/owner/test-repo')
+        
+        assert result['name'] == 'test-repo'
+        assert result['description'] == 'Test repository'
+        mock_github_api.assert_called_once()
+    
+    def test_get_repo_info_not_found(self, mock_github_api, repo_fetch):
+        """Test repository not found error handling."""
+        mock_github_api.side_effect = ResourceNotFoundError("Repository not found")
+        
+        with pytest.raises(ResourceNotFoundError):
+            repo_fetch.get_repo_info('https://github.com/owner/nonexistent')
+```
+
+#### 8.4 Secrets Management API Pattern
+**From `classroom_pilot/secrets/manager.py`:**
+```python
+def update_repository_secret(self, repo_url: str, secret_name: str, secret_value: str) -> bool:
+    """Update a repository secret using GitHub API."""
+    try:
+        owner, repo = self._parse_repo_url(repo_url)
+        
+        # Get repository public key for encryption
+        key_response = self._make_github_request(
+            'GET', 
+            f'/repos/{owner}/{repo}/actions/secrets/public-key'
+        )
+        
+        # Encrypt secret value
+        encrypted_value = self._encrypt_secret(secret_value, key_response['key'])
+        
+        # Update secret
+        self._make_github_request(
+            'PUT',
+            f'/repos/{owner}/{repo}/actions/secrets/{secret_name}',
+            json={
+                'encrypted_value': encrypted_value,
+                'key_id': key_response['key_id']
+            }
+        )
+        return True
+        
+    except GitHubAPIError as e:
+        logger.error(f"Failed to update secret {secret_name}: {e}")
+        return False
+```
+
+#### 8.5 Rate Limiting Implementation
+**Smart rate limiting with exponential backoff:**
+```python
+def retry_on_github_error(max_retries: int = 3, base_delay: float = 1):
+    """Decorator for GitHub API retry logic with exponential backoff."""
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            for attempt in range(max_retries + 1):
+                try:
+                    return func(*args, **kwargs)
+                except RateLimitError as e:
+                    if attempt == max_retries:
+                        raise
+                    delay = base_delay * (2 ** attempt)
+                    logger.warning(f"Rate limit hit, retrying in {delay}s...")
+                    time.sleep(delay)
+                except (ConnectionError, Timeout) as e:
+                    if attempt == max_retries:
+                        raise GitHubAPIError(f"Network error after {max_retries} retries: {e}")
+                    delay = base_delay * (2 ** attempt)
+                    logger.warning(f"Network error, retrying in {delay}s...")
+                    time.sleep(delay)
+        return wrapper
+    return decorator
+```
+
 ## 🧪 Testing Patterns
 
 ### Test Organization
@@ -226,6 +555,80 @@ def command_name(
 - **Test locally**: `poetry run classroom-pilot --help`
 - **Check logs**: Enable verbose mode for debugging
 - **Verify config**: Ensure configuration files are valid
+
+🛠️ Workflow Authoring Guidelines
+
+This project uses GitHub Actions workflows to automate testing, packaging, and deployment. To keep workflows clean, maintainable, and consistent, follow these rules:
+
+⸻
+
+📂 Workflow File Format
+        •       Location: .github/workflows/*.yml
+        •       Each workflow should have:
+        •       Name: A descriptive name (e.g., CI - Tests, Release Build).
+        •       Triggers: Define when it runs (push, pull_request, schedule).
+        •       Jobs: Break logic into jobs (e.g., test, build, deploy).
+        •       Steps: Keep inline steps short, clean, and readable.
+
+Example:
+
+name: CI - Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: poetry install
+      - run: poetry run pytest -v
+
+
+⸻
+
+📏 Step Size Rule
+        •       Keep inline run: scripts ≤ 6 lines of code.
+        •       If logic is more than 6 lines, move it into a dedicated script.
+
+Why?
+        •       Keeps workflows readable.
+        •       Easier to reuse across workflows.
+        •       Simplifies debugging and version control.
+
+⸻
+
+📂 Script Location
+        •       Long scripts must live under:
+
+.github/scripts/
+
+
+        •       Scripts must be executable (chmod +x) and well-commented.
+        •       Use descriptive names (e.g., setup-poetry.sh, publish-pypi.sh).
+
+Example (workflow referencing a script):
+
+- name: Publish to PyPI
+  run: ./.github/scripts/publish-pypi.sh
+
+
+⸻
+
+✅ Best Practices
+        •       Use official actions (like actions/checkout) when available.
+        •       Use matrix builds for multiple Python versions.
+        •       Cache dependencies where possible (actions/cache).
+        •       Fail fast: configure set -e in scripts to stop on errors.
+        •       Log clearly: echo progress messages for better CI visibility.
+
 
 ## 📚 Key Resources
 

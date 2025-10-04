@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "classroom-pilot"
-version = "3.1.0a2"
+version = "3.1.0b1"
 description = "Modern Python CLI for automating GitHub Classroom assignment management"
 authors = ["Hugo Valle <hugo.valle@example.com>"]
 license = "MIT"
@@ -14,7 +14,7 @@ repository = "https://github.com/hugo-valle/classroom-pilot"
 documentation = "https://github.com/hugo-valle/classroom-pilot#readme"
 keywords = ["github", "classroom", "education", "automation", "cli"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Education",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
@@ -31,7 +31,7 @@ classifiers = [
 packages = [{include = "classroom_pilot"}]
 exclude = ["tests"]
 include = [
-    "classroom_pilot/scripts/*.sh",
+    "classroom_pilot/scripts_legacy/*.sh",
     "classroom_pilot/utils/*.sh", 
     "classroom_pilot/docs/*.md",
     "classroom_pilot/docs/*.yml",
@@ -45,6 +45,8 @@ typer = ">=0.12.0"
 pyyaml = "^6.0.1"
 requests = "^2.31.0"
 PyGithub = "^1.59.0"
+cryptography = "^41.0.0"
+PyNaCl = "^1.5.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.0"
