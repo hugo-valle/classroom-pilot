@@ -523,4 +523,6 @@ export -f generate_error_report
 export -f create_step_summary
 export -f validate_environment
 export -f setup_cache_directories
-export -f export_performance_metricsprint_message "info" "GitHub Actions workflow utilities loaded successfully"
+export -f export_performance_metrics
+
+print_message "info" "GitHub Actions workflow utilities loaded successfully"
