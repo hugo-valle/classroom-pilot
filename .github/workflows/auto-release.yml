@@ -76,5 +76,5 @@ jobs:
         with:
           tag_name: v${{ steps.version_info.outputs.version }}
           name: ${{ steps.version_info.outputs.type }} v${{ steps.version_info.outputs.version }}
-          body_path: CHANGELOG.md
+          body_path: docs/CHANGELOG.md
           token: ${{ secrets.GITHUB_TOKEN }}
