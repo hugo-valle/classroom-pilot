@@ -232,13 +232,13 @@ jobs:
           
           # Benchmark assignment orchestration CLI command
           benchmark_script "cli_assignments_orchestrate" \
-            "poetry run classroom-pilot assignments orchestrate" \
-            "--dry-run --config assignment.conf"
+            "poetry run classroom-pilot assignments --dry-run orchestrate" \
+            "--config assignment.conf"
           
           # Benchmark assignment setup CLI command
           benchmark_script "cli_assignments_setup" \
-            "poetry run classroom-pilot assignments setup" \
-            "--dry-run --config assignment.conf"
+            "poetry run classroom-pilot assignments --dry-run setup" \
+            "--config assignment.conf"
           
           end_step_timing "cli_assignments_benchmark"
 
@@ -251,13 +251,13 @@ jobs:
           
           # Benchmark repository fetch CLI command
           benchmark_script "cli_repos_fetch" \
-            "poetry run classroom-pilot repos fetch" \
-            "--dry-run --config assignment.conf"
+            "poetry run classroom-pilot repos --dry-run fetch" \
+            "--config assignment.conf"
           
           # Benchmark collaborator management CLI command
           benchmark_script "cli_repos_collaborator" \
-            "poetry run classroom-pilot repos collaborator" \
-            "--dry-run --config assignment.conf"
+            "poetry run classroom-pilot repos --dry-run collaborator" \
+            "--config assignment.conf"
           
           end_step_timing "cli_repos_benchmark"
 
@@ -270,8 +270,8 @@ jobs:
           
           # Benchmark secrets management CLI command
           benchmark_script "cli_secrets_manage" \
-            "poetry run classroom-pilot secrets manage" \
-            "--dry-run --config assignment.conf"
+            "poetry run classroom-pilot secrets --dry-run manage" \
+            "--config assignment.conf"
           
           end_step_timing "cli_secrets_benchmark"
 
