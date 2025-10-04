@@ -13,6 +13,7 @@ permissions:
   contents: write      # Required to create releases and tags
   actions: read        # Required for workflow context
   pull-requests: read  # Required to fetch PR information
+  id-token: write      # Required for PyPI trusted publishing
 
 jobs:
   release:
@@ -31,13 +32,43 @@ jobs:
       - name: Detect release version from branch
         id: version_info
         run: |
-          BRANCH_REF=$(git log -1 --pretty=%D | grep -oE 'origin/(release|hotfix)/[0-9]+\.[0-9]+\.[0-9]+' || true)
-          if [[ -n "$BRANCH_REF" && "$BRANCH_REF" =~ ^origin/(release|hotfix)/([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
-            echo "version=${BASH_REMATCH[2]}" >> $GITHUB_OUTPUT
-            echo "type=${BASH_REMATCH[1]}" >> $GITHUB_OUTPUT
+          # Check if this push came from merging a release or hotfix branch
+          # Look for merge commit patterns or branch references in commit messages
+          MERGE_INFO=$(git log -1 --pretty=format:"%s %b" | head -5)
+          echo "Merge info: $MERGE_INFO"
+          
+          # Try multiple patterns to detect release branch merges
+          BRANCH_REF=""
+          
+          # Pattern 1: Direct merge commit message
+          if [[ "$MERGE_INFO" =~ Merge\ pull\ request.*release/([0-9]+\.[0-9]+\.[0-9]+[a-zA-Z0-9]*) ]]; then
+            BRANCH_REF="release/${BASH_REMATCH[1]}"
+          # Pattern 2: Branch reference in git log
+          elif BRANCH_REF=$(git log -1 --pretty=%D | grep -oE 'origin/(release|hotfix)/[0-9]+\.[0-9]+\.[0-9]+[a-zA-Z0-9]*' | head -1); then
+            echo "Found branch ref in log: $BRANCH_REF"
+          # Pattern 3: Check recent merge commits for release patterns
+          elif BRANCH_REF=$(git log --oneline -10 | grep -oE '(release|hotfix)/[0-9]+\.[0-9]+\.[0-9]+[a-zA-Z0-9]*' | head -1); then
+            echo "Found branch ref in recent commits: $BRANCH_REF"
+          fi
+          
+          if [[ -n "$BRANCH_REF" && "$BRANCH_REF" =~ ^(origin/)?(release|hotfix)/([0-9]+\.[0-9]+\.[0-9]+[a-zA-Z0-9]*)$ ]]; then
+            VERSION="${BASH_REMATCH[3]}"
+            TYPE="${BASH_REMATCH[2]}"
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "type=$TYPE" >> $GITHUB_OUTPUT
+            echo "✅ Detected $TYPE branch merge with version: $VERSION"
           else
-            echo "❌ Not a release or hotfix branch. Skipping."
-            exit 0
+            echo "❌ Not a release or hotfix branch merge. Checking pyproject.toml..."
+            # Fallback: check if pyproject.toml has a beta/rc version
+            if grep -q 'version = ".*[a-zA-Z]' pyproject.toml; then
+              VERSION=$(grep 'version = ' pyproject.toml | sed 's/.*version = "\([^"]*\)".*/\1/')
+              echo "version=$VERSION" >> $GITHUB_OUTPUT
+              echo "type=release" >> $GITHUB_OUTPUT
+              echo "✅ Found beta/rc version in pyproject.toml: $VERSION"
+            else
+              echo "❌ No release version detected. Skipping."
+              exit 0
+            fi
           fi
 
       - name: Collect merged PRs since last tag
@@ -78,3 +109,71 @@ jobs:
           name: ${{ steps.version_info.outputs.type }} v${{ steps.version_info.outputs.version }}
           body_path: docs/CHANGELOG.md
           token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: latest
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
+      - name: Load cached venv
+        id: cached-poetry-dependencies
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-3.11-${{ hashFiles('**/poetry.lock') }}
+
+      - name: Install dependencies
+        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+        run: poetry install --no-interaction --no-root
+
+      - name: Install project
+        run: poetry install --no-interaction
+
+      - name: Verify version matches
+        run: |
+          PROJECT_VERSION=$(poetry version -s)
+          RELEASE_VERSION="${{ steps.version_info.outputs.version }}"
+          echo "Project version: $PROJECT_VERSION"
+          echo "Release version: $RELEASE_VERSION"
+          
+          if [ "$PROJECT_VERSION" != "$RELEASE_VERSION" ]; then
+            echo "❌ Version mismatch! Project: $PROJECT_VERSION, Release: $RELEASE_VERSION"
+            exit 1
+          fi
+          echo "✅ Version verified: $PROJECT_VERSION"
+
+      - name: Build package
+        run: |
+          echo "🔨 Building package..."
+          poetry build
+          echo "📦 Package built successfully"
+          ls -la dist/
+
+      - name: Publish to PyPI
+        env:
+          POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_API_TOKEN }}
+        run: |
+          echo "🚀 Publishing to PyPI..."
+          poetry publish --no-interaction
+          echo "✅ Package published successfully"
+
+      - name: Verify PyPI publication
+        run: |
+          VERSION="${{ steps.version_info.outputs.version }}"
+          echo "🔍 Verifying publication on PyPI..."
+          sleep 30  # Wait for PyPI to update
+          
+          if pip install classroom-pilot==$VERSION --dry-run --quiet 2>/dev/null; then
+            echo "✅ Package verification successful"
+            echo "📦 Available at: https://pypi.org/project/classroom-pilot/$VERSION/"
+          else
+            echo "⚠️ Package not yet available on PyPI (may take a few minutes)"
+            echo "Check manually: https://pypi.org/project/classroom-pilot/$VERSION/"
+          fi
