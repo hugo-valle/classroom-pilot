@@ -176,6 +176,13 @@ jobs:
         
     - name: ✅ Validate package configuration
       run: |
+        echo "🔍 Checking pyproject.toml format..."
+        if grep -q "\[project\]" pyproject.toml; then
+          echo "✅ Using modern [project] format"
+        else
+          echo "❌ Still using deprecated [tool.poetry] format"
+          exit 1
+        fi
         poetry check
         echo "✅ Package configuration is valid"
         echo "Final version: $(poetry version -s)"
@@ -239,7 +246,7 @@ jobs:
         echo "✅ Package metadata validation completed"
         
     - name: 🚀 Publish to PyPI
-      uses: pypa/gh-action-pypi-publish@v1.10.3
+      uses: pypa/gh-action-pypi-publish@v1.13.0
       with:
         # Use API token if available, otherwise fall back to trusted publishing
         password: ${{ secrets.PYPI_API_TOKEN || '' }}
