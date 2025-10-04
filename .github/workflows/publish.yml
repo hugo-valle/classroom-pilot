@@ -90,9 +90,9 @@ jobs:
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' || (github.ref == 'refs/heads/main' && contains(github.event.head_commit.modified, 'pyproject.toml'))
     
-    environment:
-      name: pypi
-      url: https://pypi.org/project/classroom-pilot/
+    # environment:
+    #   name: pypi
+    #   url: https://pypi.org/project/classroom-pilot/
       
     permissions:
       id-token: write  # For trusted publishing
@@ -173,6 +173,9 @@ jobs:
         
     - name: 🚀 Publish to PyPI
       uses: pypa/gh-action-pypi-publish@v1.10.3
+      with:
+        # Use API token if available, otherwise fall back to trusted publishing
+        password: ${{ secrets.PYPI_API_TOKEN || '' }}
         
     - name: 📋 Create Release Notes
       id: release_notes
