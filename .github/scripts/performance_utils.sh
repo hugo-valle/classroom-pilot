@@ -331,7 +331,6 @@ EOF
     
     return 0
 }
-}
 
 # =============================================================================
 # REGRESSION DETECTION FUNCTIONS
@@ -657,7 +656,7 @@ validate_performance_setup() {
 }
 
 # Main execution if script is run directly
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+if [[ "${BASH_SOURCE[0]:-}" == "${0:-}" ]]; then
     echo "Performance Utilities Script for GitHub Actions"
     echo "==============================================="
     validate_performance_setup

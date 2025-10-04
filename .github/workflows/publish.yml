@@ -1,10 +1,14 @@
 name: 🚀 Build and Publish to PyPI
 
 on:
-  # Trigger on version tags (always) OR main branch pyproject.toml changes
+  # Trigger on version tags (with or without v prefix) OR main branch pyproject.toml changes
   push:
     tags:
-      - 'v*'
+      - 'v*'        # Traditional tags with v prefix (v1.0.0, v3.1.0b1, v3.1.0a1)
+      - '*.*.*'     # Semantic version tags without prefix (1.0.0, 2.1.3)
+      - '*.*.*a*'   # Alpha versions without prefix (3.1.0a1, 3.1.0a2)
+      - '*.*.*b*'   # Beta versions without prefix (3.1.0b1, 3.1.0b2)
+      - '*.*.*rc*'  # Release candidate versions without prefix (3.1.0rc1)
     branches: 
       - main
   
@@ -84,11 +88,11 @@ jobs:
     name: 📦 Build & Publish to PyPI
     needs: test
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch' || (github.ref == 'refs/heads/main' && contains(github.event.head_commit.modified, 'pyproject.toml'))
+    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' || (github.ref == 'refs/heads/main' && contains(github.event.head_commit.modified, 'pyproject.toml'))
     
-    environment:
-      name: pypi
-      url: https://pypi.org/project/classroom-pilot/
+    # environment:
+    #   name: pypi
+    #   url: https://pypi.org/project/classroom-pilot/
       
     permissions:
       id-token: write  # For trusted publishing
@@ -129,8 +133,14 @@ jobs:
           VERSION="${{ github.event.inputs.version }}"
           echo "Using manual version: $VERSION"
         elif [[ $GITHUB_REF == refs/tags/* ]]; then
-          VERSION=${GITHUB_REF#refs/tags/v}
-          echo "Using tag version: $VERSION"
+          # Handle both v-prefixed and non-prefixed tags
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          if [[ $TAG_NAME == v* ]]; then
+            VERSION=${TAG_NAME#v}  # Remove v prefix
+          else
+            VERSION=$TAG_NAME      # Use as-is
+          fi
+          echo "Using tag version: $VERSION (from tag: $TAG_NAME)"
         else
           VERSION=$(poetry version -s)
           echo "Using pyproject.toml version: $VERSION"
@@ -139,20 +149,71 @@ jobs:
         echo "VERSION=$VERSION" >> $GITHUB_ENV
         
     - name: 🔄 Update version if needed
-      if: github.event.inputs.version != ''
+      if: github.event.inputs.version != '' || startsWith(github.ref, 'refs/tags/')
       run: |
-        poetry version ${{ github.event.inputs.version }}
+        if [[ -n "${{ github.event.inputs.version }}" ]]; then
+          echo "Setting version from manual input: ${{ github.event.inputs.version }}"
+          poetry version ${{ github.event.inputs.version }}
+        elif [[ $GITHUB_REF == refs/tags/* ]]; then
+          echo "Setting version from tag: ${{ steps.version.outputs.version }}"
+          poetry version ${{ steps.version.outputs.version }}
+        fi
+        echo "Current version after update: $(poetry version -s)"
+        
+    - name: 🧹 Clean previous builds
+      run: |
+        rm -rf dist/ build/ *.egg-info/ __pycache__/
+        find . -name "*.pyc" -delete
+        find . -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
+        echo "✅ Cleaned previous build artifacts and cache"
+        
+    - name: 🔄 Refresh Poetry environment
+      run: |
+        poetry env remove --all || true
+        poetry cache clear pypi --all
+        poetry install --no-interaction
+        echo "✅ Poetry environment refreshed"
         
     - name: ✅ Validate package configuration
       run: |
+        echo "🔍 Checking pyproject.toml format..."
+        if grep -q "\[project\]" pyproject.toml; then
+          echo "✅ Using modern [project] format"
+        else
+          echo "❌ Still using deprecated [tool.poetry] format"
+          exit 1
+        fi
         poetry check
         echo "✅ Package configuration is valid"
+        echo "Final version: $(poetry version -s)"
+        echo "Package name: $(poetry version | cut -d' ' -f1)"
         
     - name: 🏗️ Build package
       run: |
+        echo "Building package with version: $(poetry version -s)"
         poetry build
         echo "✅ Package built successfully"
+        echo "📦 Built artifacts:"
         ls -la dist/
+        echo "🔍 Checking wheel metadata:"
+        python -m zipfile -l dist/*.whl | head -10
+        
+    - name: 🔍 Debug package metadata
+      run: |
+        echo "🔍 Inspecting package metadata..."
+        cd dist/
+        for file in *.whl; do
+          echo "=== Checking $file ==="
+          python -m zipfile -e "$file" temp_extract/
+          if [ -f temp_extract/*/METADATA ]; then
+            echo "METADATA file found:"
+            cat temp_extract/*/METADATA | head -20
+          else
+            echo "❌ METADATA file not found in wheel"
+            find temp_extract/ -name "*" -type f | head -10
+          fi
+          rm -rf temp_extract/
+        done
         
     - name: 🔍 Verify build contents
       run: |
@@ -161,8 +222,34 @@ jobs:
         echo "🔍 Wheel contents:"
         unzip -l dist/*.whl | head -20
         
+    - name: ✅ Validate package metadata
+      run: |
+        echo "🔍 Validating package metadata..."
+        # Install twine for checking
+        pip install twine build
+        echo "✅ Package metadata validation tools installed"
+        
+        # Try alternative build method if Poetry build fails validation
+        echo "🔍 Testing Poetry build..."
+        if ! twine check dist/*; then
+          echo "❌ Poetry build failed validation, trying alternative build..."
+          rm -rf dist/
+          
+          echo "🏗️ Building with pip build..."
+          python -m build
+          echo "📦 Alternative build artifacts:"
+          ls -la dist/
+          
+          echo "🔍 Re-checking metadata..."
+          twine check dist/*
+        fi
+        echo "✅ Package metadata validation completed"
+        
     - name: 🚀 Publish to PyPI
-      uses: pypa/gh-action-pypi-publish@v1.10.3
+      uses: pypa/gh-action-pypi-publish@v1.13.0
+      with:
+        # Use API token if available, otherwise fall back to trusted publishing
+        password: ${{ secrets.PYPI_API_TOKEN || '' }}
         
     - name: 📋 Create Release Notes
       id: release_notes
@@ -195,7 +282,7 @@ jobs:
         EOF
         
     - name: 🏷️ Create GitHub Release
-      if: startsWith(github.ref, 'refs/tags/v')
+      if: startsWith(github.ref, 'refs/tags/')
       uses: softprops/action-gh-release@v2
       with:
         name: 🎉 classroom-pilot v${{ steps.version.outputs.version }}
@@ -240,7 +327,7 @@ jobs:
     name: 📚 Update Documentation
     needs: publish
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/')
     
     steps:
     - name: 📥 Checkout Code
@@ -251,7 +338,13 @@ jobs:
         
     - name: 📝 Update publication history
       run: |
-        VERSION=${GITHUB_REF#refs/tags/v}
+        # Handle both v-prefixed and non-prefixed tags
+        TAG_NAME=${GITHUB_REF#refs/tags/}
+        if [[ $TAG_NAME == v* ]]; then
+          VERSION=${TAG_NAME#v}  # Remove v prefix
+        else
+          VERSION=$TAG_NAME      # Use as-is
+        fi
         DATE=$(date '+%B %d, %Y')
         
         # Update PYPI_PUBLICATION.md
