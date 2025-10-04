@@ -1,18 +1,12 @@
 name: 🚀 Build and Publish to PyPI
 
 on:
-  # Trigger on version tags (with or without v prefix) OR main branch pyproject.toml changes
+  # Trigger ONLY when release/* branches are merged to main
   push:
-    tags:
-      - 'v*'        # Traditional tags with v prefix (v1.0.0, v3.1.0b1, v3.1.0a1)
-      - '*.*.*'     # Semantic version tags without prefix (1.0.0, 2.1.3)
-      - '*.*.*a*'   # Alpha versions without prefix (3.1.0a1, 3.1.0a2)
-      - '*.*.*b*'   # Beta versions without prefix (3.1.0b1, 3.1.0b2)
-      - '*.*.*rc*'  # Release candidate versions without prefix (3.1.0rc1)
-    branches: 
+    branches:
       - main
   
-  # Allow manual triggering
+  # Allow manual triggering for emergency releases
   workflow_dispatch:
     inputs:
       version:
@@ -28,10 +22,53 @@ permissions:
   pull-requests: read   # For PR information access
 
 jobs:
+  # Check if this is a release branch merge
+  check-release:
+    name: 🔍 Check Release Branch
+    runs-on: ubuntu-latest
+    outputs:
+      is-release: ${{ steps.check.outputs.is-release }}
+      branch-name: ${{ steps.check.outputs.branch-name }}
+      release-type: ${{ steps.check.outputs.release-type }}
+    steps:
+    - name: 📥 Checkout Code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        
+    - name: 🔍 Check if release branch merge
+      id: check
+      run: |
+        # Get the commit message to see if this was a merge from release/* or hotfix/*
+        COMMIT_MSG=$(git log -1 --pretty=%B)
+        echo "Commit message: $COMMIT_MSG"
+        
+        # Check if this is a merge commit from a release or hotfix branch
+        if [[ $COMMIT_MSG =~ "Merge pull request".+"(release|hotfix)/" ]] || [[ $COMMIT_MSG =~ "Merge branch '(release|hotfix)/" ]]; then
+          echo "is-release=true" >> $GITHUB_OUTPUT
+          # Extract branch name from commit message
+          BRANCH_NAME=$(echo "$COMMIT_MSG" | grep -oE "(release|hotfix)/[^'\"]*" | head -1)
+          echo "branch-name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+          
+          # Determine release type
+          if [[ $BRANCH_NAME == release/* ]]; then
+            echo "release-type=release" >> $GITHUB_OUTPUT
+            echo "✅ Release branch merge detected: $BRANCH_NAME"
+          elif [[ $BRANCH_NAME == hotfix/* ]]; then
+            echo "release-type=hotfix" >> $GITHUB_OUTPUT
+            echo "✅ Hotfix branch merge detected: $BRANCH_NAME"
+          fi
+        else
+          echo "is-release=false" >> $GITHUB_OUTPUT
+          echo "❌ Not a release or hotfix branch merge, skipping publication"
+        fi
+
   # Job 1: Run comprehensive tests
   test:
     name: 🧪 Test Suite
     runs-on: ubuntu-latest
+    needs: check-release
+    if: needs.check-release.outputs.is-release == 'true' || github.event_name == 'workflow_dispatch'
     strategy:
       matrix:
         python-version: ['3.10', '3.11', '3.12']
@@ -86,9 +123,9 @@ jobs:
   # Job 2: Build and publish to PyPI
   publish:
     name: 📦 Build & Publish to PyPI
-    needs: test
+    needs: [check-release, test]
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' || (github.ref == 'refs/heads/main' && contains(github.event.head_commit.modified, 'pyproject.toml'))
+    if: needs.check-release.outputs.is-release == 'true' || github.event_name == 'workflow_dispatch'
     
     # environment:
     #   name: pypi
@@ -148,17 +185,63 @@ jobs:
         echo "version=$VERSION" >> $GITHUB_OUTPUT
         echo "VERSION=$VERSION" >> $GITHUB_ENV
         
+    - name: 🚑 Handle hotfix version increment
+      if: needs.check-release.outputs.release-type == 'hotfix'
+      run: |
+        echo "🚑 Processing hotfix release..."
+        CURRENT_VERSION="${{ steps.version.outputs.version }}"
+        echo "Current version from pyproject.toml: $CURRENT_VERSION"
+        
+        # For hotfixes, we might want to auto-increment patch version if not already done
+        # But for now, we'll trust that the release branch has the correct version
+        # This is a placeholder for future enhancement
+        echo "Using hotfix version as-is: $CURRENT_VERSION"
+        
+    - name: 🏷️ Create and push git tag
+      run: |
+        VERSION="${{ steps.version.outputs.version }}"
+        TAG_NAME="$VERSION"
+        
+        echo "Creating git tag: $TAG_NAME"
+        
+        # Check if tag already exists
+        if git tag -l | grep -q "^$TAG_NAME$"; then
+          echo "⚠️ Tag $TAG_NAME already exists, skipping tag creation"
+        else
+          # Configure git for tagging
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Create annotated tag with release message
+          git tag -a "$TAG_NAME" -m "🎉 Release $VERSION
+
+        This release was automatically created when release branch was merged to main.
+        
+        📦 Package Information
+        - Version: $VERSION
+        - PyPI: https://pypi.org/project/classroom-pilot/$VERSION/
+        - Repository: ${{ github.server_url }}/${{ github.repository }}
+        
+        🤖 Automation
+        Created by: ${{ github.actor }}
+        Workflow: ${{ github.workflow }}
+        Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          
+          # Push the tag
+          git push origin "$TAG_NAME"
+          echo "✅ Created and pushed tag: $TAG_NAME"
+        fi
+        
     - name: 🔄 Update version if needed
-      if: github.event.inputs.version != '' || startsWith(github.ref, 'refs/tags/')
+      if: github.event.inputs.version != ''
       run: |
         if [[ -n "${{ github.event.inputs.version }}" ]]; then
           echo "Setting version from manual input: ${{ github.event.inputs.version }}"
           poetry version ${{ github.event.inputs.version }}
-        elif [[ $GITHUB_REF == refs/tags/* ]]; then
-          echo "Setting version from tag: ${{ steps.version.outputs.version }}"
-          poetry version ${{ steps.version.outputs.version }}
+          echo "Current version after update: $(poetry version -s)"
+        else
+          echo "Using version from pyproject.toml: $(poetry version -s)"
         fi
-        echo "Current version after update: $(poetry version -s)"
         
     - name: 🧹 Clean previous builds
       run: |
@@ -282,9 +365,9 @@ jobs:
         EOF
         
     - name: 🏷️ Create GitHub Release
-      if: startsWith(github.ref, 'refs/tags/')
       uses: softprops/action-gh-release@v2
       with:
+        tag_name: ${{ steps.version.outputs.version }}
         name: 🎉 classroom-pilot v${{ steps.version.outputs.version }}
         body_path: release_notes.md
         draft: false
@@ -300,13 +383,13 @@ jobs:
         for i in {1..5}; do
           echo "Attempt $i/5..."
           # Check if the specific version is available
-          if pip install classroom-pilot==${{ env.VERSION }} --dry-run --quiet 2>/dev/null; then
-            echo "✅ Package version ${{ env.VERSION }} found on PyPI!"
+          if pip install classroom-pilot==${{ steps.version.outputs.version }} --dry-run --quiet 2>/dev/null; then
+            echo "✅ Package version ${{ steps.version.outputs.version }} found on PyPI!"
             break
           elif [ $i -eq 5 ]; then
             echo "⚠️ Package not yet available on PyPI, but publication likely succeeded"
             echo "Note: PyPI propagation can take several minutes"
-            echo "Check manually: https://pypi.org/project/classroom-pilot/${{ env.VERSION }}/"
+            echo "Check manually: https://pypi.org/project/classroom-pilot/${{ steps.version.outputs.version }}/"
           else
             echo "Waiting 30 seconds before retry..."
             sleep 30
@@ -314,7 +397,7 @@ jobs:
         done
         
         echo "✅ Publication process completed!"
-        echo "📦 Package: https://pypi.org/project/classroom-pilot/${{ env.VERSION }}/"
+        echo "📦 Package: https://pypi.org/project/classroom-pilot/${{ steps.version.outputs.version }}/"
         
     - name: 💬 Notify on failure
       if: failure() && !cancelled()
@@ -327,7 +410,7 @@ jobs:
     name: 📚 Update Documentation
     needs: publish
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
+    # Always run when publish succeeds (release branch merged to main)
     
     steps:
     - name: 📥 Checkout Code
