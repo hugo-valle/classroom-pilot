@@ -133,6 +133,58 @@ class SecretsManager:
         raise GitHubAuthenticationError(
             "No valid GitHub token found in environment or configuration")
 
+    def get_secret_token_value(self, secret_config) -> str:
+        """
+        Get the token value for a secret configuration.
+
+        If the secret uses centralized token (token_file is None), 
+        gets token from the centralized token manager.
+        Otherwise, reads from the specified token file.
+
+        Args:
+            secret_config: SecretsConfig object
+
+        Returns:
+            str: The token value
+
+        Raises:
+            FileNotFoundError: If token file doesn't exist
+            ValueError: If token cannot be retrieved
+        """
+        if secret_config.uses_centralized_token():
+            # Use centralized token manager
+            try:
+                from ..utils.token_manager import GitHubTokenManager
+                token_manager = GitHubTokenManager()
+                token = token_manager.get_github_token()
+                if not token:
+                    raise ValueError(
+                        "No GitHub token available from centralized token manager")
+                logger.debug(
+                    f"Using centralized token for secret: {secret_config.name}")
+                return token
+            except Exception as e:
+                raise ValueError(f"Failed to get centralized token: {e}")
+        else:
+            # Use token file (backward compatibility)
+            token_file_path = Path(secret_config.token_file)
+            if not token_file_path.exists():
+                raise FileNotFoundError(
+                    f"Token file not found: {secret_config.token_file}")
+
+            try:
+                with open(token_file_path, 'r') as f:
+                    token = f.read().strip()
+                if not token:
+                    raise ValueError(
+                        f"Token file is empty: {secret_config.token_file}")
+                logger.debug(
+                    f"Using token file for secret: {secret_config.name} -> {secret_config.token_file}")
+                return token
+            except Exception as e:
+                raise ValueError(
+                    f"Failed to read token file {secret_config.token_file}: {e}")
+
     def load_secrets_template(self) -> Dict[str, str]:
         """Load secrets template from configuration."""
         logger.info("Loading secrets template")
@@ -459,6 +511,95 @@ class SecretsManager:
                 repository_name=repo_name,
                 operation="audit_secrets"
             )
+
+    def add_secrets_from_global_config(self, repository_urls: List[str] = None) -> bool:
+        """
+        Add secrets to repositories based on global configuration.
+
+        This method reads the SECRETS_CONFIG from the global configuration,
+        gets the appropriate token values (either from centralized token manager
+        or token files), and deploys them to the specified repositories.
+
+        Args:
+            repository_urls: List of repository URLs. If None, discovers student repos.
+
+        Returns:
+            bool: True if all secrets were deployed successfully
+        """
+        from ..config.global_config import get_global_config
+
+        try:
+            global_config = get_global_config()
+            if not global_config or not global_config.secrets_config:
+                logger.warning(
+                    "No secrets configuration found in global config")
+                return False
+
+            # Prepare secrets dictionary
+            secrets_dict = {}
+            for secret_config in global_config.secrets_config:
+                try:
+                    token_value = self.get_secret_token_value(secret_config)
+                    secrets_dict[secret_config.name] = token_value
+                    logger.info(f"Prepared secret: {secret_config.name}")
+                except Exception as e:
+                    logger.error(
+                        f"Failed to get token for secret {secret_config.name}: {e}")
+                    return False
+
+            if not secrets_dict:
+                logger.warning("No secrets prepared for deployment")
+                return False
+
+            # Get repositories to deploy to
+            if repository_urls is None:
+                # Auto-discover student repositories
+                if hasattr(global_config, 'github_organization'):
+                    assignment_name = getattr(
+                        global_config, 'assignment_name', 'assignment')
+                    repository_urls = self.find_student_repositories(
+                        assignment_name)
+                else:
+                    logger.error(
+                        "No repository URLs provided and cannot auto-discover without organization")
+                    return False
+
+            if not repository_urls:
+                logger.warning("No repositories found for secret deployment")
+                return False
+
+            # Deploy secrets to all repositories
+            logger.info(
+                f"Deploying {len(secrets_dict)} secrets to {len(repository_urls)} repositories")
+            all_successful = True
+
+            for repo_url in repository_urls:
+                try:
+                    # Extract repo name from URL
+                    repo_name = repo_url.replace(
+                        'https://github.com/', '').replace('.git', '')
+                    results = self.add_secrets_to_repository(
+                        repo_name, secrets_dict)
+
+                    # Check if all secrets were added successfully
+                    if not all(results.values()):
+                        logger.error(
+                            f"Some secrets failed to deploy to {repo_name}")
+                        all_successful = False
+                    else:
+                        logger.info(
+                            f"Successfully deployed all secrets to {repo_name}")
+
+                except Exception as e:
+                    logger.error(
+                        f"Failed to deploy secrets to {repo_url}: {e}")
+                    all_successful = False
+
+            return all_successful
+
+        except Exception as e:
+            logger.error(f"Failed to add secrets from global config: {e}")
+            return False
 
     def create_secrets_template(self, template_path: Path) -> bool:
         """Create a secrets template file."""

@@ -287,5 +287,5 @@ class TestConfigIntegration:
         assert loaded_config['CLASSROOM_URL'] == original_values['CLASSROOM_URL']
         assert loaded_config['TEMPLATE_REPO_URL'] == original_values['TEMPLATE_REPO_URL']
         assert loaded_config['GITHUB_ORGANIZATION'] == original_values['GITHUB_ORGANIZATION']
-        # Note: key changes
-        assert loaded_config['ASSIGNMENT_FILE'] == original_values['MAIN_ASSIGNMENT_FILE']
+        # Note: key changes - generator uses STUDENT_FILES instead of ASSIGNMENT_FILE
+        assert loaded_config['STUDENT_FILES'] == original_values['MAIN_ASSIGNMENT_FILE']

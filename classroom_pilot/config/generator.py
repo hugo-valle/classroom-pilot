@@ -165,9 +165,18 @@ GITHUB_ORGANIZATION="{config_values.get('GITHUB_ORGANIZATION', '')}"
             section += '# ASSIGNMENT_NAME=""  # Auto-extracted from template URL if not specified\n'
 
         section += f"""
-# Main assignment file (the primary file students work on - any type)
-# Universal support: .ipynb, .py, .cpp, .sql, .md, .html, etc.
-ASSIGNMENT_FILE="{config_values.get('MAIN_ASSIGNMENT_FILE', '')}"
+# Student Files Protection (NEW in v3.1+)
+# Protect these files/folders during template updates (comma-separated)
+# Supports: specific files, glob patterns, and folder paths
+# Examples:
+#   Single file: "assignment.ipynb"
+#   Multiple files: "assignment.ipynb,solutions.py,data.csv"
+#   Folders: "student_work/,outputs/"
+#   Mixed: "assignment.ipynb,student_work/,*.txt"
+STUDENT_FILES="{config_values.get('STUDENT_FILES', config_values.get('MAIN_ASSIGNMENT_FILE', 'assignment.ipynb'))}"
+
+# Legacy support (deprecated - use STUDENT_FILES instead)
+# ASSIGNMENT_FILE="{config_values.get('MAIN_ASSIGNMENT_FILE', '')}"
 
 """
 
@@ -210,17 +219,18 @@ ASSIGNMENT_FILE="{config_values.get('MAIN_ASSIGNMENT_FILE', '')}"
         # Add secrets configuration
         if config_values.get('USE_SECRETS') == 'true':
             section += """# Secrets to add to student repositories
-# Format: SECRET_NAME:description:token_file_path:max_age_days:validate_format
-# validate_format: true for GitHub tokens (ghp_), false for other secrets like passwords
+# NEW Format (v3.1+): SECRET_NAME:description:validate_format
+# Uses centralized token management - no separate token files needed!
+# validate_format: true for GitHub tokens (ghp_), false for other secrets
 # 
 # Use this when you have a separate private instructor repository with tests
 # that students need access to via GitHub secrets.
 SECRETS_CONFIG="
 """
 
-            # Add instructor tests token
+            # Add instructor tests token using new simplified format
             validation = token_validation.get('INSTRUCTOR_TESTS_TOKEN', True)
-            section += f"INSTRUCTOR_TESTS_TOKEN:Token for accessing instructor test repository:instructor_token.txt:90:{str(validation).lower()}\n"
+            section += f"INSTRUCTOR_TESTS_TOKEN:Token for accessing instructor test repository:{str(validation).lower()}\n"
 
             # Add additional secrets
             for secret_name, token_file in token_files.items():
@@ -228,13 +238,14 @@ SECRETS_CONFIG="
                     validation = token_validation.get(secret_name, True)
                     description = config_values.get(
                         f'{secret_name}_DESCRIPTION', f'{secret_name} for assignment functionality')
-                    section += f"{secret_name}:{description}:{token_file}:90:{str(validation).lower()}\n"
+                    section += f"{secret_name}:{description}:{str(validation).lower()}\n"
 
             section += '"\n'
         else:
             section += """# Secrets to add to student repositories
-# Format: SECRET_NAME:description:token_file_path:max_age_days:validate_format
-# validate_format: true for GitHub tokens (ghp_), false for other secrets like passwords
+# NEW Format (v3.1+): SECRET_NAME:description:validate_format
+# Uses centralized token management - no separate token files needed!
+# validate_format: true for GitHub tokens (ghp_), false for other secrets
 # 
 # Use this when you have a separate private instructor repository with tests
 # that students need access to via GitHub secrets.
@@ -242,12 +253,19 @@ SECRETS_CONFIG="
 # If your tests are included in the same template repository, you can:
 # 1. Set STEP_MANAGE_SECRETS=false in the WORKFLOW CONFIGURATION section, OR
 # 2. Leave SECRETS_CONFIG empty (comment out or set to empty string)
+# 
 # SECRETS_CONFIG="
-# INSTRUCTOR_TESTS_TOKEN:Token for accessing instructor test repository:instructor_token.txt:90
+# INSTRUCTOR_TESTS_TOKEN:Token for accessing instructor test repository:true
 # "
 
 # For assignments where tests are in the template repository, use:
 SECRETS_CONFIG=""
+
+# Legacy format still supported (will be automatically converted):
+# OLD Format: SECRET_NAME:description:token_file_path:max_age_days:validate_format
+# SECRETS_CONFIG="
+# INSTRUCTOR_TESTS_TOKEN:Token for accessing instructor test repository:instructor_token.txt:90:true
+# "
 """
 
         section += "\n"
