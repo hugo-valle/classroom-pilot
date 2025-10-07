@@ -168,6 +168,170 @@ class GitHubClassroomAPI:
         logger.info(f"Found {len(repositories)} student repositories")
         return repositories
 
+    def get_assignment_metadata(self, classroom_url: str, github_organization: str) -> Dict:
+        """
+        Get comprehensive assignment metadata from GitHub Classroom.
+
+        Args:
+            classroom_url: GitHub Classroom assignment URL
+            github_organization: GitHub organization name
+
+        Returns:
+            Dictionary with comprehensive assignment metadata
+        """
+        metadata = {
+            'assignment': None,
+            'classroom': None,
+            'organization': None,
+            'template_repository': None,
+            'student_count': 0,
+            'deadline': None,
+            'assignment_type': 'individual',
+            'max_teams': None,
+            'max_members': None,
+            'status': 'active'
+        }
+
+        try:
+            # Parse the classroom URL to get classroom ID and assignment info
+            parsed_url = self._parse_classroom_url_extended(classroom_url)
+
+            # Get all accessible classrooms
+            classrooms = self.get_classrooms()
+
+            # Find the specific classroom
+            target_classroom = None
+            for classroom in classrooms:
+                org_login = classroom.get("organization", {}).get("login")
+                if org_login == github_organization:
+                    # Check if this is the right classroom by ID if available
+                    if parsed_url.get('classroom_id'):
+                        classroom_name = classroom.get('name', '')
+                        if parsed_url['classroom_id'] in str(classroom.get('id', '')):
+                            target_classroom = classroom
+                            break
+                    else:
+                        target_classroom = classroom
+                        break
+
+            if not target_classroom:
+                logger.warning(
+                    f"Classroom not found for organization: {github_organization}")
+                return metadata
+
+            metadata['classroom'] = target_classroom
+            metadata['organization'] = target_classroom.get("organization", {})
+
+            # Get assignments for this classroom
+            assignments = self.get_classroom_assignments(
+                target_classroom["id"])
+
+            # Find the specific assignment
+            assignment_name = parsed_url.get('assignment_name', '')
+            target_assignment = None
+
+            for assignment in assignments:
+                assignment_slug = assignment.get("slug", "")
+                assignment_title = assignment.get("title", "")
+                if (assignment_name in assignment_slug or
+                    assignment_slug in assignment_name or
+                        assignment_name in assignment_title.lower()):
+                    target_assignment = assignment
+                    break
+
+            if target_assignment:
+                metadata['assignment'] = target_assignment
+                metadata['deadline'] = target_assignment.get('deadline')
+                metadata['assignment_type'] = 'group' if target_assignment.get(
+                    'max_teams', 1) > 1 else 'individual'
+                metadata['max_teams'] = target_assignment.get('max_teams')
+                metadata['max_members'] = target_assignment.get('max_members')
+
+                # Get student count
+                try:
+                    accepted_assignments = self.get_assignment_repositories(
+                        target_assignment['id'])
+                    metadata['student_count'] = len(accepted_assignments)
+                except Exception as e:
+                    logger.debug(f"Could not get student count: {e}")
+
+                # Try to get template repository info
+                try:
+                    template_repo_url = self._infer_template_repository(
+                        github_organization, assignment_name, target_assignment)
+                    if template_repo_url:
+                        metadata['template_repository'] = self._get_repository_info(
+                            template_repo_url)
+                except Exception as e:
+                    logger.debug(
+                        f"Could not get template repository info: {e}")
+
+            return metadata
+
+        except Exception as e:
+            logger.error(f"Error getting assignment metadata: {e}")
+            return metadata
+
+    def _parse_classroom_url_extended(self, url: str) -> Dict:
+        """Extended URL parsing to extract more details."""
+        result = {'classroom_id': '', 'assignment_name': ''}
+
+        # Pattern: https://classroom.github.com/classrooms/ID/assignments/NAME
+        full_pattern = r'classroom\.github\.com/classrooms/([^/]+)/assignments/([^/?]+)'
+        match = re.search(full_pattern, url)
+        if match:
+            result['classroom_id'] = match.group(1)
+            result['assignment_name'] = match.group(2)
+
+        return result
+
+    def _infer_template_repository(self, organization: str, assignment_name: str, assignment_data: Dict) -> str:
+        """Infer template repository URL from assignment data."""
+        # Common template repository naming patterns
+        possible_names = [
+            f"{assignment_name}-template",
+            f"{assignment_name}",
+            f"template-{assignment_name}",
+            assignment_data.get('slug', '') + '-template'
+        ]
+
+        for name in possible_names:
+            if name:
+                template_url = f"https://github.com/{organization}/{name}"
+                # We could validate this exists, but for now just return the most likely one
+                return template_url
+
+        return None
+
+    def _get_repository_info(self, repo_url: str) -> Dict:
+        """Get repository information from GitHub API."""
+        try:
+            # Extract owner/repo from URL
+            match = re.search(r'github\.com/([^/]+)/([^/?]+)', repo_url)
+            if not match:
+                return {}
+
+            owner, repo = match.groups()
+            repo = repo.replace('.git', '')  # Remove .git suffix if present
+
+            response = self._make_request("GET", f"/repos/{owner}/{repo}")
+            repo_data = response.json()
+
+            return {
+                'name': repo_data.get('name'),
+                'description': repo_data.get('description'),
+                'language': repo_data.get('language'),
+                'topics': repo_data.get('topics', []),
+                'created_at': repo_data.get('created_at'),
+                'updated_at': repo_data.get('updated_at'),
+                'default_branch': repo_data.get('default_branch'),
+                'clone_url': repo_data.get('clone_url'),
+                'ssh_url': repo_data.get('ssh_url')
+            }
+        except Exception as e:
+            logger.debug(f"Could not get repository info: {e}")
+            return {}
+
     def find_assignment_by_url(self, classroom_url: str, github_organization: str) -> Optional[Dict]:
         """
         Find assignment details by classroom URL and organization.

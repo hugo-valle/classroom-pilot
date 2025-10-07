@@ -182,7 +182,19 @@ app.add_typer(automation_app, name="automation")
 
 # Assignment Commands
 @assignments_app.command("setup")
-def assignment_setup(ctx: typer.Context):
+def assignment_setup(
+    ctx: typer.Context,
+    url: str = typer.Option(
+        None,
+        "--url",
+        help="GitHub Classroom URL for simplified setup (auto-extracts organization and assignment info)"
+    ),
+    simplified: bool = typer.Option(
+        False,
+        "--simplified",
+        help="Use simplified setup wizard with minimal prompts"
+    )
+):
     """
     Launch interactive wizard to configure a new assignment.
 
@@ -191,10 +203,24 @@ def assignment_setup(ctx: typer.Context):
     collects all required configuration parameters and generates the assignment.conf
     file needed for subsequent operations.
 
+    Two setup modes are available:
+
+    1. Standard Setup (default):
+       - Full interactive wizard with all configuration options
+       - Step-by-step guidance through all settings
+       - Comprehensive validation and error checking
+
+    2. Simplified Setup (--simplified or --url):
+       - Auto-extracts organization and assignment info from GitHub Classroom URL
+       - Uses GitHub API to fetch assignment details automatically
+       - Minimal user prompts for essential missing information
+       - Ideal for quick setup with existing classroom assignments
+
     The setup process includes:
     - Assignment metadata configuration (name, description, organization)
     - GitHub repository settings and template configuration  
     - Student repository discovery parameters
+    - Interactive validation and confirmation of all collected data
     - Secrets and token management setup
     - Automation and workflow preferences
 
@@ -203,9 +229,15 @@ def assignment_setup(ctx: typer.Context):
     Raises:
         SystemExit: If setup process is interrupted or fails.
 
-    Example:
+    Examples:
         $ classroom-pilot assignments setup
-        # Interactive wizard begins
+        # Full interactive wizard
+
+        $ classroom-pilot assignments setup --simplified
+        # Simplified wizard with GitHub Classroom URL prompt
+
+        $ classroom-pilot assignments setup --url "https://classroom.github.com/classrooms/123/assignments/hw1"
+        # Auto-extract from URL with minimal prompts
 
         $ classroom-pilot assignments setup --verbose --dry-run
         # Shows what setup would do with detailed logging
@@ -220,11 +252,19 @@ def assignment_setup(ctx: typer.Context):
     if dry_run:
         logger.info("DRY RUN: Would start assignment setup wizard")
         logger.info("DRY RUN: Would create assignment.conf file")
+        if simplified or url:
+            logger.info("DRY RUN: Would use simplified setup with GitHub API")
         return
 
-    logger.info("Starting assignment setup wizard")
-    setup = AssignmentSetup()
-    setup.run_wizard()
+    # Determine which setup flow to use
+    if url or simplified:
+        logger.info("Starting simplified assignment setup wizard")
+        setup = AssignmentSetup()
+        setup.run_simplified_wizard(classroom_url=url)
+    else:
+        logger.info("Starting standard assignment setup wizard")
+        setup = AssignmentSetup()
+        setup.run_wizard()
 
 
 @assignments_app.command("validate-config")
@@ -433,15 +473,12 @@ def assignment_orchestrate(
 
 @assignments_app.command("help-student")
 def help_student(
+    ctx: typer.Context,
     repo_url: str = typer.Argument(..., help="Student repository URL to help"),
     one_student: bool = typer.Option(
         False, "--one-student", help="Use template directly (bypass classroom repository)"),
-    dry_run: bool = typer.Option(
-        False, "--dry-run", help="Show what would be done without executing"),
     auto_confirm: bool = typer.Option(
         False, "--yes", "-y", help="Automatically confirm all prompts"),
-    verbose: bool = typer.Option(
-        False, "--verbose", "-v", help="Enable verbose output"),
     config_file: str = typer.Option(
         "assignment.conf", "--config", "-c", help="Configuration file path")
 ):
@@ -459,15 +496,19 @@ def help_student(
     Args:
         repo_url: URL of the student repository to help
         one_student: Use template repository directly instead of classroom
-        dry_run: Preview operations without making changes
         auto_confirm: Skip confirmation prompts
-        verbose: Enable detailed logging
         config_file: Path to configuration file
+
+    Supports universal options: --verbose, --dry-run
 
     Example:
         $ classroom-pilot assignments help-student https://github.com/org/assignment-student123
         $ classroom-pilot assignments help-student --one-student https://github.com/org/assignment-student123
     """
+    # Access universal options from context
+    verbose = ctx.obj.get('verbose', False)
+    dry_run = ctx.obj.get('dry_run', False)
+
     setup_logging(verbose)
     logger.info("Starting student assistance")
 
@@ -874,16 +915,13 @@ def cycle_single_collaborator(
 
 @assignments_app.command("cycle-collaborators")
 def cycle_multiple_collaborators(
+    ctx: typer.Context,
     batch_file: str = typer.Argument(...,
                                      help="File containing repository URLs or usernames"),
     repo_url_mode: bool = typer.Option(
         False, "--repo-urls", help="Treat batch file as repository URLs (extract usernames)"),
     force: bool = typer.Option(
         False, "--force", "-f", help="Force cycling even when access appears correct"),
-    dry_run: bool = typer.Option(
-        False, "--dry-run", "-n", help="Show what would be done without making changes"),
-    verbose: bool = typer.Option(
-        False, "--verbose", "-v", help="Enable verbose output"),
     config_file: str = typer.Option(
         "assignment.conf", "--config", "-c", help="Configuration file path")
 ):
@@ -904,12 +942,16 @@ def cycle_multiple_collaborators(
         force: Force cycling even when access appears correct
         dry_run: Preview actions without making changes
         verbose: Enable detailed logging
-        config_file: Path to configuration file
+        Supports universal options: --verbose, --dry-run
 
     Example:
         $ classroom-pilot assignments cycle-collaborators student-repos.txt --repo-urls
         $ classroom-pilot assignments cycle-collaborators usernames.txt --force
     """
+    # Access universal options from context
+    verbose = ctx.obj.get('verbose', False)
+    dry_run = ctx.obj.get('dry_run', False)
+
     setup_logging(verbose)
     logger.info("Cycling multiple repository collaborator permissions")
 
@@ -1032,6 +1074,7 @@ def check_repository_access(
 
 @assignments_app.command("push-to-classroom")
 def push_to_classroom(
+    ctx: typer.Context,
     force: bool = typer.Option(
         False, "--force", "-f", help="Force push without confirmation"),
     interactive: bool = typer.Option(
@@ -1039,11 +1082,7 @@ def push_to_classroom(
     branch: str = typer.Option(
         "main", "--branch", "-b", help="Branch to push to classroom repository"),
     config_file: str = typer.Option(
-        "assignment.conf", "--config", "-c", help="Configuration file path"),
-    verbose: bool = typer.Option(
-        False, "--verbose", "-v", help="Enable verbose output"),
-    dry_run: bool = typer.Option(
-        False, "--dry-run", help="Show what would be done without executing")
+        "assignment.conf", "--config", "-c", help="Configuration file path")
 ):
     """
     Push template repository changes to the classroom repository.
@@ -1073,6 +1112,10 @@ def push_to_classroom(
         # Non-interactive mode for automation
         classroom-pilot assignments push-to-classroom --non-interactive --force
     """
+    # Access universal options from context
+    verbose = ctx.obj.get('verbose', False)
+    dry_run = ctx.obj.get('dry_run', False)
+
     try:
         from .assignments.push_manager import ClassroomPushManager, PushResult
 
@@ -1626,12 +1669,9 @@ def automation_cron_install(
 
 @automation_app.command("cron-remove")
 def automation_cron_remove(
+    ctx: typer.Context,
     steps: Optional[List[str]] = typer.Argument(
         None, help="Workflow steps to remove (sync, secrets, cycle, discover, assist) or 'all'"),
-    dry_run: bool = typer.Option(
-        False, "--dry-run", help="Show what would be done without executing"),
-    verbose: bool = typer.Option(
-        False, "--verbose", "-v", help="Enable verbose output"),
     config_file: str = typer.Option(
         "assignment.conf", "--config", "-c", help="Configuration file path")
 ):
@@ -1646,6 +1686,10 @@ def automation_cron_remove(
         classroom-pilot automation cron-remove all
         classroom-pilot automation cron-remove secrets cycle
     """
+    # Access universal options from context
+    verbose = ctx.obj.get('verbose', False)
+    dry_run = ctx.obj.get('dry_run', False)
+
     setup_logging(verbose)
 
     try:
@@ -1848,14 +1892,11 @@ def automation_cron_schedules():
 
 @automation_app.command("cron-sync")
 def automation_cron_sync(
+    ctx: typer.Context,
     steps: List[str] = typer.Argument(
         None, help="Workflow steps to execute (sync, discover, secrets, assist, cycle)"),
     config_file: str = typer.Option(
         "assignment.conf", "--config", "-c", help="Configuration file path"),
-    verbose: bool = typer.Option(
-        False, "--verbose", "-v", help="Enable verbose output"),
-    dry_run: bool = typer.Option(
-        False, "--dry-run", help="Show what would be done without executing"),
     stop_on_failure: bool = typer.Option(
         False, "--stop-on-failure", help="Stop execution on first step failure"),
     show_log: bool = typer.Option(
@@ -1898,6 +1939,10 @@ def automation_cron_sync(
         # Verbose execution for debugging
         classroom-pilot automation cron-sync --verbose sync
     """
+    # Access universal options from context
+    verbose = ctx.obj.get('verbose', False)
+    dry_run = ctx.obj.get('dry_run', False)
+
     try:
         from .automation.cron_sync import CronSyncManager, CronSyncResult
 
@@ -1988,12 +2033,9 @@ def automation_cron_sync(
 
 @automation_app.command("cron")
 def automation_cron(
+    ctx: typer.Context,
     action: str = typer.Option(
         "status", "--action", "-a", help="Action to perform (status, install, remove)"),
-    dry_run: bool = typer.Option(
-        False, "--dry-run", help="Show what would be done without executing"),
-    verbose: bool = typer.Option(
-        False, "--verbose", "-v", help="Enable verbose output"),
     config_file: str = typer.Option(
         "assignment.conf", "--config", "-c", help="Configuration file path")
 ):
@@ -2013,6 +2055,10 @@ def automation_cron(
         verbose (bool): If True, enables verbose logging output.
         config_file (str): Path to the configuration file to use.
     """
+    # Access universal options from context
+    verbose = ctx.obj.get('verbose', False)
+    dry_run = ctx.obj.get('dry_run', False)
+
     setup_logging(verbose)
 
     typer.echo("⚠️  This is a legacy command. Consider using specific commands:",

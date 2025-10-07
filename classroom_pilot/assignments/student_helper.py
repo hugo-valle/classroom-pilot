@@ -522,14 +522,8 @@ class StudentUpdateHelper:
             )
 
             if merge_result.returncode == 0:
-                # Restore student's assignment file
-                assignment_file = getattr(
-                    self.global_config, 'assignment_file', 'assignment.ipynb')
-
-                subprocess.run(
-                    ['git', 'checkout', backup_branch, '--', assignment_file],
-                    capture_output=True
-                )
+                # Restore student's protected files and folders
+                self._restore_student_files(backup_branch)
 
                 # Check if there are changes to commit
                 status_result = subprocess.run(
@@ -576,6 +570,80 @@ class StudentUpdateHelper:
                 backup_branch=backup_branch,
                 work_dir=work_dir
             )
+
+    def _restore_student_files(self, backup_branch: str) -> None:
+        """
+        Restore student's protected files and folders from backup branch.
+
+        Supports:
+        - Individual files (e.g., "assignment.ipynb")
+        - Glob patterns (e.g., "*.py", "data/*.csv")  
+        - Folders (e.g., "student_work/", "outputs/")
+
+        Args:
+            backup_branch: Name of the backup branch containing student work
+        """
+        import glob
+
+        student_files = self.global_config.get_student_files()
+
+        for file_pattern in student_files:
+            file_pattern = file_pattern.strip()
+            if not file_pattern:
+                continue
+
+            try:
+                # Check if it's a folder (ends with /)
+                if file_pattern.endswith('/'):
+                    # Restore entire folder
+                    result = subprocess.run(
+                        ['git', 'checkout', backup_branch, '--', file_pattern],
+                        capture_output=True,
+                        text=True
+                    )
+                    if result.returncode == 0:
+                        self.logger.debug(f"Restored folder: {file_pattern}")
+                    else:
+                        self.logger.warning(
+                            f"Could not restore folder {file_pattern}: {result.stderr}")
+
+                # Check if it contains wildcards (glob pattern)
+                elif '*' in file_pattern or '?' in file_pattern or '[' in file_pattern:
+                    # Expand glob pattern and restore matching files
+                    matching_files = glob.glob(file_pattern)
+                    if matching_files:
+                        for matched_file in matching_files:
+                            result = subprocess.run(
+                                ['git', 'checkout', backup_branch,
+                                    '--', matched_file],
+                                capture_output=True,
+                                text=True
+                            )
+                            if result.returncode == 0:
+                                self.logger.debug(
+                                    f"Restored file: {matched_file}")
+                            else:
+                                self.logger.warning(
+                                    f"Could not restore file {matched_file}: {result.stderr}")
+                    else:
+                        self.logger.debug(
+                            f"No files matched pattern: {file_pattern}")
+
+                else:
+                    # Restore specific file
+                    result = subprocess.run(
+                        ['git', 'checkout', backup_branch, '--', file_pattern],
+                        capture_output=True,
+                        text=True
+                    )
+                    if result.returncode == 0:
+                        self.logger.debug(f"Restored file: {file_pattern}")
+                    else:
+                        self.logger.warning(
+                            f"Could not restore file {file_pattern}: {result.stderr}")
+
+            except Exception as e:
+                self.logger.warning(f"Error restoring {file_pattern}: {e}")
 
     def batch_help_students(self, repo_file: Path) -> BatchSummary:
         """Process multiple students from a file."""
