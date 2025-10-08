@@ -4,13 +4,8 @@ Assignment setup and configuration wizard.
 This module provides the interactive setup wizard for creating new assignment configurations.
 """
 
-import argparse
-import re
 import sys
-from pathlib import Path
-from typing import Dict
 
-from ..config import ConfigLoader, ConfigValidator
 from ..config.generator import ConfigGenerator
 from ..utils import get_logger, PathManager
 from ..utils.ui_components import (

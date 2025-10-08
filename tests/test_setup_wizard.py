@@ -7,9 +7,8 @@ workflow, error handling, edge cases, and proper mocking of external dependencie
 """
 
 import pytest
-import sys
 from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 from classroom_pilot.assignments.setup import AssignmentSetup
 
 
@@ -329,7 +328,7 @@ class TestConfigureTokens:
 
             # Assert
             assert setup.config_values['INSTRUCTOR_TESTS_TOKEN_VALUE'] == "ghp_test_token_123"
-            assert setup.token_validation['INSTRUCTOR_TESTS_TOKEN'] == True
+            assert setup.token_validation['INSTRUCTOR_TESTS_TOKEN']
             assert setup.token_files['INSTRUCTOR_TESTS_TOKEN'] == 'instructor_token.txt'
 
     def test_configure_tokens_without_validation(self, mock_dependencies):
@@ -354,7 +353,7 @@ class TestConfigureTokens:
 
             # Assert
             assert setup.config_values['INSTRUCTOR_TESTS_TOKEN_VALUE'] == "custom_token_456"
-            assert setup.token_validation['INSTRUCTOR_TESTS_TOKEN'] == False
+            assert not setup.token_validation['INSTRUCTOR_TESTS_TOKEN']
             assert setup.token_files['INSTRUCTOR_TESTS_TOKEN'] == 'instructor_token.txt'
 
 

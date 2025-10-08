@@ -7,12 +7,8 @@ logging, and core functionality.
 """
 
 import sys
-import os
 import tempfile
-import shutil
 from pathlib import Path
-from typing import List, Dict, Any
-import traceback
 
 # Colors for output
 
@@ -65,7 +61,7 @@ class TestResult:
         success_rate = (self.passed / total * 100) if total > 0 else 0
 
         print(f"\n{'='*50}")
-        print(f"Test Results Summary")
+        print("Test Results Summary")
         print(f"{'='*50}")
         print(f"Total Tests: {total}")
         print(f"Passed: {self.passed}")
@@ -73,7 +69,7 @@ class TestResult:
         print(f"Success Rate: {success_rate:.1f}%")
 
         if self.failed_tests:
-            print(f"\nFailed Tests:")
+            print("\nFailed Tests:")
             for test_name, error in self.failed_tests:
                 print(f"  - {test_name}: {error}")
 
@@ -398,7 +394,6 @@ def test_import_time(results: TestResult) -> None:
     try:
         # Test import time
         start_time = time.time()
-        import classroom_pilot
         end_time = time.time()
 
         import_time = end_time - start_time

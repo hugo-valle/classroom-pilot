@@ -206,7 +206,7 @@ class GitHubClassroomAPI:
                 if org_login == github_organization:
                     # Check if this is the right classroom by ID if available
                     if parsed_url.get('classroom_id'):
-                        classroom_name = classroom.get('name', '')
+                        _classroom_name = classroom.get('name', '')
                         if parsed_url['classroom_id'] in str(classroom.get('id', '')):
                             target_classroom = classroom
                             break

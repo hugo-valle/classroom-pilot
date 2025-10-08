@@ -7,9 +7,7 @@ status checking, validation, and error handling.
 
 import pytest
 import subprocess
-import tempfile
-import os
-from unittest.mock import Mock, patch, mock_open, MagicMock
+from unittest.mock import Mock, patch, mock_open
 from pathlib import Path
 from datetime import datetime
 

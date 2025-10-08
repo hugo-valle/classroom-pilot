@@ -6,8 +6,6 @@ compatibility with the old 5-field format, and the automatic format detection
 logic introduced in the secrets management upgrade.
 """
 
-import pytest
-from unittest.mock import patch, MagicMock
 
 from classroom_pilot.config.global_config import SecretsConfig, ConfigurationManager
 

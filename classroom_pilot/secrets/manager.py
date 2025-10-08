@@ -12,20 +12,19 @@ This module handles:
 from pathlib import Path
 from typing import List, Dict, Optional
 import json
-import base64
 
 # GitHub API integration with fallback handling
 try:
-    from github import Github, Repository, GithubException
+    from github import Github, GithubException
+    # Repository import unused in this module; avoid unused import lint error
     GITHUB_AVAILABLE = True
 except ImportError:
     GITHUB_AVAILABLE = False
 
 from ..utils import get_logger, PathManager
 from ..utils.github_exceptions import (
-    GitHubAPIError, GitHubAuthenticationError, GitHubRepositoryError,
-    GitHubNetworkError, github_api_retry, github_api_context,
-    handle_github_errors, is_github_available
+    GitHubAuthenticationError, GitHubRepositoryError,
+    github_api_retry, github_api_context
 )
 from ..config import ConfigLoader
 
@@ -41,16 +40,13 @@ class SecretsManager:
     repositories. It supports both authenticated GitHub API access and secure
     credential handling with comprehensive error management.
 
-    Args:
-        config_path (Path): Path to the assignment configuration file.
-                          Defaults to "assignment.conf" in current directory.
-
-    Attributes:
-        config_loader (ConfigLoader): Configuration loader instance.
-        config (dict): Loaded configuration values.
-        path_manager (PathManager): Path management utilities.
-        github_client (Github): GitHub API client (if authenticated).
-
+        try:
+            # Note: PyGithub doesn't directly support repository secrets API
+            # This would require using the REST API directly or additional libraries
+            # For now, we'll use CLI fallback and log a warning
+            logger.warning(
+                "GitHub API secret addition not yet fully implemented - using CLI fallback")
+            return self._add_secret_via_cli(repo_name, secret_name, secret_value)
     Methods:
         deploy_secrets_to_repository(repository_name, secrets_dict):
             Deploys specified secrets to the target repository.
@@ -326,7 +322,8 @@ class SecretsManager:
         logger.info("Using GitHub API for adding repository secret")
 
         try:
-            repo = self.github_client.get_repo(repo_name)
+            # Note: we don't currently use the repo object; keep fallback to CLI
+            _ = self.github_client.get_repo(repo_name)
 
             # Note: PyGithub doesn't directly support repository secrets API
             # This would require using the REST API directly or additional libraries
@@ -355,7 +352,7 @@ class SecretsManager:
                 '--repo', repo_name,
                 '--body', secret_value
             ]
-            result = subprocess.run(
+            _proc = subprocess.run(
                 cmd, capture_output=True, text=True, check=True)
 
             logger.info(

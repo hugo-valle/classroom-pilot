@@ -24,12 +24,23 @@ classroom-pilot --help
 
 ## 🚀 Quick Setup
 
-### 1. Create Token File
+### 1. Configure Centralized Token
 
 ```bash
-# Create secure token file
-echo "ghp_your_github_token_here" > github_token.txt
-chmod 600 github_token.txt
+# Create centralized token config (recommended)
+mkdir -p ~/.config/classroom-pilot
+cat > ~/.config/classroom-pilot/token_config.json << 'EOF'
+{
+    "github_token": "ghp_your_github_token_here",
+    "username": "instructor",
+    "scopes": ["repo", "admin:org", "write:org"],
+    "expires_at": null
+}
+EOF
+chmod 600 ~/.config/classroom-pilot/token_config.json
+
+# Or set environment variable for CI/automation
+export GITHUB_TOKEN="ghp_your_github_token_here"
 ```
 
 ### 2. Configure Assignment
@@ -39,8 +50,11 @@ chmod 600 github_token.txt
 cat > assignment.conf << 'EOF'
 CLASSROOM_URL="https://classroom.github.com/classrooms/123/assignments/homework1"
 TEMPLATE_REPO_URL="https://github.com/instructor/homework1-template"
-GITHUB_TOKEN_FILE="github_token.txt"
-SECRETS_LIST="API_KEY,GRADING_TOKEN,DATABASE_URL"
+SECRETS_CONFIG="
+API_KEY:API key for external service:true
+GRADING_TOKEN:Token for automated grading:true
+DATABASE_URL:Database connection string:false
+"
 EOF
 ```
 

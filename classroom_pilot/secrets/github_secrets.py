@@ -5,22 +5,16 @@ This module provides a comprehensive Python implementation
 for adding secrets to student GitHub repositories using global configuration.
 """
 
-import base64
-import json
-import re
 import subprocess
-import time
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple
 from urllib.parse import urlparse
 
 import requests
-from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import padding
 
 from ..utils import logger
-from ..config.global_config import get_global_config, GlobalConfig, SecretsConfig
+from ..config.global_config import get_global_config
 from ..utils.github_classroom_api import create_classroom_api_client, GitHubClassroomAPIError
 
 
@@ -226,7 +220,7 @@ class GitHubSecretsManager:
                 "--body", secret_value
             ]
 
-            result = subprocess.run(
+            _result = subprocess.run(
                 cmd,
                 capture_output=True,
                 text=True,
@@ -603,7 +597,7 @@ def add_secrets_to_students(
                     "CLASSROOM_URL is required for student repository discovery")
                 return False
 
-            logger.info(f"Configuration validated:")
+            logger.info("Configuration validated:")
             logger.info(f"  - Secret: {secret_name}")
             logger.info(f"  - Token file: {instructor_token_file}")
             logger.info(f"  - Organization: {github_org}")

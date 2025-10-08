@@ -4,10 +4,7 @@ Test suite for the configuration management system.
 Tests configuration loading, validation, and generation.
 """
 
-import pytest
 from pathlib import Path
-import tempfile
-import os
 
 from classroom_pilot.config.loader import ConfigLoader
 from classroom_pilot.config.validator import ConfigValidator

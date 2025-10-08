@@ -7,7 +7,6 @@ colors, progress indicators, and display screens.
 
 import os
 import sys
-from typing import Optional
 
 
 class Colors:

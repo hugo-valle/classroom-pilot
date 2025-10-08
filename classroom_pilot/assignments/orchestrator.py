@@ -14,21 +14,19 @@ Main workflow steps:
 Author: Classroom Pilot Team
 """
 
-import os
-import sys
 import time
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple, Union
+from typing import Dict, List, Optional, Set
 
 import typer
 from rich.console import Console
 from rich.panel import Panel
-from rich.progress import Progress, TaskID
+from rich.progress import Progress
 from rich.table import Table
 
-from ..config.global_config import GlobalConfig, get_global_config, load_global_config
+from ..config.global_config import get_global_config, load_global_config
 from ..secrets.github_secrets import GitHubSecretsManager
 from ..utils.github_classroom_api import GitHubClassroomAPI
 from ..utils.logger import get_logger

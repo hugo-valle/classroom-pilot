@@ -30,7 +30,6 @@ to ensure robust production behavior with clear error messages for users.
 """
 
 import pytest
-import re
 from classroom_pilot.config.validator import ConfigValidator
 
 
@@ -784,7 +783,7 @@ class TestConfigValidatorRequiredFieldsValidation:
             assert len(missing_fields) == 0, \
                 f"Complete configuration should have no missing fields: {missing_fields}"
             assert missing_fields == [], \
-                f"Missing fields list should be empty for complete config"
+                "Missing fields list should be empty for complete config"
 
     def test_validate_required_fields_missing_single(self):
         """
@@ -997,7 +996,7 @@ class TestConfigValidatorFullConfigValidation:
             assert is_valid, f"Valid configuration should pass validation, but got errors: {errors}"
             assert len(
                 errors) == 0, f"Valid configuration should have no errors: {errors}"
-            assert errors == [], f"Error list should be empty for valid configuration"
+            assert errors == [], "Error list should be empty for valid configuration"
 
     def test_validate_full_config_missing_fields(self):
         """
@@ -1026,7 +1025,7 @@ class TestConfigValidatorFullConfigValidation:
 
         for config, expected_error_count in missing_field_configs:
             is_valid, errors = ConfigValidator.validate_full_config(config)
-            assert not is_valid, f"Configuration with missing fields should be invalid"
+            assert not is_valid, "Configuration with missing fields should be invalid"
             assert len(errors) == expected_error_count, \
                 f"Expected {expected_error_count} errors, got {len(errors)}: {errors}"
 

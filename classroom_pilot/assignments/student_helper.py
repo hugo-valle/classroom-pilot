@@ -24,16 +24,16 @@ import time
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple, Union
+from typing import List, Optional
 from urllib.parse import urlparse
 
 import typer
 from rich.console import Console
 from rich.panel import Panel
-from rich.progress import Progress, TaskID
+from rich.progress import Progress
 from rich.table import Table
 
-from ..config.global_config import GlobalConfig, get_global_config, load_global_config
+from ..config.global_config import get_global_config, load_global_config
 from ..utils.git import GitManager
 from ..utils.logger import get_logger
 
@@ -185,7 +185,7 @@ class StudentUpdateHelper:
 
         import re
         if not re.match(expected_pattern.replace('.*', '.*'), repo_url):
-            self.logger.error(f"Invalid repository URL format")
+            self.logger.error("Invalid repository URL format")
             self.logger.error(
                 f"Expected: https://github.com/{org}/{assignment}-[student-name]")
             return False

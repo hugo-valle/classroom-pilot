@@ -48,12 +48,15 @@ CLASSROOM_URL="https://classroom.github.com/classrooms/123/assignments/homework1
 TEMPLATE_REPO_URL="https://github.com/instructor/homework1-template"
 ASSIGNMENT_FILE="homework1.py"
 
-# Authentication
-GITHUB_TOKEN_FILE="github_token.txt"
-
-# Secret Management
-SECRETS_LIST="API_KEY,GRADING_TOKEN"
+# Secret Management (using centralized token manager)
+SECRETS_CONFIG="
+API_KEY:API key for external service:true
+GRADING_TOKEN:Token for automated grading:true
+"
 EOF
+
+# Set GitHub token (centralized approach)
+export GITHUB_TOKEN="ghp_your_token_here"
 ```
 
 ## 🔍 Step 2: Repository Discovery

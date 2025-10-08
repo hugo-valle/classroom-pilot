@@ -33,8 +33,7 @@ while also testing actual file operations for integration scenarios.
 import pytest
 import tempfile
 from pathlib import Path
-from unittest.mock import Mock, patch, mock_open, MagicMock
-import os
+from unittest.mock import Mock, patch, mock_open
 
 from classroom_pilot.config.loader import ConfigLoader
 

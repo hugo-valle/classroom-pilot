@@ -170,8 +170,10 @@ cat > automation-assignment.conf << 'EOF'
 CLASSROOM_URL="https://classroom.github.com/classrooms/123/assignments/homework1"
 TEMPLATE_REPO_URL="https://github.com/instructor/homework1-template"
 ASSIGNMENT_FILE="homework1.py"
-GITHUB_TOKEN_FILE="github_token.txt"
-SECRETS_LIST="API_KEY,GRADING_TOKEN"
+SECRETS_CONFIG="
+API_KEY:API key for external service:true
+GRADING_TOKEN:Token for automated grading:true
+"
 
 # Automation Schedules
 AUTOMATION_SCHEDULE_ORCHESTRATE="0 2 * * *"      # Daily at 2 AM
@@ -179,6 +181,9 @@ AUTOMATION_SCHEDULE_SYNC="0 */6 * * *"           # Every 6 hours
 AUTOMATION_SCHEDULE_SECRETS="0 3 * * 1"          # Monday at 3 AM
 AUTOMATION_SCHEDULE_MONITOR="0 9-17/2 * * 1-5"   # Business hours monitoring
 EOF
+
+# Set GitHub token for automation
+export GITHUB_TOKEN="ghp_automation_token_here"
 
 # Setup automation
 classroom-pilot automation scheduler setup --config automation-assignment.conf

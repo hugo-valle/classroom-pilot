@@ -33,7 +33,21 @@ class GitHubTokenManager:
         self.config_file = self.config_dir / "token_config.json"
 
     def get_github_token(self):
-        """Get GitHub token with fallback strategy and expiration check."""
+        """Get GitHub token with fallback strategy and expiration check.
+
+        The lookup priority is:
+        1. User config file (~/.config/classroom-pilot/token_config.json)
+        2. System keychain (OS-specific secure storage)
+        3. Environment variable GITHUB_TOKEN
+        4. Interactive setup (prompts the user)
+
+        Returns:
+            Optional[str]: The GitHub token string when available, otherwise None.
+
+        Notes:
+            Callers should handle a None return value which indicates there is no
+            token available and interactive setup may be required.
+        """
 
         # 1. Check user config file first (most control and metadata)
         token_data = self._get_token_from_config()
@@ -63,7 +77,16 @@ class GitHubTokenManager:
         return None  # Let caller handle the setup
 
     def setup_new_token(self):
-        """Guide user through setting up a new GitHub token."""
+        """Guide user through setting up a new GitHub token.
+
+        This interactive helper verifies the provided token against the GitHub
+        API, optionally collects expiration metadata, and stores the token in
+        the user's preferred secure location (env, keychain, or config file).
+
+        Returns:
+            Optional[str]: The saved token string on success, or None if the
+            user aborted the setup.
+        """
         from ..utils.ui_components import print_colored, Colors
 
         print_colored("🔐 GitHub Token Setup Required", Colors.CYAN)
@@ -82,17 +105,20 @@ class GitHubTokenManager:
         print_colored("💡 Type 'q' or 'quit' to exit", Colors.CYAN)
 
         while True:
-            print_colored("\n🔑 Enter your GitHub token (q to quit): ", Colors.GREEN, end="")
-            
+            print_colored(
+                "\n🔑 Enter your GitHub token (q to quit): ", Colors.GREEN, end="")
+
             try:
                 token = input().strip()
             except (EOFError, KeyboardInterrupt):
-                print_colored("\n� Exiting setup wizard. You can restart anytime with: classroom-pilot assignments setup", Colors.CYAN)
+                print_colored(
+                    "\n� Exiting setup wizard. You can restart anytime with: classroom-pilot assignments setup", Colors.CYAN)
                 return None
 
             # Handle quit commands
             if token.lower() in ['q', 'quit', 'exit']:
-                print_colored("👋 Exiting setup wizard. You can restart anytime with: classroom-pilot assignments setup", Colors.CYAN)
+                print_colored(
+                    "👋 Exiting setup wizard. You can restart anytime with: classroom-pilot assignments setup", Colors.CYAN)
                 return None
 
             # Clean up common issues with token input
@@ -101,7 +127,8 @@ class GitHubTokenManager:
 
             if not token:
                 print_colored("❌ Token cannot be empty", Colors.RED)
-                print_colored("💡 Type 'q' to quit if you need to exit", Colors.YELLOW)
+                print_colored(
+                    "💡 Type 'q' to quit if you need to exit", Colors.YELLOW)
                 continue
 
             # Basic token format validation
@@ -110,7 +137,8 @@ class GitHubTokenManager:
                     "⚠️ Token should start with 'ghp_' (classic) or 'github_pat_' (fine-grained)", Colors.YELLOW)
                 proceed = input("Continue anyway? (y/n/q): ").strip().lower()
                 if proceed == 'q':
-                    print_colored("👋 Exiting setup wizard. You can restart anytime with: classroom-pilot assignments setup", Colors.CYAN)
+                    print_colored(
+                        "👋 Exiting setup wizard. You can restart anytime with: classroom-pilot assignments setup", Colors.CYAN)
                     return None
                 if proceed != 'y':
                     continue
@@ -141,7 +169,8 @@ class GitHubTokenManager:
                     "❌ Token verification failed. Please check your token.", Colors.RED)
                 retry = input("🔄 Try again? (y/n/q): ").strip().lower()
                 if retry == 'q':
-                    print_colored("👋 Exiting setup wizard. You can restart anytime with: classroom-pilot assignments setup", Colors.CYAN)
+                    print_colored(
+                        "👋 Exiting setup wizard. You can restart anytime with: classroom-pilot assignments setup", Colors.CYAN)
                     return None
                 if retry != 'y':
                     return None
@@ -174,7 +203,8 @@ class GitHubTokenManager:
             token_expires = None
             if token.startswith('github_pat_'):
                 # Fine-grained tokens use github-authentication-token-expiration header
-                expires_header = user_response.headers.get('github-authentication-token-expiration')
+                expires_header = user_response.headers.get(
+                    'github-authentication-token-expiration')
                 if expires_header:
                     try:
                         # Parse the expiration date format: "2026-05-31 00:00:00 -0600"
@@ -182,14 +212,18 @@ class GitHubTokenManager:
                         import re
                         # Remove timezone info for parsing, then add UTC
                         date_part = re.sub(r'\s[-+]\d{4}$', '', expires_header)
-                        parsed_date = datetime.strptime(date_part, '%Y-%m-%d %H:%M:%S')
-                        token_expires = parsed_date.replace(tzinfo=timezone.utc).isoformat()
+                        parsed_date = datetime.strptime(
+                            date_part, '%Y-%m-%d %H:%M:%S')
+                        token_expires = parsed_date.replace(
+                            tzinfo=timezone.utc).isoformat()
                     except Exception as e:
-                        logger.debug(f"Failed to parse fine-grained token expiration: {e}")
+                        logger.debug(
+                            f"Failed to parse fine-grained token expiration: {e}")
                         token_expires = expires_header  # Store raw value if parsing fails
             else:
                 # Classic tokens use X-OAuth-Token-Expires header (rarely populated)
-                token_expires = user_response.headers.get('X-OAuth-Token-Expires')
+                token_expires = user_response.headers.get(
+                    'X-OAuth-Token-Expires')
 
             # Get token scopes (different for classic vs fine-grained tokens)
             if token.startswith('github_pat_'):
@@ -270,62 +304,80 @@ class GitHubTokenManager:
 
         # Test repository access (equivalent to 'repo' scope)
         try:
-            response = requests.get('https://api.github.com/user/repos', headers=headers, timeout=10)
+            response = requests.get(
+                'https://api.github.com/user/repos', headers=headers, timeout=10)
             if response.status_code == 200:
                 permissions.append('repo')
-                permission_details['repo'] = {'status': 'granted', 'tested_endpoint': '/user/repos'}
+                permission_details['repo'] = {
+                    'status': 'granted', 'tested_endpoint': '/user/repos'}
             else:
-                permission_details['repo'] = {'status': 'denied', 'code': response.status_code}
+                permission_details['repo'] = {
+                    'status': 'denied', 'code': response.status_code}
         except Exception as e:
             permission_details['repo'] = {'status': 'error', 'error': str(e)}
 
         # Test organization access (equivalent to 'read:org' scope)
         try:
-            response = requests.get('https://api.github.com/user/orgs', headers=headers, timeout=10)
+            response = requests.get(
+                'https://api.github.com/user/orgs', headers=headers, timeout=10)
             if response.status_code == 200:
                 permissions.append('read:org')
-                permission_details['read:org'] = {'status': 'granted', 'tested_endpoint': '/user/orgs'}
+                permission_details['read:org'] = {
+                    'status': 'granted', 'tested_endpoint': '/user/orgs'}
             else:
-                permission_details['read:org'] = {'status': 'denied', 'code': response.status_code}
+                permission_details['read:org'] = {
+                    'status': 'denied', 'code': response.status_code}
         except Exception as e:
-            permission_details['read:org'] = {'status': 'error', 'error': str(e)}
+            permission_details['read:org'] = {
+                'status': 'error', 'error': str(e)}
 
         # Test webhook/admin access (equivalent to 'admin:repo_hook' scope)
         try:
-            response = requests.get('https://api.github.com/user/repos?type=owner&per_page=1', headers=headers, timeout=10)
+            response = requests.get(
+                'https://api.github.com/user/repos?type=owner&per_page=1', headers=headers, timeout=10)
             if response.status_code == 200:
                 repos = response.json()
                 if repos and len(repos) > 0:
                     repo_full_name = repos[0]['full_name']
                     # Test webhook access on the first owned repo
-                    webhook_response = requests.get(f'https://api.github.com/repos/{repo_full_name}/hooks', headers=headers, timeout=10)
+                    webhook_response = requests.get(
+                        f'https://api.github.com/repos/{repo_full_name}/hooks', headers=headers, timeout=10)
                     if webhook_response.status_code == 200:
                         permissions.append('admin:repo_hook')
-                        permission_details['admin:repo_hook'] = {'status': 'granted', 'tested_repo': repo_full_name}
+                        permission_details['admin:repo_hook'] = {
+                            'status': 'granted', 'tested_repo': repo_full_name}
                     else:
-                        permission_details['admin:repo_hook'] = {'status': 'denied', 'code': webhook_response.status_code}
+                        permission_details['admin:repo_hook'] = {
+                            'status': 'denied', 'code': webhook_response.status_code}
         except Exception as e:
-            permission_details['admin:repo_hook'] = {'status': 'error', 'error': str(e)}
+            permission_details['admin:repo_hook'] = {
+                'status': 'error', 'error': str(e)}
 
         # Test actions/workflow access
         try:
-            response = requests.get('https://api.github.com/user/repos?type=owner&per_page=1', headers=headers, timeout=10)
+            response = requests.get(
+                'https://api.github.com/user/repos?type=owner&per_page=1', headers=headers, timeout=10)
             if response.status_code == 200:
                 repos = response.json()
                 if repos and len(repos) > 0:
                     repo_full_name = repos[0]['full_name']
                     # Test actions access
-                    actions_response = requests.get(f'https://api.github.com/repos/{repo_full_name}/actions/workflows', headers=headers, timeout=10)
+                    actions_response = requests.get(
+                        f'https://api.github.com/repos/{repo_full_name}/actions/workflows', headers=headers, timeout=10)
                     if actions_response.status_code == 200:
                         permissions.append('workflow')
-                        permission_details['workflow'] = {'status': 'granted', 'tested_repo': repo_full_name}
+                        permission_details['workflow'] = {
+                            'status': 'granted', 'tested_repo': repo_full_name}
                     else:
-                        permission_details['workflow'] = {'status': 'denied', 'code': actions_response.status_code}
+                        permission_details['workflow'] = {
+                            'status': 'denied', 'code': actions_response.status_code}
         except Exception as e:
-            permission_details['workflow'] = {'status': 'error', 'error': str(e)}
+            permission_details['workflow'] = {
+                'status': 'error', 'error': str(e)}
 
         # Store detailed permission info for debugging
-        logger.debug(f"Fine-grained token permission details: {permission_details}")
+        logger.debug(
+            f"Fine-grained token permission details: {permission_details}")
 
         return permissions
 

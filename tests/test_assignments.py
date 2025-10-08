@@ -4,9 +4,8 @@ Test module for assignments package.
 Tests assignment setup, orchestration, and management functionality.
 """
 
-import pytest
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 from classroom_pilot.assignments.setup import AssignmentSetup
 from classroom_pilot.assignments.orchestrator import AssignmentOrchestrator

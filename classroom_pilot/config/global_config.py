@@ -5,10 +5,8 @@ This module provides centralized configuration management by parsing assignment.
 once and making all configuration variables globally available to all commands.
 """
 
-import os
-import re
 from pathlib import Path
-from typing import Dict, Any, Optional, List
+from typing import Dict, Optional, List
 from dataclasses import dataclass
 
 from ..utils import logger
@@ -148,7 +146,6 @@ class ConfigurationManager:
             content = f.read()
 
         # Remove comments and empty lines
-        lines = []
         in_multiline = False
         multiline_content = []
         multiline_key = None
@@ -279,8 +276,20 @@ class ConfigurationManager:
         return config
 
     def _parse_secrets_config(self, secrets_config_str: str) -> List[SecretsConfig]:
-        """Parse SECRETS_CONFIG string into SecretsConfig objects."""
-        secrets = []
+        """Parse SECRETS_CONFIG string into SecretsConfig objects.
+
+        See ConfigurationManager._parse_secrets_config in project docs for supported
+        formats. The parser accepts the new simplified 3-field format as well
+        as legacy file-backed formats for backward compatibility.
+
+        Args:
+            secrets_config_str: Multiline string from the SECRETS_CONFIG value.
+
+        Returns:
+            List[SecretsConfig]: Parsed secrets configuration objects.
+        """
+
+        secrets: List[SecretsConfig] = []
 
         if not secrets_config_str.strip():
             return secrets
@@ -293,10 +302,6 @@ class ConfigurationManager:
             if ':' not in line:
                 continue
 
-            # Support both formats:
-            # Old: SECRET_NAME:description:token_file_path:max_age_days:validate_format
-            # New: SECRET_NAME:description:validate_format (uses centralized token)
-            # New: SECRET_NAME:description:max_age_days:validate_format (uses centralized token)
             parts = line.split(':')
             if len(parts) >= 2:
                 name = parts[0].strip()
@@ -304,43 +309,40 @@ class ConfigurationManager:
 
                 # Determine format based on number of parts and content
                 if len(parts) == 3:
-                    # Format: SECRET_NAME:description:validate_format
-                    # Third part should be true/false for validation
                     third_part = parts[2].strip()
                     if third_part.lower() in ('true', 'false'):
-                        # New simplified format with validate_format
+                        # New simplified format: name:description:validate_format
                         secret = SecretsConfig(
                             name=name,
                             description=description,
-                            token_file=None,  # Use centralized token
-                            max_age_days=90,  # Default
-                            validate_format=third_part.lower() == "true"
+                            token_file=None,
+                            max_age_days=90,
+                            validate_format=third_part.lower() == 'true'
                         )
                     else:
-                        # Assume old format with token_file
+                        # Legacy: name:description:token_file
                         secret = SecretsConfig(
                             name=name,
                             description=description,
                             token_file=third_part,
-                            max_age_days=90,  # Default
-                            validate_format=True  # Default
+                            max_age_days=90,
+                            validate_format=True
                         )
                 elif len(parts) == 4:
-                    # Could be either format
                     third_part = parts[2].strip()
                     fourth_part = parts[3].strip()
 
                     if fourth_part.lower() in ('true', 'false') and third_part.isdigit():
-                        # New format: SECRET_NAME:description:max_age_days:validate_format
+                        # New: name:description:max_age_days:validate_format
                         secret = SecretsConfig(
                             name=name,
                             description=description,
-                            token_file=None,  # Use centralized token
+                            token_file=None,
                             max_age_days=int(third_part),
-                            validate_format=fourth_part.lower() == "true"
+                            validate_format=fourth_part.lower() == 'true'
                         )
                     else:
-                        # Old format: SECRET_NAME:description:token_file:max_age_days (assuming validate_format=true)
+                        # Legacy: name:description:token_file:max_age_days
                         secret = SecretsConfig(
                             name=name,
                             description=description,
@@ -350,23 +352,25 @@ class ConfigurationManager:
                             validate_format=True
                         )
                 elif len(parts) >= 5:
-                    # Full old format: SECRET_NAME:description:token_file_path:max_age_days:validate_format
+                    # Full legacy format: name:description:token_file:max_age_days:validate_format
+                    token_file = parts[2].strip() if parts[2].strip() else None
+                    max_age = int(parts[3]) if len(
+                        parts) > 3 and parts[3].strip().isdigit() else 90
+                    validate_flag = parts[4].strip().lower(
+                    ) == 'true' if len(parts) > 4 else True
                     secret = SecretsConfig(
                         name=name,
                         description=description,
-                        token_file=parts[2].strip(
-                        ) if parts[2].strip() else None,
-                        max_age_days=int(parts[3]) if len(
-                            parts) > 3 and parts[3].strip().isdigit() else 90,
-                        validate_format=parts[4].strip().lower(
-                        ) == "true" if len(parts) > 4 else True
+                        token_file=token_file,
+                        max_age_days=max_age,
+                        validate_format=validate_flag
                     )
                 else:
-                    # Minimum format: SECRET_NAME:description (use defaults)
+                    # Minimal: name:description
                     secret = SecretsConfig(
                         name=name,
                         description=description,
-                        token_file=None,  # Use centralized token
+                        token_file=None,
                         max_age_days=90,
                         validate_format=True
                     )

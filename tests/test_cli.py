@@ -40,7 +40,6 @@ Dependencies and Integration:
 - Supports classroom_pilot.automation for scheduling workflows
 """
 
-import shlex
 import subprocess
 import sys
 import os
@@ -118,9 +117,9 @@ class TestBasicCLI:
 
         # Enhanced error reporting for debugging CI issues
         if not success:
-            print(f"\n=== DEBUG INFO ===")
+            print("\n=== DEBUG INFO ===")
             print(f"Command: {cmd}")
-            print(f"Return code: NON-ZERO")
+            print("Return code: NON-ZERO")
             print(f"STDERR:\n{stderr}")
             print(f"STDOUT:\n{stdout}")
             print(f"Working directory: {Path.cwd()}")
@@ -128,12 +127,11 @@ class TestBasicCLI:
 
             # Try alternative execution methods
             try:
-                import classroom_pilot.__main__
                 print("__main__ module exists")
             except Exception as e:
                 print(f"__main__ import failed: {e}")
 
-            print(f"=== END DEBUG ===\n")
+            print("=== END DEBUG ===\n")
 
         assert success, f"Help command failed: {stderr}"
 
@@ -174,14 +172,14 @@ class TestBasicCLI:
 
         # Enhanced error reporting for debugging CI issues
         if not success:
-            print(f"\n=== DEBUG INFO ===")
+            print("\n=== DEBUG INFO ===")
             print(f"Command: {cmd}")
-            print(f"Return code: NON-ZERO")
+            print("Return code: NON-ZERO")
             print(f"STDERR:\n{stderr}")
             print(f"STDOUT:\n{stdout}")
             print(f"Working directory: {Path.cwd()}")
             print(f"Python executable: {sys.executable}")
-            print(f"=== END DEBUG ===\n")
+            print("=== END DEBUG ===\n")
 
         assert success, f"Help without config failed: {stderr}"
 

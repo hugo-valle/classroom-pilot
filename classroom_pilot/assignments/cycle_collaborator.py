@@ -21,17 +21,10 @@ import time
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
-from urllib.parse import urlparse
+from typing import List, Optional, Tuple
 
 from ..config.global_config import load_global_config
 from ..utils import get_logger
-from ..utils.github_exceptions import (
-    GitHubAPIError,
-    GitHubAuthenticationError,
-    GitHubRepositoryError,
-    github_api_retry
-)
 
 logger = get_logger("assignments.cycle_collaborator")
 
@@ -135,7 +128,7 @@ class CycleCollaboratorManager:
     def _check_github_authentication(self) -> bool:
         """Check if GitHub CLI is authenticated."""
         try:
-            result = subprocess.run(
+            subprocess.run(
                 ['gh', 'auth', 'status'],
                 capture_output=True,
                 text=True,
@@ -247,7 +240,7 @@ class CycleCollaboratorManager:
     def _check_repository_accessibility(self, owner: str, repo_name: str) -> bool:
         """Check if repository exists and is accessible."""
         try:
-            result = subprocess.run(
+            subprocess.run(
                 ['gh', 'repo', 'view', f'{owner}/{repo_name}'],
                 capture_output=True,
                 text=True,
@@ -260,7 +253,7 @@ class CycleCollaboratorManager:
     def _check_collaborator_access(self, owner: str, repo_name: str, username: str) -> bool:
         """Check if user is a collaborator on the repository."""
         try:
-            result = subprocess.run(
+            subprocess.run(
                 ['gh', 'api',
                     f'repos/{owner}/{repo_name}/collaborators/{username}'],
                 capture_output=True,
@@ -274,14 +267,14 @@ class CycleCollaboratorManager:
     def _check_pending_invitations(self, owner: str, repo_name: str, username: str) -> bool:
         """Check if user has pending invitations for the repository."""
         try:
-            result = subprocess.run(
+            proc = subprocess.run(
                 ['gh', 'api', f'repos/{owner}/{repo_name}/invitations'],
                 capture_output=True,
                 text=True,
                 check=True
             )
 
-            invitations = json.loads(result.stdout)
+            invitations = json.loads(proc.stdout)
             for invitation in invitations:
                 if invitation.get('invitee', {}).get('login') == username:
                     return True
@@ -391,7 +384,7 @@ class CycleCollaboratorManager:
     def _remove_collaborator(self, owner: str, repo_name: str, username: str) -> bool:
         """Remove collaborator from repository."""
         try:
-            result = subprocess.run(
+            subprocess.run(
                 ['gh', 'api',
                     f'repos/{owner}/{repo_name}/collaborators/{username}', '--method', 'DELETE'],
                 capture_output=True,
@@ -408,7 +401,7 @@ class CycleCollaboratorManager:
     def _add_collaborator(self, owner: str, repo_name: str, username: str, permission: str = "write") -> bool:
         """Add collaborator to repository with specified permissions."""
         try:
-            result = subprocess.run([
+            subprocess.run([
                 'gh', 'api', f'repos/{owner}/{repo_name}/collaborators/{username}',
                 '--method', 'PUT',
                 '--field', f'permission={permission}'
@@ -598,7 +591,7 @@ class CycleCollaboratorManager:
 
     def display_repository_status(self, status: RepositoryStatus) -> None:
         """Display repository status information in a user-friendly format."""
-        print(f"\n=== Repository Status ===")
+        print("\n=== Repository Status ===")
         print(f"Repository: {status.repo_url}")
         print(f"Student: {status.username}")
         print(f"Accessible: {'✅ Yes' if status.accessible else '❌ No'}")
@@ -618,16 +611,16 @@ class CycleCollaboratorManager:
 
     def display_cycle_result(self, result: CycleOperation) -> None:
         """Display cycle operation result in a user-friendly format."""
-        print(f"\n=== Cycle Operation Result ===")
+        print("\n=== Cycle Operation Result ===")
         print(f"Repository: {result.repo_url}")
         print(f"Student: {result.username}")
 
         if result.result == CycleResult.SUCCESS:
-            print(f"Result: ✅ SUCCESS")
+            print("Result: ✅ SUCCESS")
         elif result.result == CycleResult.SKIPPED:
-            print(f"Result: ⏭️ SKIPPED")
+            print("Result: ⏭️ SKIPPED")
         else:
-            print(f"Result: ❌ FAILED")
+            print("Result: ❌ FAILED")
 
         print(f"Message: {result.message}")
 
@@ -641,7 +634,7 @@ class CycleCollaboratorManager:
 
     def display_batch_summary(self, summary: BatchSummary) -> None:
         """Display batch operation summary in a user-friendly format."""
-        print(f"\n=== Batch Operation Summary ===")
+        print("\n=== Batch Operation Summary ===")
         print(f"Total Repositories: {summary.total_repositories}")
         print(f"Successful Operations: {summary.successful_operations}")
         print(f"Skipped Operations: {summary.skipped_operations}")

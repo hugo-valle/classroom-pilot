@@ -30,8 +30,7 @@ and error conditions to ensure robust production behavior.
 import pytest
 from pathlib import Path
 from datetime import datetime
-from unittest.mock import Mock, patch, mock_open
-from io import StringIO
+from unittest.mock import patch, mock_open
 
 from classroom_pilot.config.generator import ConfigGenerator
 

@@ -59,7 +59,7 @@ GITHUB_TOKEN={github_token}
             os.chmod(credentials_file, stat.S_IRUSR | stat.S_IWUSR)
 
             print_success(
-                f"Created hidden credentials file: .github_credentials")
+                "Created hidden credentials file: .github_credentials")
 
         except Exception as e:
             print_warning(f"Could not create hidden credentials file: {e}")

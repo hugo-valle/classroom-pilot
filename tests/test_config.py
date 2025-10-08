@@ -5,8 +5,6 @@ Tests the Configuration class and configuration loading.
 Note: This is a legacy test file. New tests are in test_config_system.py
 """
 
-import tempfile
-from pathlib import Path
 
 import pytest
 
