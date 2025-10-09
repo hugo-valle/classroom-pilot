@@ -919,5 +919,129 @@ class TestInputValidationEdgeCases:
         assert "Org.With.Dots" in setup.config_values['TEMPLATE_REPO_URL']
 
 
+class TestAssignmentSetupURLMethods:
+    """Test URL-based setup methods."""
+
+    def test_run_wizard_with_url_success(self, mock_dependencies):
+        """Test successful setup with URL."""
+        setup = AssignmentSetup()
+        url = "https://classroom.github.com/classrooms/12345/assignments/test-assignment"
+
+        # Mock URL validation and parsing
+        with patch('classroom_pilot.assignments.setup.URLParser.validate_classroom_url', return_value=True), \
+                patch.object(setup, '_collect_repository_info'), \
+                patch.object(setup, '_collect_assignment_details'), \
+                patch.object(setup, '_configure_secret_management'), \
+                patch.object(setup, '_create_files'), \
+                patch('classroom_pilot.assignments.setup.show_welcome'), \
+                patch('classroom_pilot.assignments.setup.show_completion'), \
+                patch('classroom_pilot.assignments.setup.print_colored'):
+
+            setup.url_parser.extract_org_from_url.return_value = "test-org"
+            setup.url_parser.extract_assignment_from_url.return_value = "test-assignment"
+
+            result = setup.run_wizard_with_url(url)
+
+            assert result is True
+            assert setup.config_values['CLASSROOM_URL'] == url
+            assert setup.config_values['GITHUB_ORGANIZATION'] == "test-org"
+            assert setup.config_values['ASSIGNMENT_NAME'] == "test-assignment"
+
+    def test_run_wizard_with_url_invalid_url(self, mock_dependencies):
+        """Test setup with invalid URL."""
+        setup = AssignmentSetup()
+        url = "https://invalid-url.com"
+
+        # Mock URL validation to return False
+        with patch('classroom_pilot.assignments.setup.URLParser.validate_classroom_url', return_value=False), \
+                patch('classroom_pilot.assignments.setup.print_error'):
+
+            result = setup.run_wizard_with_url(url)
+
+            assert result is False
+            assert 'CLASSROOM_URL' not in setup.config_values
+
+    def test_run_wizard_with_url_user_cancel(self, mock_dependencies):
+        """Test setup with URL when user cancels."""
+        setup = AssignmentSetup()
+        url = "https://classroom.github.com/classrooms/12345/assignments/test"
+
+        # Mock URL validation but simulate user cancellation
+        with patch('classroom_pilot.assignments.setup.URLParser.validate_classroom_url', return_value=True), \
+                patch.object(setup, '_collect_repository_info', side_effect=KeyboardInterrupt), \
+                patch('classroom_pilot.assignments.setup.show_welcome'), \
+                patch('classroom_pilot.assignments.setup.print_error'), \
+                patch('classroom_pilot.assignments.setup.print_colored'):
+
+            setup.url_parser.extract_org_from_url.return_value = "test-org"
+            setup.url_parser.extract_assignment_from_url.return_value = "test-assignment"
+
+            result = setup.run_wizard_with_url(url)
+
+            assert result is False
+
+    def test_populate_from_url_success(self, mock_dependencies):
+        """Test successful URL parsing and population."""
+        setup = AssignmentSetup()
+        url = "https://classroom.github.com/classrooms/12345/assignments/test-assignment"
+
+        with patch('classroom_pilot.assignments.setup.URLParser.validate_classroom_url', return_value=True):
+            setup.url_parser.extract_org_from_url.return_value = "test-org"
+            setup.url_parser.extract_assignment_from_url.return_value = "test-assignment"
+
+            result = setup._populate_from_url(url)
+
+            assert result is True
+            assert setup.config_values['CLASSROOM_URL'] == url
+            assert setup.config_values['GITHUB_ORGANIZATION'] == "test-org"
+            assert setup.config_values['ASSIGNMENT_NAME'] == "test-assignment"
+
+    def test_populate_from_url_invalid_url(self, mock_dependencies):
+        """Test URL population with invalid URL."""
+        setup = AssignmentSetup()
+        url = "https://invalid-url.com"
+
+        with patch('classroom_pilot.assignments.setup.URLParser.validate_classroom_url', return_value=False), \
+                patch('classroom_pilot.assignments.setup.print_error'):
+
+            result = setup._populate_from_url(url)
+
+            assert result is False
+            assert 'CLASSROOM_URL' not in setup.config_values
+
+    def test_populate_from_url_extraction_failure(self, mock_dependencies):
+        """Test URL population when extraction fails."""
+        setup = AssignmentSetup()
+        url = "https://classroom.github.com/classrooms/12345/assignments/test"
+
+        with patch('classroom_pilot.assignments.setup.URLParser.validate_classroom_url', return_value=True), \
+                patch('classroom_pilot.assignments.setup.print_error'):
+
+            # Mock extraction to raise an exception
+            setup.url_parser.extract_org_from_url.side_effect = Exception(
+                "Extraction failed")
+
+            result = setup._populate_from_url(url)
+
+            assert result is False
+
+    def test_populate_from_url_partial_extraction(self, mock_dependencies):
+        """Test URL population with partial extraction (some values None)."""
+        setup = AssignmentSetup()
+        url = "https://classroom.github.com/classrooms/12345/assignments/test"
+
+        with patch('classroom_pilot.assignments.setup.URLParser.validate_classroom_url', return_value=True):
+            # Only organization extraction succeeds
+            setup.url_parser.extract_org_from_url.return_value = "test-org"
+            setup.url_parser.extract_assignment_from_url.return_value = None
+
+            result = setup._populate_from_url(url)
+
+            assert result is True
+            assert setup.config_values['CLASSROOM_URL'] == url
+            assert setup.config_values['GITHUB_ORGANIZATION'] == "test-org"
+            assert 'ASSIGNMENT_NAME' not in setup.config_values
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

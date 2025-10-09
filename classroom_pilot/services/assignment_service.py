@@ -153,11 +153,23 @@ class AssignmentService:
             if url:
                 # Parse GitHub Classroom URL and extract assignment info
                 # This would populate assignment name, org, etc. automatically
-                return False, "GitHub Classroom URL parsing not yet implemented"
+                success = setup_wizard.run_wizard_with_url(url)
+
+                if success:
+                    return True, "Assignment setup completed successfully with GitHub Classroom URL"
+                else:
+                    return False, "Assignment setup was cancelled or failed"
 
             # Run the setup wizard (simplified or full)
             if simplified:
                 # TODO: Implement simplified setup flow
+                # FEATURE REQUEST: Add simplified setup wizard with minimal prompts
+                # - Create AssignmentSetup.run_wizard_simplified() method
+                # - Reduce number of prompts (use sensible defaults)
+                # - Skip optional configurations (secrets, advanced settings)
+                # - Focus on core requirements: URL, org, assignment name, template repo
+                # - Update tests to expect success instead of failure
+                # - CLI option --simplified is already implemented and tested
                 return False, "Simplified setup mode not yet implemented"
             else:
                 success = setup_wizard.run_wizard()

@@ -80,6 +80,116 @@ class AssignmentSetup:
         self.token_files = {}
         self.token_validation = {}
 
+    def run_wizard_with_url(self, classroom_url: str):
+        """
+        Runs the setup wizard with a pre-populated GitHub Classroom URL.
+
+        This method pre-populates the configuration with information extracted from
+        the provided GitHub Classroom URL and then runs the interactive setup process
+        for the remaining configuration options.
+
+        Args:
+            classroom_url: GitHub Classroom assignment URL
+
+        Returns:
+            bool: True if setup completed successfully, False otherwise
+        """
+        try:
+            logger.info(
+                f"Starting assignment setup wizard with URL: {classroom_url}")
+
+            # Pre-populate configuration with URL information
+            if not self._populate_from_url(classroom_url):
+                return False
+
+            # Show welcome screen
+            show_welcome()
+
+            # Skip assignment info collection since we have the URL
+            logger.info("Using provided GitHub Classroom URL")
+            print_colored(
+                f"✓ GitHub Classroom URL: {classroom_url}", Colors.GREEN)
+
+            # Collect repository information (may auto-populate from URL)
+            self._collect_repository_info()
+
+            # Collect assignment details
+            self._collect_assignment_details()
+
+            # Configure secret management
+            self._configure_secret_management()
+
+            # Create configuration files
+            self._create_files()
+
+            # Show completion
+            show_completion(self.config_values, self.token_files)
+
+            logger.info("Assignment setup completed successfully")
+            return True
+
+        except KeyboardInterrupt:
+            print_error("\nSetup cancelled by user")
+            logger.info("Setup cancelled by user")
+            return False
+        except Exception as e:
+            print_error(f"Setup failed: {e}")
+            logger.error(f"Setup failed: {e}")
+            return False
+
+    def _populate_from_url(self, classroom_url: str) -> bool:
+        """
+        Extract information from GitHub Classroom URL and populate configuration.
+
+        Args:
+            classroom_url: GitHub Classroom assignment URL
+
+        Returns:
+            bool: True if URL was successfully parsed, False otherwise
+        """
+        try:
+            # Validate and parse the URL
+            if not URLParser.validate_classroom_url(classroom_url):
+                print_error("Invalid GitHub Classroom URL format")
+                return False
+
+            # Store the classroom URL
+            self.config_values['CLASSROOM_URL'] = classroom_url
+
+            # Extract organization and assignment name from URL
+            org_name = self.url_parser.extract_org_from_url(
+                classroom_url)
+            assignment_name = self.url_parser.extract_assignment_from_url(
+                classroom_url)
+
+            if org_name:
+                self.config_values['GITHUB_ORGANIZATION'] = org_name
+                logger.info(f"Extracted organization: {org_name}")
+
+            if assignment_name:
+                self.config_values['ASSIGNMENT_NAME'] = assignment_name
+                logger.info(f"Extracted assignment name: {assignment_name}")
+
+            return True
+
+        except Exception as e:
+            print_error(f"Failed to parse GitHub Classroom URL: {e}")
+            logger.error(f"URL parsing failed: {e}")
+            return False
+
+    # TODO: Implement simplified setup wizard
+    # FEATURE REQUEST: Add run_wizard_simplified() method for streamlined setup
+    # Should include:
+    # - Minimal prompts (skip optional features)
+    # - Sensible defaults for common configurations
+    # - Focus on core fields: organization, assignment name, template repo
+    # - Skip secret management setup (can be added later)
+    # - Faster workflow for experienced users
+    # - Same validation and file creation as full wizard
+    # def run_wizard_simplified(self):
+    #     """Simplified setup wizard with minimal prompts and sensible defaults."""
+    #     pass
+
     def run_wizard(self):
         """
         Runs the complete setup wizard for assignment configuration.

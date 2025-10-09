@@ -44,20 +44,36 @@ class TestAssignmentServiceSetup:
     def test_setup_with_url_dry_run(self):
         """Test setup with URL in dry-run mode."""
         service = AssignmentService(dry_run=True)
-        # This should be updated to accept url parameter
-        success, message = service.setup()
+        url = "https://classroom.github.com/classrooms/12345/assignments/test"
+        success, message = service.setup(url=url)
 
         assert success is True
         assert "DRY RUN" in message
+        assert "GitHub Classroom URL" in message
+        assert url in message
 
     def test_setup_with_simplified_dry_run(self):
         """Test setup with simplified option in dry-run mode."""
         service = AssignmentService(dry_run=True)
-        # This should be updated to accept simplified parameter
-        success, message = service.setup()
+        success, message = service.setup(simplified=True)
 
         assert success is True
         assert "DRY RUN" in message
+        assert "simplified setup wizard" in message
+
+    def test_setup_with_simplified_not_implemented(self):
+        """Test setup with simplified option when not implemented."""
+        # TODO: Update this test when simplified setup is implemented
+        # When simplified setup is working, this test should:
+        # - Change to test_setup_with_simplified_success()
+        # - Assert success is True
+        # - Assert successful completion message
+        # - Mock AssignmentSetup.run_wizard_simplified() method
+        service = AssignmentService(dry_run=False)
+        success, message = service.setup(simplified=True)
+
+        assert success is False
+        assert "Simplified setup mode not yet implemented" in message
 
     @patch('classroom_pilot.assignments.setup.AssignmentSetup')
     def test_setup_success(self, mock_assignment_setup):
@@ -100,6 +116,56 @@ class TestAssignmentServiceSetup:
 
         assert success is False
         assert "Assignment setup failed" in message
+
+    @patch('classroom_pilot.assignments.setup.AssignmentSetup')
+    def test_setup_with_url_success(self, mock_assignment_setup):
+        """Test successful setup with GitHub Classroom URL."""
+        # Mock the AssignmentSetup class
+        mock_wizard = Mock()
+        mock_wizard.run_wizard_with_url.return_value = True
+        mock_assignment_setup.return_value = mock_wizard
+
+        service = AssignmentService(dry_run=False)
+        url = "https://classroom.github.com/classrooms/12345/assignments/test"
+        success, message = service.setup(url=url)
+
+        assert success is True
+        assert "Assignment setup completed successfully with GitHub Classroom URL" in message
+        mock_assignment_setup.assert_called_once()
+        mock_wizard.run_wizard_with_url.assert_called_once_with(url)
+
+    @patch('classroom_pilot.assignments.setup.AssignmentSetup')
+    def test_setup_with_url_cancelled(self, mock_assignment_setup):
+        """Test setup with URL cancelled by user."""
+        # Mock the AssignmentSetup class
+        mock_wizard = Mock()
+        mock_wizard.run_wizard_with_url.return_value = False
+        mock_assignment_setup.return_value = mock_wizard
+
+        service = AssignmentService(dry_run=False)
+        url = "https://classroom.github.com/classrooms/12345/assignments/test"
+        success, message = service.setup(url=url)
+
+        assert success is False
+        assert "setup was cancelled or failed" in message
+        mock_wizard.run_wizard_with_url.assert_called_once_with(url)
+
+    @patch('classroom_pilot.assignments.setup.AssignmentSetup')
+    def test_setup_with_url_exception(self, mock_assignment_setup):
+        """Test setup with URL when wizard raises exception."""
+        # Mock the AssignmentSetup class
+        mock_wizard = Mock()
+        mock_wizard.run_wizard_with_url.side_effect = Exception(
+            "URL parsing failed")
+        mock_assignment_setup.return_value = mock_wizard
+
+        service = AssignmentService(dry_run=False)
+        url = "https://classroom.github.com/classrooms/12345/assignments/test"
+        success, message = service.setup(url=url)
+
+        assert success is False
+        assert "Assignment setup failed" in message
+        mock_wizard.run_wizard_with_url.assert_called_once_with(url)
 
 
 class TestAssignmentServiceOrchestrate:

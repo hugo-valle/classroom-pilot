@@ -81,6 +81,20 @@ class TestAssignmentSetupCLI:
         assert "DRY RUN" in stderr, "Dry run message not found"
         assert "simplified setup" in stderr, "Simplified setup message not found"
 
+    def test_setup_simplified_not_implemented(self):
+        """Test setup with --simplified option when not implemented."""
+        # TODO: Update this test when simplified setup is implemented
+        # When simplified setup is working, this test should:
+        # - Rename to test_setup_simplified_success()
+        # - Assert success is True
+        # - Assert completion message instead of error
+        # - Test that simplified setup completes faster/with fewer prompts
+        success, stdout, stderr = run_cli_command(
+            "python -m classroom_pilot assignments setup --simplified")
+
+        assert not success, "Simplified setup should fail when not implemented"
+        assert "Simplified setup mode not yet implemented" in stderr, "Implementation error message not found"
+
     def test_setup_dry_run_with_both_options(self):
         """Test setup with both --url and --simplified options."""
         test_url = "https://classroom.github.com/classrooms/12345/assignments/test-assignment"
