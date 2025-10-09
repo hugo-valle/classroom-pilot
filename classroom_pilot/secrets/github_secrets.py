@@ -44,7 +44,28 @@ class GitHubSecretsManager:
         }
 
     def _get_github_token(self) -> str:
-        """Get GitHub token from gh CLI or environment."""
+        """Get GitHub token using the centralized token manager."""
+        try:
+            from ..utils.token_manager import GitHubTokenManager
+
+            token_manager = GitHubTokenManager()
+            token = token_manager.get_github_token()
+
+            if token:
+                return token
+            else:
+                # Fallback to original logic if token manager fails
+                logger.warning(
+                    "Token manager returned None, trying fallback methods")
+                return self._get_github_token_fallback()
+
+        except Exception as e:
+            logger.warning(
+                f"Error using token manager: {e}, trying fallback methods")
+            return self._get_github_token_fallback()
+
+    def _get_github_token_fallback(self) -> str:
+        """Fallback GitHub token retrieval from gh CLI or environment."""
         try:
             # Try to get token from gh CLI
             result = subprocess.run(

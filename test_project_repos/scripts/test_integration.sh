@@ -305,7 +305,7 @@ test_performance() {
     log_info "Performance test duration: ${duration}s"
     
     if [[ $duration -lt 10 ]]; then
-        mark_test_passed "Performance test (multiple commands)"
+        mark_test_passed "Performance test - multiple commands"
     else
         mark_test_failed "Performance test" "Commands took too long: ${duration}s"
     fi

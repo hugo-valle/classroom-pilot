@@ -211,18 +211,12 @@ def assignment_setup(
 
     setup_logging(verbose)
 
-    if dry_run:
-        logger.info("DRY RUN: Would start assignment setup wizard")
-        if simplified or url:
-            logger.info("DRY RUN: Would use simplified setup with GitHub API")
-        return
-
-    # Delegate to AssignmentService
+    # Delegate to AssignmentService (including dry-run logic)
     try:
         from .services.assignment_service import AssignmentService
 
         service = AssignmentService(dry_run=dry_run, verbose=verbose)
-        ok, message = service.setup()
+        ok, message = service.setup(url=url, simplified=simplified)
 
         if not ok:
             logger.error(message)

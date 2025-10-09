@@ -125,9 +125,13 @@ class AssignmentService:
         except Exception as e:
             return False, f"Assignment orchestration failed: {e}"
 
-    def setup(self) -> Tuple[bool, str]:
+    def setup(self, url: Optional[str] = None, simplified: bool = False) -> Tuple[bool, str]:
         """
         Run interactive assignment setup wizard.
+
+        Args:
+            url: GitHub Classroom assignment URL for auto-discovery
+            simplified: Enable simplified setup with fewer prompts
 
         Returns:
             Tuple of (success: bool, message: str)
@@ -138,15 +142,30 @@ class AssignmentService:
             setup_wizard = AssignmentSetup()
 
             if self.dry_run:
-                return True, "DRY RUN: Would run interactive assignment setup wizard"
+                if url:
+                    return True, f"DRY RUN: Would run setup wizard with GitHub Classroom URL: {url}"
+                elif simplified:
+                    return True, "DRY RUN: Would run simplified setup wizard with minimal prompts"
+                else:
+                    return True, "DRY RUN: Would run interactive assignment setup wizard"
 
-            # Run the setup wizard
-            success = setup_wizard.run_setup()
+            # TODO: Implement URL parsing for GitHub Classroom integration
+            if url:
+                # Parse GitHub Classroom URL and extract assignment info
+                # This would populate assignment name, org, etc. automatically
+                return False, "GitHub Classroom URL parsing not yet implemented"
 
-            if success:
-                return True, "Assignment setup completed successfully"
+            # Run the setup wizard (simplified or full)
+            if simplified:
+                # TODO: Implement simplified setup flow
+                return False, "Simplified setup mode not yet implemented"
             else:
-                return False, "Assignment setup was cancelled or failed"
+                success = setup_wizard.run_wizard()
+
+                if success:
+                    return True, "Assignment setup completed successfully"
+                else:
+                    return False, "Assignment setup was cancelled or failed"
 
         except ImportError as e:
             return False, f"Failed to import setup wizard: {e}"
@@ -165,6 +184,9 @@ class AssignmentService:
         """
         try:
             from ..config import ConfigValidator
+
+            if self.dry_run:
+                return True, f"DRY RUN: Would validate configuration file '{config_file}'"
 
             validator = ConfigValidator()
             config_path = Path(config_file)
@@ -338,172 +360,3 @@ class AssignmentService:
             return False, f"Failed to import student helper: {e}"
         except Exception as e:
             return False, f"Student status check failed: {e}"
-
-
-logger = get_logger("services.assignment")
-
-
-class AssignmentService:
-    """Service for assignment orchestration and workflow management."""
-
-    def __init__(self, dry_run: bool = False, verbose: bool = False):
-        """
-        Initialize assignment service.
-
-        Args:
-            dry_run: If True, show what would be done without executing
-            verbose: Enable verbose logging
-        """
-        self.dry_run = dry_run
-        self.verbose = verbose
-        self.orchestrator = None
-
-    def orchestrate(
-        self,
-        config_file: str = "assignment.conf",
-        force_yes: bool = False,
-        step: Optional[str] = None,
-        skip_steps: Optional[str] = None
-    ) -> Tuple[bool, str]:
-        """
-        Execute complete assignment workflow with comprehensive orchestration.
-
-        Args:
-            config_file: Path to assignment configuration file
-            force_yes: Skip confirmation prompts and proceed automatically
-            step: Execute only the specified workflow step
-            skip_steps: Comma-separated list of steps to skip
-
-        Returns:
-            Tuple of (success: bool, message: str)
-        """
-        try:
-            # Initialize orchestrator with configuration
-            config_path = Path(config_file) if config_file else None
-            self.orchestrator = AssignmentOrchestrator(config_path)
-
-            # Validate configuration
-            if not self.orchestrator.validate_configuration():
-                return False, "Configuration validation failed"
-
-            # Show configuration summary
-            self.orchestrator.show_configuration_summary()
-
-            # Parse workflow configuration
-            enabled_steps = set(WorkflowStep)
-            skip_step_set = set()
-            step_override = None
-
-            # Handle step override
-            if step:
-                try:
-                    step_override = WorkflowStep(step.lower())
-                    logger.info(
-                        f"Executing single step: {step_override.value}")
-                except ValueError:
-                    valid_steps = [s.value for s in WorkflowStep]
-                    return False, f"Invalid step '{step}'. Valid steps: {', '.join(valid_steps)}"
-
-            # Handle skip steps
-            if skip_steps:
-                for skip_step in skip_steps.split(','):
-                    try:
-                        skip_step_set.add(WorkflowStep(
-                            skip_step.strip().lower()))
-                    except ValueError:
-                        valid_steps = [s.value for s in WorkflowStep]
-                        return False, f"Invalid skip step '{skip_step}'. Valid steps: {', '.join(valid_steps)}"
-
-            # Create workflow configuration
-            workflow_config = WorkflowConfig(
-                enabled_steps=enabled_steps,
-                dry_run=self.dry_run,
-                verbose=self.verbose,
-                force_yes=force_yes,
-                step_override=step_override,
-                skip_steps=skip_step_set
-            )
-
-            # Confirm execution (skip confirmation in dry-run mode)
-            if not self.dry_run and not self.orchestrator.confirm_execution(workflow_config):
-                return True, "Orchestration cancelled by user"
-
-            # Execute workflow
-            results = self.orchestrator.execute_workflow(workflow_config)
-
-            # Generate and display report
-            self.orchestrator.generate_workflow_report()
-
-            # Check for failures
-            failed_steps = [r for r in results if not r.success]
-            if failed_steps:
-                return False, f"Orchestration completed with {len(failed_steps)} failed steps"
-
-            return True, "Assignment orchestration completed successfully"
-
-        except ImportError as e:
-            return False, f"Failed to import orchestrator components: {e}"
-        except Exception as e:
-            return False, f"Assignment orchestration failed: {e}"
-
-    def setup(self) -> Tuple[bool, str]:
-        """
-        Run interactive assignment setup wizard.
-
-        Returns:
-            Tuple of (success: bool, message: str)
-        """
-        try:
-            from ..assignments.setup import AssignmentSetup
-
-            setup_wizard = AssignmentSetup()
-
-            if self.dry_run:
-                return True, "DRY RUN: Would run interactive assignment setup wizard"
-
-            # Run the setup wizard
-            success = setup_wizard.run_setup()
-
-            if success:
-                return True, "Assignment setup completed successfully"
-            else:
-                return False, "Assignment setup was cancelled or failed"
-
-        except ImportError as e:
-            return False, f"Failed to import setup wizard: {e}"
-        except Exception as e:
-            return False, f"Assignment setup failed: {e}"
-
-    def validate_config(self, config_file: str = "assignment.conf") -> Tuple[bool, str]:
-        """
-        Validate assignment configuration.
-
-        Args:
-            config_file: Path to configuration file to validate
-
-        Returns:
-            Tuple of (success: bool, message: str)
-        """
-        try:
-            from ..config import ConfigValidator
-
-            validator = ConfigValidator()
-            config_path = Path(config_file)
-
-            if not config_path.exists():
-                return False, f"Configuration file not found: {config_file}"
-
-            # Validate the configuration
-            is_valid, errors = validator.validate_config_file(config_path)
-
-            if is_valid:
-                return True, f"Configuration file '{config_file}' is valid"
-            else:
-                error_msg = f"Configuration validation failed:\n" + \
-                    "\n".join(errors)
-                return False, error_msg
-
-        except ImportError as e:
-            return False, f"Failed to import config validator: {e}"
-        except Exception as e:
-            return False, f"Configuration validation failed: {e}"

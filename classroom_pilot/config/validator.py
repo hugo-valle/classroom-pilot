@@ -225,3 +225,31 @@ class ConfigValidator:
                 errors.append(f"ASSIGNMENT_FILE: {error}")
 
         return len(errors) == 0, errors
+
+    def validate_config_file(self, config_path) -> Tuple[bool, List[str]]:
+        """
+        Validate a configuration file.
+
+        Args:
+            config_path: Path to configuration file (Path object or string)
+
+        Returns:
+            Tuple of (is_valid: bool, errors: List[str])
+        """
+        from .loader import ConfigLoader
+        from pathlib import Path
+
+        try:
+            # Convert to Path object if needed
+            path = Path(config_path) if not isinstance(
+                config_path, Path) else config_path
+
+            # Load configuration from file
+            loader = ConfigLoader(config_path=path)
+            config_dict = loader.load()
+
+            # Validate the loaded configuration
+            return self.validate_full_config(config_dict)
+
+        except Exception as e:
+            return False, [f"Failed to load configuration file: {e}"]

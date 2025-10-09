@@ -483,6 +483,66 @@ def test_function(mock_config, temp_dir, mock_bash_wrapper):
 - **CLI Tests**: Command-line interface validation
 - **Error Tests**: Exception and error handling
 
+### 🎯 Testing Strategy: Two-Tier Approach
+
+This project uses a **two-tier testing strategy** with distinct but complementary testing environments:
+
+#### **Tier 1: `tests/` - Developer Testing (Primary Development)**
+- **Purpose**: Fast feedback during development, code validation, CI/CD integration
+- **Technology**: Python pytest (603+ test functions, ~12K lines)
+- **Scope**: Unit tests, integration tests, mocked dependencies
+- **Target Audience**: Developers during active development
+- **Execution**: `pytest tests/ -v` (runs in seconds)
+- **Examples**:
+  ```python
+  def test_assignment_service_setup_with_url():
+      service = AssignmentService(dry_run=True) 
+      success, message = service.setup(url="https://classroom.github.com/a/test")
+      assert "GitHub Classroom URL" in message
+  ```
+
+#### **Tier 2: `test_project_repos/` - End-to-End Validation (Release Testing)**
+- **Purpose**: Real-world validation, user workflow testing, release qualification
+- **Technology**: Bash scripts + Python (5.5K lines shell, 615 lines Python)
+- **Scope**: Complete workflows, real GitHub repositories, actual environments
+- **Target Audience**: QA engineers, release validation, user acceptance testing
+- **Execution**: `cd test_project_repos && ./scripts/run_full_test.sh` (runs in minutes)
+- **Examples**:
+  ```bash
+  # Tests real GitHub API integration, actual repository cloning
+  classroom-pilot assignments setup --url "https://real-github-classroom-url"
+  classroom-pilot assignments orchestrate --config real_assignment.conf
+  ```
+
+#### **When to Use Each Tier:**
+
+**Use `tests/` for:**
+- ✅ Daily development work
+- ✅ Feature development and bug fixes  
+- ✅ CI/CD pipeline integration
+- ✅ Code review validation
+- ✅ Component-level testing
+
+**Use `test_project_repos/` for:**
+- ✅ Pre-release validation
+- ✅ User acceptance testing
+- ✅ Cross-platform compatibility testing
+- ✅ Real GitHub integration testing
+- ✅ End-to-end workflow validation
+
+#### **Testing Pyramid Implementation:**
+```
+     /\
+    /  \  E2E Tests (test_project_repos/) 
+   /____\  - Real workflows, GitHub repos, user scenarios
+  /      \  Integration Tests (parts of tests/)
+ /        \  - Service integration, CLI integration  
+/          \ Unit Tests (most of tests/)
+\__________/ - Methods, classes, isolated components
+```
+
+**Critical Note**: Both tiers are essential. `tests/` provides fast developer feedback, while `test_project_repos/` ensures real-world functionality. Maintain both but focus daily development on `tests/` tier.
+
 ## 📝 Documentation Standards
 
 ### Docstring Format
