@@ -5,6 +5,7 @@ Tests configuration loading, validation, and generation.
 """
 
 from pathlib import Path
+import pytest
 
 from classroom_pilot.config.loader import ConfigLoader
 from classroom_pilot.config.validator import ConfigValidator
@@ -286,3 +287,181 @@ class TestConfigIntegration:
         assert loaded_config['GITHUB_ORGANIZATION'] == original_values['GITHUB_ORGANIZATION']
         # Note: key changes - generator uses STUDENT_FILES instead of ASSIGNMENT_FILE
         assert loaded_config['STUDENT_FILES'] == original_values['MAIN_ASSIGNMENT_FILE']
+
+
+class TestGlobalConfigManager:
+    """Test the global configuration manager and load_global_config functionality."""
+
+    def test_load_global_config_default_location(self, test_config_data, tmp_path):
+        """Test loading config from default location (current directory)."""
+        from classroom_pilot.config.global_config import load_global_config
+
+        # Create assignment.conf in temp directory
+        config_dir = tmp_path / "test_config"
+        config_dir.mkdir()
+        config_file = config_dir / "assignment.conf"
+
+        config_content = "\n".join(
+            [f'{key}="{value}"' for key, value in test_config_data.items()])
+        config_file.write_text(config_content)
+
+        # Move to the directory containing the config file
+        import os
+        original_cwd = os.getcwd()
+        try:
+            os.chdir(config_dir)
+
+            # Should load config from current directory
+            config = load_global_config()
+            assert config is not None
+            assert config.classroom_url == test_config_data['CLASSROOM_URL']
+            assert config.github_organization == test_config_data['GITHUB_ORGANIZATION']
+        finally:
+            os.chdir(original_cwd)
+
+    def test_load_global_config_with_assignment_root(self, test_config_data, tmp_path):
+        """Test loading config with assignment_root parameter."""
+        from classroom_pilot.config.global_config import load_global_config
+        from pathlib import Path
+
+        # Create assignment.conf in temp directory
+        config_dir = tmp_path / "assignment_root"
+        config_dir.mkdir()
+        config_file = config_dir / "assignment.conf"
+
+        config_content = "\n".join(
+            [f'{key}="{value}"' for key, value in test_config_data.items()])
+        config_file.write_text(config_content)
+
+        # Load config from specific directory using assignment_root
+        config = load_global_config(assignment_root=config_dir)
+
+        assert config is not None
+        assert config.classroom_url == test_config_data['CLASSROOM_URL']
+        assert config.github_organization == test_config_data['GITHUB_ORGANIZATION']
+        assert config.template_repo_url == test_config_data['TEMPLATE_REPO_URL']
+
+    def test_load_global_config_assignment_root_precedence(self, tmp_path):
+        """Test that assignment_root parameter takes precedence over current directory."""
+        from classroom_pilot.config.global_config import load_global_config
+        from pathlib import Path
+        import os
+
+        # Create config in assignment_root directory
+        assignment_dir = tmp_path / "assignment_root"
+        assignment_dir.mkdir()
+        assignment_config = assignment_dir / "assignment.conf"
+        assignment_config.write_text('''# Assignment Root Config
+CLASSROOM_URL="https://classroom.github.com/assignment-root/test"
+TEMPLATE_REPO_URL="https://github.com/assignment-root/template"
+GITHUB_ORGANIZATION="assignment-root-org"
+ASSIGNMENT_FILE="assignment.ipynb"
+''')
+
+        # Create different config in current directory
+        cwd_dir = tmp_path / "current_dir"
+        cwd_dir.mkdir()
+        cwd_config = cwd_dir / "assignment.conf"
+        cwd_config.write_text('''# Current Directory Config
+CLASSROOM_URL="https://classroom.github.com/current-dir/test"
+TEMPLATE_REPO_URL="https://github.com/current-dir/template"
+GITHUB_ORGANIZATION="current-dir-org"
+ASSIGNMENT_FILE="assignment.ipynb"
+''')
+
+        # Change to current directory and load with assignment_root
+        original_cwd = os.getcwd()
+        try:
+            os.chdir(cwd_dir)
+
+            # Should load from assignment_root, not current directory
+            config = load_global_config(assignment_root=assignment_dir)
+
+            assert config.classroom_url == "https://classroom.github.com/assignment-root/test"
+            assert config.github_organization == "assignment-root-org"
+            assert "assignment-root" in config.template_repo_url
+        finally:
+            os.chdir(original_cwd)
+
+    def test_load_global_config_custom_filename_with_assignment_root(self, tmp_path):
+        """Test loading custom config filename with assignment_root."""
+        from classroom_pilot.config.global_config import load_global_config
+
+        # Create custom config file in assignment root
+        assignment_dir = tmp_path / "custom_assignment"
+        assignment_dir.mkdir()
+        custom_config = assignment_dir / "custom.conf"
+        custom_config.write_text('''# Custom Config
+CLASSROOM_URL="https://classroom.github.com/custom/test"
+TEMPLATE_REPO_URL="https://github.com/custom/template"
+GITHUB_ORGANIZATION="custom-org"
+ASSIGNMENT_FILE="assignment.ipynb"
+''')
+
+        # Load with both custom filename and assignment_root
+        config = load_global_config(
+            config_file="custom.conf", assignment_root=assignment_dir)
+
+        assert config is not None
+        assert config.classroom_url == "https://classroom.github.com/custom/test"
+        assert config.github_organization == "custom-org"
+
+    def test_load_global_config_assignment_root_not_found(self, tmp_path):
+        """Test error handling when assignment_root directory doesn't exist."""
+        from classroom_pilot.config.global_config import load_global_config
+        from pathlib import Path
+
+        nonexistent_dir = tmp_path / "nonexistent"
+
+        # Should raise FileNotFoundError
+        with pytest.raises(FileNotFoundError) as exc_info:
+            load_global_config(assignment_root=nonexistent_dir)
+
+        assert "Configuration file not found" in str(exc_info.value)
+        assert str(nonexistent_dir / "assignment.conf") in str(exc_info.value)
+
+    def test_load_global_config_assignment_root_no_config_file(self, tmp_path):
+        """Test error handling when assignment_root exists but has no config file."""
+        from classroom_pilot.config.global_config import load_global_config
+
+        # Create empty directory
+        empty_dir = tmp_path / "empty_assignment"
+        empty_dir.mkdir()
+
+        # Should raise FileNotFoundError
+        with pytest.raises(FileNotFoundError) as exc_info:
+            load_global_config(assignment_root=empty_dir)
+
+        assert "Configuration file not found" in str(exc_info.value)
+        assert str(empty_dir / "assignment.conf") in str(exc_info.value)
+
+    def test_load_global_config_relative_assignment_root(self, tmp_path):
+        """Test loading config with relative assignment_root path."""
+        from classroom_pilot.config.global_config import load_global_config
+        from pathlib import Path
+        import os
+
+        # Create config in subdirectory
+        sub_dir = tmp_path / "subdir"
+        sub_dir.mkdir()
+        config_file = sub_dir / "assignment.conf"
+        config_file.write_text('''# Relative Path Config
+CLASSROOM_URL="https://classroom.github.com/relative/test"
+TEMPLATE_REPO_URL="https://github.com/relative/template"
+GITHUB_ORGANIZATION="relative-org"
+ASSIGNMENT_FILE="assignment.ipynb"
+''')
+
+        # Change to parent directory and use relative path
+        original_cwd = os.getcwd()
+        try:
+            os.chdir(tmp_path)
+
+            # Load using relative path
+            config = load_global_config(assignment_root=Path("subdir"))
+
+            assert config is not None
+            assert config.classroom_url == "https://classroom.github.com/relative/test"
+            assert config.github_organization == "relative-org"
+        finally:
+            os.chdir(original_cwd)
