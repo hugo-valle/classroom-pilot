@@ -123,3 +123,5 @@ temp_*
 *.swo
 *~
 
+# Test files
+test_api_calls/
