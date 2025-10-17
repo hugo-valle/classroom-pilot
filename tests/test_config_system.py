@@ -156,7 +156,7 @@ class TestConfigValidator:
         assert len(missing) == 3
         assert 'TEMPLATE_REPO_URL' in missing
         assert 'GITHUB_ORGANIZATION' in missing
-        assert 'ASSIGNMENT_FILE' in missing
+        assert 'STUDENT_FILES or ASSIGNMENT_FILE' in missing
 
     def test_validate_full_config(self, test_config_data):
         """Test full configuration validation."""

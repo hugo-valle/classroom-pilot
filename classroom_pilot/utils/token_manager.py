@@ -208,7 +208,6 @@ class GitHubTokenManager:
                 if expires_header:
                     try:
                         # Parse the expiration date format: "2026-05-31 00:00:00 -0600"
-                        from datetime import datetime
                         import re
                         # Remove timezone info for parsing, then add UTC
                         date_part = re.sub(r'\s[-+]\d{4}$', '', expires_header)

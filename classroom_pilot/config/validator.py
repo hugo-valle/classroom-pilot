@@ -155,14 +155,17 @@ class ConfigValidator:
         required_fields = [
             'CLASSROOM_URL',
             'TEMPLATE_REPO_URL',
-            'GITHUB_ORGANIZATION',
-            'ASSIGNMENT_FILE'
+            'GITHUB_ORGANIZATION'
         ]
 
         missing_fields = []
         for field in required_fields:
             if field not in config or not config[field]:
                 missing_fields.append(field)
+
+        # Check for STUDENT_FILES or ASSIGNMENT_FILE (backward compatibility)
+        if not config.get('STUDENT_FILES') and not config.get('ASSIGNMENT_FILE'):
+            missing_fields.append('STUDENT_FILES or ASSIGNMENT_FILE')
 
         return missing_fields
 

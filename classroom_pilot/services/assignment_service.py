@@ -11,6 +11,7 @@ from ..assignments.orchestrator import (
 )
 from pathlib import Path
 from typing import Optional, Set, List, Tuple
+import os
 import typer
 
 from ..utils.logger import get_logger
@@ -137,9 +138,119 @@ class AssignmentService:
             Tuple of (success: bool, message: str)
         """
         try:
+            from ..utils.token_manager import GitHubTokenManager
+
+            # Ensure a GitHub token is available before creating or launching the wizard.
+            # Prefer the centralized token manager (config file / keychain / env).
+            token_manager = GitHubTokenManager()
+
+            # Prefer centralized token config file or system keychain
+            config_exists = token_manager.config_file.exists()
+            keychain_token = None
+            try:
+                keychain_token = token_manager._get_token_from_keychain()
+            except Exception:
+                keychain_token = None
+
+            env_token = os.getenv('GITHUB_TOKEN') or os.getenv('GH_TOKEN')
+
+            token = None
+            if config_exists or keychain_token:
+                # Use centralized/token manager lookup (this will prefer config/keychain)
+                try:
+                    token = token_manager.get_github_token()
+                except Exception:
+                    token = None
+
+            # If no centralized token but an env token exists, offer to import it
+            if not token and env_token:
+                if self.dry_run:
+                    return False, "DRY RUN: No centralized GitHub token configured; GITHUB_TOKEN is present in environment"
+
+                prompt = (
+                    "No centralized token found, but GITHUB_TOKEN is set in your environment.\n"
+                    "Would you like to import the environment token into ~/.config/classroom-pilot/token_config.json for centralized management?"
+                )
+                import_choice = typer.confirm(prompt, default=True)
+                if import_choice:
+                    try:
+                        token_info = token_manager._verify_and_get_token_info(
+                            env_token)
+                        if not token_info:
+                            # If verification failed, still offer interactive setup
+                            create_now = typer.confirm(
+                                "Environment token could not be verified. Create a new token interactively instead?",
+                                default=True
+                            )
+                            if create_now:
+                                new_token = token_manager.setup_new_token()
+                                if not new_token:
+                                    return False, "GitHub token setup was cancelled or failed"
+                                token = new_token
+                            else:
+                                return False, "No valid centralized token configured. Aborting setup."
+                        else:
+                            token_manager._store_token(
+                                env_token, token_info, 3)
+                            token = env_token
+                    except Exception as e:
+                        return False, f"Failed to import environment token: {e}"
+                else:
+                    # User declined to import env token - offer interactive creation
+                    create_now = typer.confirm(
+                        "No centralized token configured. Create one now interactively?",
+                        default=True
+                    )
+                    if create_now:
+                        new_token = token_manager.setup_new_token()
+                        if not new_token:
+                            return False, "GitHub token setup was cancelled or failed"
+                        token = new_token
+                    else:
+                        return False, "No GitHub token configured. Set GITHUB_TOKEN or create ~/.config/classroom-pilot/token_config.json"
+
+            # If still no token, prompt interactive creation (no env token present)
+            if not token:
+                if self.dry_run:
+                    return False, "DRY RUN: No GitHub token configured (would prompt to create one)"
+
+                create_now = typer.confirm(
+                    "No GitHub token found in config/keychain/environment. Create one now interactively?",
+                    default=True
+                )
+                if create_now:
+                    new_token = token_manager.setup_new_token()
+                    if not new_token:
+                        return False, "GitHub token setup was cancelled or failed"
+                    token = new_token
+                else:
+                    return False, "No GitHub token configured. Set GITHUB_TOKEN or create ~/.config/classroom-pilot/token_config.json"
+
             from ..assignments.setup import AssignmentSetup
 
             setup_wizard = AssignmentSetup()
+
+            if not token:
+                # In dry-run mode we just report missing token
+                if self.dry_run:
+                    return False, "DRY RUN: No GitHub token configured (would prompt to create one)"
+
+                # Ask the user whether to run the interactive token setup now
+                create_now = typer.confirm(
+                    "No GitHub token found in config/keychain/environment. Create one now interactively?",
+                    default=True
+                )
+
+                if create_now:
+                    try:
+                        new_token = token_manager.setup_new_token()
+                        if not new_token:
+                            return False, "GitHub token setup was cancelled or failed"
+                        token = new_token
+                    except Exception as e:
+                        return False, f"GitHub token setup failed: {e}"
+                else:
+                    return False, "No GitHub token configured. Set GITHUB_TOKEN or create ~/.config/classroom-pilot/token_config.json"
 
             if self.dry_run:
                 if url:

@@ -325,10 +325,12 @@ class TestGlobalOptions:
         # Create a valid assignment.conf file
         config_content = """# Test Assignment Configuration
 CLASSROOM_URL=https://classroom.github.com/classrooms/test/assignments/test-assignment
-TEMPLATE_REPO_URL=https://github.com/test-org/test-template.git
+TEMPLATE_REPO_URL=https://github.com/test-org/test-assignment-template.git
 GITHUB_ORGANIZATION=test-org
 ASSIGNMENT_NAME=test-assignment
-ASSIGNMENT_FILE=assignment.ipynb
+STUDENT_FILES=assignment.ipynb
+USE_SECRETS=false
+SECRETS_CONFIG=""
 DUE_DATE=2024-12-31
 STUDENT_REPO_PREFIX=test-assignment
 POINTS_POSSIBLE=100
@@ -422,7 +424,7 @@ CLASSROOM_URL=https://classroom.github.com/classrooms/other/assignments/other-as
 TEMPLATE_REPO_URL=https://github.com/other-org/other-template.git
 GITHUB_ORGANIZATION=other-org
 ASSIGNMENT_NAME=other-assignment
-ASSIGNMENT_FILE=assignment.ipynb
+STUDENT_FILES=assignment.ipynb
 """
         (other_dir / "assignment.conf").write_text(other_config)
 
@@ -461,7 +463,7 @@ CLASSROOM_URL=https://classroom.github.com/classrooms/other/assignments/other-as
 TEMPLATE_REPO_URL=https://github.com/other-org/other-template.git
 GITHUB_ORGANIZATION=other-org
 ASSIGNMENT_NAME=other-assignment
-ASSIGNMENT_FILE=assignment.ipynb
+STUDENT_FILES=assignment.ipynb
 """
         (other_dir / "assignment.conf").write_text(other_config)
 
@@ -484,7 +486,7 @@ CLASSROOM_URL=https://classroom.github.com/classrooms/custom/assignments/custom-
 TEMPLATE_REPO_URL=https://github.com/custom-org/custom-template.git
 GITHUB_ORGANIZATION=custom-org
 ASSIGNMENT_NAME=custom-assignment
-ASSIGNMENT_FILE=assignment.ipynb
+STUDENT_FILES=assignment.ipynb
 """
         custom_config.write_text(custom_content)
 

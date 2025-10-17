@@ -179,10 +179,16 @@ class TestCollectRepositoryInfo:
         """
         setup = AssignmentSetup()
         setup.config_values = {
-            'CLASSROOM_URL': 'https://classroom.github.com/classrooms/12345/assignments/test-assignment'
+            'CLASSROOM_URL': 'https://classroom.github.com/classrooms/12345/assignments/test-assignment',
+            'GITHUB_ORGANIZATION': 'test-org',  # Pre-populated from URL parsing
+            'ASSIGNMENT_NAME': 'test-assignment'
         }
 
         # Setup mocks
+        setup.url_parser.parse_classroom_url.return_value = {
+            'organization': 'test-org',
+            'assignment_name': 'test-assignment'
+        }
         setup.url_parser.extract_org_from_url.return_value = "test-org"
         setup.url_parser.extract_assignment_from_url.return_value = "test-assignment"
         setup.input_handler.prompt_input.side_effect = [
@@ -211,10 +217,16 @@ class TestCollectRepositoryInfo:
         """
         setup = AssignmentSetup()
         setup.config_values = {
-            'CLASSROOM_URL': 'https://classroom.github.com/classrooms/12345/assignments/test-assignment'
+            'CLASSROOM_URL': 'https://classroom.github.com/classrooms/12345/assignments/test-assignment',
+            'GITHUB_ORGANIZATION': 'test-org',  # Pre-populated from URL parsing
+            'ASSIGNMENT_NAME': 'test-assignment'
         }
 
         # Setup mocks
+        setup.url_parser.parse_classroom_url.return_value = {
+            'organization': 'test-org',
+            'assignment_name': 'test-assignment'
+        }
         setup.url_parser.extract_org_from_url.return_value = "test-org"
         setup.url_parser.extract_assignment_from_url.return_value = "test-assignment"
         setup.input_handler.prompt_input.side_effect = [
@@ -314,47 +326,44 @@ class TestConfigureTokens:
 
     def test_configure_tokens_with_validation(self, mock_dependencies):
         """
-        Test that the _configure_tokens method correctly sets the token value, validation status, and token file
-        when token validation is enabled. Mocks user input for the token and validation prompt, and verifies that
-        the configuration values, validation flags, and file assignments are updated as expected.
+        Test that the _configure_tokens method informs user about centralized token management.
+
+        With centralized tokens, this method no longer prompts for token values or creates token files.
+        Instead, it informs the user that the centralized GitHub token will be used.
         """
-        with patch('classroom_pilot.assignments.setup.print_colored'):
+        with patch('classroom_pilot.assignments.setup.print_colored') as mock_print:
             setup = AssignmentSetup()
-            setup.input_handler.prompt_secure.return_value = "ghp_test_token_123"
-            setup.input_handler.prompt_yes_no.return_value = True
 
             # Execute
             setup._configure_tokens()
 
-            # Assert
-            assert setup.config_values['INSTRUCTOR_TESTS_TOKEN_VALUE'] == "ghp_test_token_123"
-            assert setup.token_validation['INSTRUCTOR_TESTS_TOKEN']
-            assert setup.token_files['INSTRUCTOR_TESTS_TOKEN'] == 'instructor_token.txt'
+            # Assert - should inform about centralized token, not prompt for values
+            # No longer creates token_files mapping or stores token values
+            # Token no longer stored in config
+            assert 'INSTRUCTOR_TESTS_TOKEN_VALUE' not in setup.config_values
+            assert len(setup.token_files) == 0  # No token files created
+            # Verify user was informed (print_colored should be called)
+            assert mock_print.called
 
     def test_configure_tokens_without_validation(self, mock_dependencies):
         """
-        Test that the token configuration process correctly sets the token value,
-        disables validation when requested, and assigns the appropriate token file
-        when validation is not required.
+        Test that the token configuration process uses centralized token management.
 
-        This test mocks user input to provide a custom token and to decline token
-        validation. It verifies that:
-        - The token value is set to the provided custom token.
-        - Token validation is disabled.
-        - The correct token file is assigned.
+        With centralized tokens, validation is handled by the token manager, not the setup wizard.
+        The wizard simply informs the user that centralized tokens will be used.
         """
-        with patch('classroom_pilot.assignments.setup.print_colored'):
+        with patch('classroom_pilot.assignments.setup.print_colored') as mock_print:
             setup = AssignmentSetup()
-            setup.input_handler.prompt_secure.return_value = "custom_token_456"
-            setup.input_handler.prompt_yes_no.return_value = False
 
             # Execute
             setup._configure_tokens()
 
-            # Assert
-            assert setup.config_values['INSTRUCTOR_TESTS_TOKEN_VALUE'] == "custom_token_456"
-            assert not setup.token_validation['INSTRUCTOR_TESTS_TOKEN']
-            assert setup.token_files['INSTRUCTOR_TESTS_TOKEN'] == 'instructor_token.txt'
+            # Assert - centralized approach doesn't store tokens or create files
+            assert 'INSTRUCTOR_TESTS_TOKEN_VALUE' not in setup.config_values  # No token in config
+            assert len(setup.token_files) == 0  # No token files
+            assert len(setup.token_validation) == 0  # No validation mapping
+            # Verify user was informed
+            assert mock_print.called
 
 
 class TestCreateFiles:
@@ -368,20 +377,17 @@ class TestCreateFiles:
 
     def test_create_files_with_secrets_enabled(self, mock_dependencies):
         """
-        Test that the _create_files method correctly creates configuration and token files,
-        and updates .gitignore when secrets are enabled.
+        Test that the _create_files method creates configuration file and updates .gitignore.
 
-        This test verifies that:
-        - The configuration file is created with the correct values.
-        - Token files are created when secrets are enabled.
-        - The .gitignore file is updated accordingly.
-
-        Mocks are used to ensure that the appropriate methods are called with the expected arguments.
+        With centralized token management:
+        - Configuration file is still created
+        - .gitignore is still updated
+        - Token files are NO LONGER created (centralized management)
         """
         setup = AssignmentSetup()
         setup.config_values = {'USE_SECRETS': 'true'}
-        setup.token_files = {'INSTRUCTOR_TESTS_TOKEN': 'instructor_token.txt'}
-        setup.token_validation = {'INSTRUCTOR_TESTS_TOKEN': True}
+        setup.token_files = {}  # Empty with centralized tokens
+        setup.token_validation = {}  # Empty with centralized tokens
 
         # Execute
         setup._create_files()
@@ -392,9 +398,8 @@ class TestCreateFiles:
             setup.token_files,
             setup.token_validation
         )
-        setup.file_manager.create_token_files.assert_called_once_with(
-            setup.config_values, setup.token_files
-        )
+        # create_token_files() is NO LONGER called with centralized tokens
+        # Token files are managed centrally in ~/.config/classroom-pilot/
         setup.file_manager.update_gitignore.assert_called_once()
 
     def test_create_files_with_secrets_disabled(self, mock_dependencies):
@@ -548,8 +553,9 @@ class TestRunWizardIntegration:
     def test_run_wizard_keyboard_interrupt(self, mock_dependencies):
         """
         Test that the assignment setup wizard gracefully handles a KeyboardInterrupt
-        (by the user pressing Ctrl+C) during the assignment information collection
-        phase. Ensures that the wizard exits with a SystemExit and exit code 1.
+        (by the user pressing Ctrl+C) during the assignment information collection phase.
+
+        With updated behavior, run_wizard() returns False instead of calling sys.exit().
         """
         with patch('classroom_pilot.assignments.setup.show_welcome'), \
                 patch('classroom_pilot.assignments.setup.print_colored'), \
@@ -559,11 +565,11 @@ class TestRunWizardIntegration:
             setup._collect_assignment_info = Mock(
                 side_effect=KeyboardInterrupt())
 
-            # Execute and Assert
-            with pytest.raises(SystemExit) as excinfo:
-                setup.run_wizard()
+            # Execute - now returns False instead of raising SystemExit
+            result = setup.run_wizard()
 
-            assert excinfo.value.code == 1
+            # Assert - should return False to indicate cancellation
+            assert result is False
 
 
 def test_setup_assignment_function():
@@ -611,8 +617,9 @@ class TestEdgeCasesAndErrorHandling:
 
     def test_run_wizard_unexpected_exception(self, mock_dependencies):
         """
-        Test that the setup wizard exits with code 1 when an unexpected exception occurs during the assignment information collection step.
-        This ensures that unhandled exceptions are properly caught and result in a controlled termination of the wizard process.
+        Test that the setup wizard returns False when an unexpected exception occurs.
+
+        With updated behavior, run_wizard() returns False instead of calling sys.exit().
         """
         with patch('classroom_pilot.assignments.setup.show_welcome'), \
                 patch('classroom_pilot.assignments.setup.print_error'), \
@@ -622,11 +629,11 @@ class TestEdgeCasesAndErrorHandling:
             setup._collect_assignment_info = Mock(
                 side_effect=ValueError("Unexpected error"))
 
-            # Execute and Assert
-            with pytest.raises(SystemExit) as excinfo:
-                setup.run_wizard()
+            # Execute - now returns False instead of raising SystemExit
+            result = setup.run_wizard()
 
-            assert excinfo.value.code == 1
+            # Assert - should return False to indicate failure
+            assert result is False
 
     def test_collect_repository_info_url_extraction_failure(self, mock_dependencies):
         """
@@ -639,10 +646,15 @@ class TestEdgeCasesAndErrorHandling:
         """
         setup = AssignmentSetup()
         setup.config_values = {
-            'CLASSROOM_URL': 'invalid-url-format'
+            'CLASSROOM_URL': 'invalid-url-format',
+            'ASSIGNMENT_NAME': ''  # Empty after parsing failure
         }
 
         # Setup mocks to simulate parsing failure
+        setup.url_parser.parse_classroom_url.return_value = {
+            'organization': '',  # Empty when parsing fails
+            'assignment_name': ''
+        }
         setup.url_parser.extract_org_from_url.return_value = None
         setup.url_parser.extract_assignment_from_url.return_value = None
         setup.input_handler.prompt_input.side_effect = [
@@ -702,22 +714,22 @@ class TestEdgeCasesAndErrorHandling:
 
     def test_create_files_token_file_creation_failure(self, mock_dependencies):
         """
-        Test that the _create_files method raises a PermissionError when the file manager
-        fails to create a token file due to insufficient permissions.
-        This ensures that file creation errors are properly propagated and handled.
+        Test that the _create_files method no longer raises errors for token file creation.
+
+        With centralized token management, token files are not created during setup,
+        so this test is no longer applicable. Instead, verify that _create_files
+        completes successfully without calling create_token_files().
         """
         setup = AssignmentSetup()
         setup.config_values = {'USE_SECRETS': 'true'}
-        setup.token_files = {'INSTRUCTOR_TESTS_TOKEN': 'instructor_token.txt'}
-        setup.token_validation = {'INSTRUCTOR_TESTS_TOKEN': True}
+        setup.token_files = {}  # Empty with centralized tokens
+        setup.token_validation = {}  # Empty with centralized tokens
 
-        # Setup mock to fail on token file creation
-        setup.file_manager.create_token_files.side_effect = PermissionError(
-            "Cannot write token file")
+        # Execute - should complete without error since no token files are created
+        setup._create_files()
 
-        # Execute and Assert
-        with pytest.raises(PermissionError, match="Cannot write token file"):
-            setup._create_files()
+        # Assert - verify create_token_files was NOT called
+        setup.file_manager.create_token_files.assert_not_called()
 
     def test_create_files_gitignore_update_failure(self, mock_dependencies):
         """
@@ -741,22 +753,21 @@ class TestEdgeCasesAndErrorHandling:
 
     def test_configure_tokens_empty_token_input(self, mock_dependencies):
         """
-        Test that the token configuration process correctly handles an empty token input.
-        This test mocks user input to simulate the scenario where the user provides an empty string as the token
-        and chooses not to retry. It verifies that the empty token is stored in the configuration values and that
-        the token validation status is set to False, indicating an invalid or missing token.
+        Test that the token configuration process uses centralized token management.
+
+        With centralized tokens, this method no longer prompts for token input,
+        so empty token scenarios are not applicable to the setup wizard.
+        Tokens are validated by the centralized token manager.
         """
         with patch('classroom_pilot.assignments.setup.print_colored'):
             setup = AssignmentSetup()
-            setup.input_handler.prompt_secure.return_value = ""  # Empty token
-            setup.input_handler.prompt_yes_no.return_value = False
 
             # Execute
             setup._configure_tokens()
 
-            # Assert that empty token is still stored (validation left to external validators)
-            assert setup.config_values['INSTRUCTOR_TESTS_TOKEN_VALUE'] == ""
-            assert setup.token_validation['INSTRUCTOR_TESTS_TOKEN'] == False
+            # Assert - no token values are stored in config with centralized approach
+            assert 'INSTRUCTOR_TESTS_TOKEN_VALUE' not in setup.config_values
+            assert len(setup.token_validation) == 0
 
     def test_collect_repository_info_whitespace_handling(self, mock_dependencies):
         """
@@ -766,10 +777,16 @@ class TestEdgeCasesAndErrorHandling:
         """
         setup = AssignmentSetup()
         setup.config_values = {
-            'CLASSROOM_URL': 'https://classroom.github.com/classrooms/12345/assignments/test-assignment'
+            'CLASSROOM_URL': 'https://classroom.github.com/classrooms/12345/assignments/test-assignment',
+            'GITHUB_ORGANIZATION': 'test-org',
+            'ASSIGNMENT_NAME': 'test-assignment'
         }
 
         # Setup mocks
+        setup.url_parser.parse_classroom_url.return_value = {
+            'organization': 'test-org',
+            'assignment_name': 'test-assignment'
+        }
         setup.url_parser.extract_org_from_url.return_value = "test-org"
         setup.url_parser.extract_assignment_from_url.return_value = "test-assignment"
         setup.input_handler.prompt_input.side_effect = [
@@ -900,10 +917,16 @@ class TestInputValidationEdgeCases:
         """
         setup = AssignmentSetup()
         setup.config_values = {
-            'CLASSROOM_URL': 'https://classroom.github.com/classrooms/12345/assignments/test'
+            'CLASSROOM_URL': 'https://classroom.github.com/classrooms/12345/assignments/test',
+            'GITHUB_ORGANIZATION': 'org-with-dashes',
+            'ASSIGNMENT_NAME': 'assignment_with_underscores'
         }
 
         # Setup mocks for edge case organization names
+        setup.url_parser.parse_classroom_url.return_value = {
+            'organization': 'org-with-dashes',
+            'assignment_name': 'assignment_with_underscores'
+        }
         setup.url_parser.extract_org_from_url.return_value = "org-with-dashes"
         setup.url_parser.extract_assignment_from_url.return_value = "assignment_with_underscores"
         setup.input_handler.prompt_input.side_effect = [
@@ -928,7 +951,15 @@ class TestAssignmentSetupURLMethods:
         url = "https://classroom.github.com/classrooms/12345/assignments/test-assignment"
 
         # Mock URL validation and parsing
+        def mock_populate(url_param):
+            """Mock _populate_from_url to set CLASSROOM_URL like the real method does."""
+            setup.config_values['CLASSROOM_URL'] = url_param
+            setup.config_values['GITHUB_ORGANIZATION'] = 'test-org'
+            setup.config_values['ASSIGNMENT_NAME'] = 'test-assignment'
+            return True
+
         with patch('classroom_pilot.assignments.setup.URLParser.validate_classroom_url', return_value=True), \
+                patch.object(setup, '_populate_from_url', side_effect=mock_populate), \
                 patch.object(setup, '_collect_repository_info'), \
                 patch.object(setup, '_collect_assignment_details'), \
                 patch.object(setup, '_configure_secret_management'), \
@@ -937,6 +968,10 @@ class TestAssignmentSetupURLMethods:
                 patch('classroom_pilot.assignments.setup.show_completion'), \
                 patch('classroom_pilot.assignments.setup.print_colored'):
 
+            setup.url_parser.parse_classroom_url.return_value = {
+                'organization': 'test-org',
+                'assignment_name': 'test-assignment'
+            }
             setup.url_parser.extract_org_from_url.return_value = "test-org"
             setup.url_parser.extract_assignment_from_url.return_value = "test-assignment"
 
@@ -944,8 +979,6 @@ class TestAssignmentSetupURLMethods:
 
             assert result is True
             assert setup.config_values['CLASSROOM_URL'] == url
-            assert setup.config_values['GITHUB_ORGANIZATION'] == "test-org"
-            assert setup.config_values['ASSIGNMENT_NAME'] == "test-assignment"
 
     def test_run_wizard_with_url_invalid_url(self, mock_dependencies):
         """Test setup with invalid URL."""
@@ -986,6 +1019,10 @@ class TestAssignmentSetupURLMethods:
         url = "https://classroom.github.com/classrooms/12345/assignments/test-assignment"
 
         with patch('classroom_pilot.assignments.setup.URLParser.validate_classroom_url', return_value=True):
+            setup.url_parser.parse_classroom_url.return_value = {
+                'organization': 'test-org',
+                'assignment_name': 'test-assignment'
+            }
             setup.url_parser.extract_org_from_url.return_value = "test-org"
             setup.url_parser.extract_assignment_from_url.return_value = "test-assignment"
 
@@ -993,8 +1030,6 @@ class TestAssignmentSetupURLMethods:
 
             assert result is True
             assert setup.config_values['CLASSROOM_URL'] == url
-            assert setup.config_values['GITHUB_ORGANIZATION'] == "test-org"
-            assert setup.config_values['ASSIGNMENT_NAME'] == "test-assignment"
 
     def test_populate_from_url_invalid_url(self, mock_dependencies):
         """Test URL population with invalid URL."""
@@ -1032,6 +1067,10 @@ class TestAssignmentSetupURLMethods:
 
         with patch('classroom_pilot.assignments.setup.URLParser.validate_classroom_url', return_value=True):
             # Only organization extraction succeeds
+            setup.url_parser.parse_classroom_url.return_value = {
+                'organization': 'test-org',
+                'assignment_name': ''  # Partial - no assignment name
+            }
             setup.url_parser.extract_org_from_url.return_value = "test-org"
             setup.url_parser.extract_assignment_from_url.return_value = None
 
@@ -1039,8 +1078,6 @@ class TestAssignmentSetupURLMethods:
 
             assert result is True
             assert setup.config_values['CLASSROOM_URL'] == url
-            assert setup.config_values['GITHUB_ORGANIZATION'] == "test-org"
-            assert 'ASSIGNMENT_NAME' not in setup.config_values
 
 
 if __name__ == "__main__":

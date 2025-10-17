@@ -291,26 +291,42 @@ class GitHubSecretsManager:
         self,
         repo_url: str,
         secret_name: str = "INSTRUCTOR_TESTS_TOKEN",
-        token_file: str = "instructor_token.txt",
+        secret_value: Optional[str] = None,
         max_age_days: int = 90,
         force_update: bool = False,
         skip_validation: bool = False
     ) -> bool:
-        """Process a single repository."""
+        """
+        Process a single repository.
+
+        Args:
+            repo_url: Repository URL to process
+            secret_name: Name of the secret to add
+            secret_value: Value of the secret. If None, uses centralized token from GitHubTokenManager
+            max_age_days: Maximum age before updating secrets
+            force_update: Force update regardless of age
+            skip_validation: Skip GitHub token format validation
+
+        Returns:
+            True if successful, False otherwise
+        """
         try:
             # Parse repository URL
             owner, repo = self.parse_repo_url(repo_url)
 
-            # Load token value
-            token_value = self.get_instructor_token(token_file)
+            # Use centralized token if no explicit secret value provided
+            if secret_value is None:
+                secret_value = self.github_token
+                logger.debug(
+                    f"Using centralized GitHub token for secret '{secret_name}'")
 
             # Validate token format
-            if not self.validate_token_format(token_value, skip_validation):
+            if not self.validate_token_format(secret_value, skip_validation):
                 return False
 
             # Add secret to repository
             return self.add_secret_to_repo(
-                owner, repo, secret_name, token_value, max_age_days, force_update
+                owner, repo, secret_name, secret_value, max_age_days, force_update
             )
 
         except Exception as e:
@@ -321,13 +337,21 @@ class GitHubSecretsManager:
         self,
         repo_urls: List[str],
         secret_name: str = "INSTRUCTOR_TESTS_TOKEN",
-        token_file: str = "instructor_token.txt",
+        secret_value: Optional[str] = None,
         max_age_days: int = 90,
         force_update: bool = False,
         skip_validation: bool = False
     ) -> Dict[str, int]:
         """
         Process multiple repositories.
+
+        Args:
+            repo_urls: List of repository URLs to process
+            secret_name: Name of the secret to add
+            secret_value: Value of the secret. If None, uses centralized token from GitHubTokenManager
+            max_age_days: Maximum age before updating secrets
+            force_update: Force update regardless of age
+            skip_validation: Skip GitHub token format validation
 
         Returns:
             Dictionary with success and failure counts
@@ -342,7 +366,7 @@ class GitHubSecretsManager:
                 continue  # Skip empty lines and comments
 
             if self.process_single_repo(
-                repo_url, secret_name, token_file, max_age_days, force_update, skip_validation
+                repo_url, secret_name, secret_value, max_age_days, force_update, skip_validation
             ):
                 results["success"] += 1
             else:
@@ -388,27 +412,45 @@ class GitHubSecretsManager:
             for secret_config in self.global_config.secrets_config:
                 logger.info(f"Processing secret: {secret_config.name}")
 
-                # Use instructor token file if specified, otherwise use the secret's token file
-                token_file = self.global_config.instructor_token_file
-                if secret_config.token_file != "instructor_token.txt":
-                    token_file = secret_config.token_file
+                # Determine the secret value to use:
+                # - If the secret uses centralized token (token_file is None or empty),
+                #   use the centralized GitHub token from GitHubTokenManager
+                # - Otherwise, read the specified token file (legacy behavior)
+                secret_value = None
 
-                # Validate token file exists
-                token_path = Path(token_file)
-                if not token_path.exists():
-                    logger.warning(f"Token file not found: {token_file}")
-                    logger.info(
-                        "Create the token file to enable secrets management")
-                    if self.dry_run:
-                        logger.info("✅ Dry run: Token file would be required")
-                        continue
-                    return False
+                if secret_config.uses_centralized_token():
+                    # Use centralized token from GitHubTokenManager (already loaded in self.github_token)
+                    secret_value = self.github_token
+                    logger.debug(
+                        f"Using centralized GitHub token for secret '{secret_config.name}'")
+                else:
+                    # Legacy: read from token file
+                    token_file = secret_config.token_file
+                    token_path = Path(token_file)
+                    if not token_path.exists():
+                        logger.warning(f"Token file not found: {token_file}")
+                        logger.info(
+                            "Create the token file to enable secrets management")
+                        if self.dry_run:
+                            logger.info(
+                                "✅ Dry run: Token file would be required")
+                            continue
+                        return False
+
+                    try:
+                        secret_value = self.get_instructor_token(token_file)
+                        logger.debug(
+                            f"Loaded secret value from file: {token_file}")
+                    except Exception as e:
+                        logger.error(
+                            f"Failed to read token file {token_file}: {e}")
+                        return False
 
                 # Process all repositories for this secret
                 results = self.process_batch_repos(
                     repo_urls,
                     secret_config.name,
-                    token_file,
+                    secret_value,
                     secret_config.max_age_days,
                     force_update=False,
                     skip_validation=not secret_config.validate_format

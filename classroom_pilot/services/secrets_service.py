@@ -50,8 +50,11 @@ class SecretsService:
             from ..secrets.github_secrets import GitHubSecretsManager
 
             secrets_manager = GitHubSecretsManager(dry_run=self.dry_run)
+            # The GitHubSecretsManager implementation expects the argument
+            # name `repo_urls` (not `repository_urls`) — pass the value
+            # using the correct keyword to avoid TypeError.
             success = secrets_manager.add_secrets_from_global_config(
-                repository_urls=target_repos)
+                repo_urls=target_repos)
 
             if not success:
                 return False, "Secret management failed"

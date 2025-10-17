@@ -820,7 +820,7 @@ class TestConfigValidatorRequiredFieldsValidation:
                 'CLASSROOM_URL': 'https://classroom.github.com/classrooms/123/assignments/test',
                 'TEMPLATE_REPO_URL': 'https://github.com/test/template',
                 'GITHUB_ORGANIZATION': 'test-org'
-            }, 'ASSIGNMENT_FILE')
+            }, 'STUDENT_FILES or ASSIGNMENT_FILE')
         ]
 
         for config, expected_missing in single_missing_tests:
@@ -843,16 +843,16 @@ class TestConfigValidatorRequiredFieldsValidation:
             ({
                 'CLASSROOM_URL': 'https://classroom.github.com/classrooms/123/assignments/test',
                 'TEMPLATE_REPO_URL': 'https://github.com/test/template'
-            }, {'GITHUB_ORGANIZATION', 'ASSIGNMENT_FILE'}),
+            }, {'GITHUB_ORGANIZATION', 'STUDENT_FILES or ASSIGNMENT_FILE'}),
 
             # Missing three fields
             ({
                 'CLASSROOM_URL': 'https://classroom.github.com/classrooms/123/assignments/test'
-            }, {'TEMPLATE_REPO_URL', 'GITHUB_ORGANIZATION', 'ASSIGNMENT_FILE'}),
+            }, {'TEMPLATE_REPO_URL', 'GITHUB_ORGANIZATION', 'STUDENT_FILES or ASSIGNMENT_FILE'}),
 
             # Missing all fields (empty config)
             ({}, {'CLASSROOM_URL', 'TEMPLATE_REPO_URL',
-             'GITHUB_ORGANIZATION', 'ASSIGNMENT_FILE'})
+             'GITHUB_ORGANIZATION', 'STUDENT_FILES or ASSIGNMENT_FILE'})
         ]
 
         for config, expected_missing_set in multiple_missing_tests:
@@ -918,7 +918,8 @@ class TestConfigValidatorRequiredFieldsValidation:
 
         missing_fields = ConfigValidator.validate_required_fields(
             none_value_config)
-        expected_missing = {'TEMPLATE_REPO_URL', 'ASSIGNMENT_FILE'}
+        expected_missing = {'TEMPLATE_REPO_URL',
+                            'STUDENT_FILES or ASSIGNMENT_FILE'}
         missing_set = set(missing_fields)
 
         assert len(missing_fields) == 2, \
