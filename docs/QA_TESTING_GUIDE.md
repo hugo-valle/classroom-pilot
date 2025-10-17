@@ -102,41 +102,56 @@ The application supports two types of GitHub Personal Access Tokens:
 
 The application uses a **centralized token management system** with the following priority order:
 
-| Priority | Storage Method | Platform | Configuration | How to Set |
-|----------|----------------|----------|---------------|------------|
-| 1 | **Config File** | All | `INSTRUCTOR_TOKEN_VALUE=ghp_xxx` in `assignment.conf` | Manual edit or setup wizard |
+| Priority | Storage Method | Platform | Configuration File/Location | How to Set |
+|----------|----------------|----------|----------------------------|------------|
+| 1 | **Token Config File** | All | `~/.config/classroom-pilot/token_config.json` | Automatic via setup wizard |
 | 2 | **Keychain** | macOS | Stored in macOS Keychain | Automatic via setup wizard |
 | 3 | **Secret Service** | Linux | Stored in Secret Service (GNOME/KDE) | Automatic via setup wizard |
 | 4 | **Windows Credential Manager** | Windows | Stored in Credential Manager | Automatic via setup wizard |
 | 5 | **Environment Variable** | All | `GITHUB_TOKEN=ghp_xxx` | `export GITHUB_TOKEN=ghp_xxx` |
 
+**Note:** The token is stored in a centralized location (`~/.config/classroom-pilot/token_config.json`), not in the project's `assignment.conf` file. This ensures the same token can be used across multiple assignments and projects.
+
 ### Token Testing Scenarios
 
-#### Test 1: Classic Token in Config File
+#### Test 1: Classic Token in Token Config File
+
 ```bash
 # Create token at https://github.com/settings/tokens (classic)
 # Required scopes: repo, workflow, admin:org, admin:repo_hook
 
-# Add to assignment.conf
-echo "INSTRUCTOR_TOKEN_VALUE=ghp_xxxxxxxxxxxx" >> assignment.conf
+# Create or edit token config file
+mkdir -p ~/.config/classroom-pilot
+cat > ~/.config/classroom-pilot/token_config.json << 'EOF'
+{
+  "github_token": "ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+}
+EOF
 
 # Test
 classroom-pilot assignments setup --url "https://classroom.github.com/..."
 ```
 
 **Validate:**
-- [ ] Token is read from config file
+- [ ] Token is read from `~/.config/classroom-pilot/token_config.json`
 - [ ] Setup wizard doesn't prompt for token
 - [ ] Token has sufficient permissions
 - [ ] API calls succeed
+- [ ] Config file created if it doesn't exist
 
-#### Test 2: Fine-Grained Token in Config File
+#### Test 2: Fine-Grained Token in Token Config File
+
 ```bash
 # Create token at https://github.com/settings/tokens?type=beta
 # Required permissions: Contents (read/write), Pull requests (read/write), Workflows (read/write)
 
-# Add to assignment.conf
-echo "INSTRUCTOR_TOKEN_VALUE=github_pat_xxxxxxxxxxxx" >> assignment.conf
+# Add to token config file
+mkdir -p ~/.config/classroom-pilot
+cat > ~/.config/classroom-pilot/token_config.json << 'EOF'
+{
+  "github_token": "github_pat_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+}
+EOF
 
 # Test
 classroom-pilot assignments setup --url "https://classroom.github.com/..."
@@ -147,12 +162,15 @@ classroom-pilot assignments setup --url "https://classroom.github.com/..."
 - [ ] Proper repository/org scope enforced
 - [ ] Limited permissions work correctly
 - [ ] Clear error if missing required permissions
+- [ ] Token stored in centralized location
 
 #### Test 3: Token in Keychain (macOS)
-```bash
-# Remove token from config file
-# Setup wizard should store in keychain
 
+```bash
+# Remove token config file if it exists
+rm -f ~/.config/classroom-pilot/token_config.json
+
+# Setup wizard should prompt and store in keychain
 classroom-pilot assignments setup
 
 # When prompted, enter token
@@ -160,19 +178,25 @@ classroom-pilot assignments setup
 
 # Verify storage
 security find-generic-password -s "github-classroom-pilot" -w
+
+# Verify token config file was NOT created
+test -f ~/.config/classroom-pilot/token_config.json && echo "ERROR: Config file created" || echo "OK: Using keychain"
 ```
 
 **Validate:**
 - [ ] Token stored in macOS Keychain
 - [ ] Token retrieved automatically on subsequent runs
-- [ ] Token not visible in config file
+- [ ] Token NOT in `~/.config/classroom-pilot/token_config.json`
 - [ ] Security: Token encrypted by system
+- [ ] Keychain has priority over environment variables
 
 #### Test 4: Token in Secret Service (Linux)
-```bash
-# Remove token from config file
-# Setup wizard should store in Secret Service
 
+```bash
+# Remove token config file if it exists
+rm -f ~/.config/classroom-pilot/token_config.json
+
+# Setup wizard should prompt and store in Secret Service
 classroom-pilot assignments setup
 
 # When prompted, enter token
@@ -180,36 +204,50 @@ classroom-pilot assignments setup
 
 # Verify with secret-tool (if available)
 secret-tool lookup service github-classroom-pilot
+
+# Verify token config file was NOT created
+test -f ~/.config/classroom-pilot/token_config.json && echo "ERROR: Config file created" || echo "OK: Using Secret Service"
 ```
 
 **Validate:**
 - [ ] Token stored in Secret Service
 - [ ] Token retrieved automatically
-- [ ] Token not in config file
+- [ ] Token NOT in `~/.config/classroom-pilot/token_config.json`
 - [ ] Works with GNOME/KDE environments
+- [ ] Secret Service has priority over environment variables
 
 #### Test 5: Token in Windows Credential Manager (Windows)
-```bash
-# Remove token from config file
-# Setup wizard should store in Windows Credential Manager
 
+```bash
+# Remove token config file if it exists
+Remove-Item -Path "$env:USERPROFILE\.config\classroom-pilot\token_config.json" -ErrorAction SilentlyContinue
+
+# Setup wizard should prompt and store in Windows Credential Manager
 classroom-pilot assignments setup
 
 # When prompted, enter token
 # Wizard will store in Windows Credential Manager
 
 # Verify in Control Panel > Credential Manager
+# Or use PowerShell: cmdkey /list | Select-String "github-classroom-pilot"
+
+# Verify token config file was NOT created
+Test-Path "$env:USERPROFILE\.config\classroom-pilot\token_config.json"
 ```
 
 **Validate:**
 - [ ] Token stored in Credential Manager
 - [ ] Token retrieved automatically
-- [ ] Token not in config file
+- [ ] Token NOT in `~/.config/classroom-pilot/token_config.json`
 - [ ] Proper Windows security integration
+- [ ] Credential Manager has priority over environment variables
 
 #### Test 6: Token in Environment Variable
+
 ```bash
-# Remove token from config file and keychain
+# Remove token config file and keychain/secret service token
+rm -f ~/.config/classroom-pilot/token_config.json
+# Also remove from keychain/secret service if present
 
 # Set environment variable
 export GITHUB_TOKEN=ghp_xxxxxxxxxxxx
@@ -220,11 +258,13 @@ classroom-pilot assignments setup --url "https://classroom.github.com/..."
 
 **Validate:**
 - [ ] Token read from environment variable
-- [ ] Lower priority than config file
+- [ ] Lower priority than token config file and keychain
 - [ ] Works for all commands
-- [ ] Session-based (not persistent)
+- [ ] Session-based (not persistent after terminal closes)
+- [ ] No token config file created
 
 #### Test 7: Token Import from Environment
+
 ```bash
 # Set environment variable
 export GITHUB_TOKEN=ghp_xxxxxxxxxxxx
@@ -232,19 +272,23 @@ export GITHUB_TOKEN=ghp_xxxxxxxxxxxx
 # Run setup wizard
 classroom-pilot assignments setup
 
-# Wizard should detect and offer to import token to keychain
+# Wizard should detect and offer to import token to keychain/token config
 ```
 
 **Validate:**
 - [ ] Wizard detects environment token
-- [ ] Offers to import to keychain
+- [ ] Offers to import to keychain or save to token config file
 - [ ] Import successful
-- [ ] Token accessible after import
+- [ ] Token accessible after import from persistent storage
 
 #### Test 8: Missing Token Error Handling
+
 ```bash
 # Remove token from all locations
-# No config file token, no keychain, no environment variable
+rm -f ~/.config/classroom-pilot/token_config.json
+# Remove from keychain/secret service if present
+# Unset environment variable
+unset GITHUB_TOKEN
 
 classroom-pilot assignments setup
 ```
@@ -254,20 +298,28 @@ classroom-pilot assignments setup
 - [ ] Instructions on how to create token
 - [ ] Link to GitHub token creation page
 - [ ] Option to enter token interactively
+- [ ] Setup wizard prompts for token
 
 #### Test 9: Invalid Token Error Handling
+
 ```bash
-# Set invalid token
-echo "INSTRUCTOR_TOKEN_VALUE=invalid_token" >> assignment.conf
+# Set invalid token in token config file
+mkdir -p ~/.config/classroom-pilot
+cat > ~/.config/classroom-pilot/token_config.json << 'EOF'
+{
+  "github_token": "invalid_token_value"
+}
+EOF
 
 classroom-pilot assignments setup --url "https://classroom.github.com/..."
 ```
 
 **Validate:**
 - [ ] API authentication failure detected
-- [ ] Clear error message
+- [ ] Clear error message indicating invalid token
 - [ ] Instructions to check token validity
 - [ ] Suggestion to regenerate token
+- [ ] Link to token settings page
 
 #### Test 10: Token Permission Validation
 ```bash
@@ -292,11 +344,13 @@ classroom-pilot assignments orchestrate
 - [ ] Verify tokens are not logged in verbose mode
 
 **Expected Token Behavior:**
-- Config file token takes highest priority
-- Keychain/Secret Service preferred for security
-- Environment variable for automation/CI
+- Token config file (`~/.config/classroom-pilot/token_config.json`) takes highest priority
+- Keychain/Secret Service/Credential Manager preferred for security (auto-storage by setup wizard)
+- Environment variable (`GITHUB_TOKEN`) has lowest priority, used for automation/CI
 - Clear error messages for missing/invalid tokens
 - Token masked in logs (shows only last 4 characters)
+- Setup wizard automatically stores tokens in secure platform-specific storage
+- Same token can be reused across multiple assignment projects
 
 ---
 
