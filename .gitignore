@@ -125,3 +125,8 @@ temp_*
 
 # Test files
 test_api_calls/
+
+# CI/CD Workflow Monitoring Artifacts
+workflow_health/
+workflow_status_aggregation/
+workflow_trends/
