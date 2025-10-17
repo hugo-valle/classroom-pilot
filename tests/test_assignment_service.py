@@ -39,7 +39,7 @@ class TestAssignmentServiceSetup:
 
         assert success is True
         assert "DRY RUN" in message
-        assert "interactive assignment setup wizard" in message
+        assert "assignment setup wizard" in message
 
     def test_setup_with_url_dry_run(self):
         """Test setup with URL in dry-run mode."""
@@ -57,9 +57,9 @@ class TestAssignmentServiceSetup:
         service = AssignmentService(dry_run=True)
         success, message = service.setup(simplified=True)
 
-        assert success is True
+        assert success is False  # Returns false because simplified mode is not implemented
         assert "DRY RUN" in message
-        assert "simplified setup wizard" in message
+        assert "Simplified setup mode not yet implemented" in message
 
     def test_setup_with_simplified_not_implemented(self):
         """Test setup with simplified option when not implemented."""
@@ -75,9 +75,16 @@ class TestAssignmentServiceSetup:
         assert success is False
         assert "Simplified setup mode not yet implemented" in message
 
+    @patch('classroom_pilot.utils.token_manager.GitHubTokenManager')
     @patch('classroom_pilot.assignments.setup.AssignmentSetup')
-    def test_setup_success(self, mock_assignment_setup):
+    def test_setup_success(self, mock_assignment_setup, mock_token_manager):
         """Test successful setup execution."""
+        # Mock the token manager to return a valid token
+        mock_token_instance = Mock()
+        mock_token_instance.get_github_token.return_value = "test_token"
+        mock_token_instance.config_file.exists.return_value = True
+        mock_token_manager.return_value = mock_token_instance
+
         # Mock the AssignmentSetup class
         mock_wizard = Mock()
         mock_wizard.run_wizard.return_value = True
@@ -91,9 +98,16 @@ class TestAssignmentServiceSetup:
         mock_assignment_setup.assert_called_once()
         mock_wizard.run_wizard.assert_called_once()
 
+    @patch('classroom_pilot.utils.token_manager.GitHubTokenManager')
     @patch('classroom_pilot.assignments.setup.AssignmentSetup')
-    def test_setup_cancelled(self, mock_assignment_setup):
+    def test_setup_cancelled(self, mock_assignment_setup, mock_token_manager):
         """Test setup cancelled by user."""
+        # Mock the token manager to return a valid token
+        mock_token_instance = Mock()
+        mock_token_instance.get_github_token.return_value = "test_token"
+        mock_token_instance.config_file.exists.return_value = True
+        mock_token_manager.return_value = mock_token_instance
+
         # Mock the AssignmentSetup class
         mock_wizard = Mock()
         mock_wizard.run_wizard.return_value = False
@@ -117,9 +131,16 @@ class TestAssignmentServiceSetup:
         assert success is False
         assert "Assignment setup failed" in message
 
+    @patch('classroom_pilot.utils.token_manager.GitHubTokenManager')
     @patch('classroom_pilot.assignments.setup.AssignmentSetup')
-    def test_setup_with_url_success(self, mock_assignment_setup):
+    def test_setup_with_url_success(self, mock_assignment_setup, mock_token_manager):
         """Test successful setup with GitHub Classroom URL."""
+        # Mock the token manager to return a valid token
+        mock_token_instance = Mock()
+        mock_token_instance.get_github_token.return_value = "test_token"
+        mock_token_instance.config_file.exists.return_value = True
+        mock_token_manager.return_value = mock_token_instance
+
         # Mock the AssignmentSetup class
         mock_wizard = Mock()
         mock_wizard.run_wizard_with_url.return_value = True
@@ -134,9 +155,16 @@ class TestAssignmentServiceSetup:
         mock_assignment_setup.assert_called_once()
         mock_wizard.run_wizard_with_url.assert_called_once_with(url)
 
+    @patch('classroom_pilot.utils.token_manager.GitHubTokenManager')
     @patch('classroom_pilot.assignments.setup.AssignmentSetup')
-    def test_setup_with_url_cancelled(self, mock_assignment_setup):
+    def test_setup_with_url_cancelled(self, mock_assignment_setup, mock_token_manager):
         """Test setup with URL cancelled by user."""
+        # Mock the token manager to return a valid token
+        mock_token_instance = Mock()
+        mock_token_instance.get_github_token.return_value = "test_token"
+        mock_token_instance.config_file.exists.return_value = True
+        mock_token_manager.return_value = mock_token_instance
+
         # Mock the AssignmentSetup class
         mock_wizard = Mock()
         mock_wizard.run_wizard_with_url.return_value = False
@@ -150,9 +178,16 @@ class TestAssignmentServiceSetup:
         assert "setup was cancelled or failed" in message
         mock_wizard.run_wizard_with_url.assert_called_once_with(url)
 
+    @patch('classroom_pilot.utils.token_manager.GitHubTokenManager')
     @patch('classroom_pilot.assignments.setup.AssignmentSetup')
-    def test_setup_with_url_exception(self, mock_assignment_setup):
+    def test_setup_with_url_exception(self, mock_assignment_setup, mock_token_manager):
         """Test setup with URL when wizard raises exception."""
+        # Mock the token manager to return a valid token
+        mock_token_instance = Mock()
+        mock_token_instance.get_github_token.return_value = "test_token"
+        mock_token_instance.config_file.exists.return_value = True
+        mock_token_manager.return_value = mock_token_instance
+
         # Mock the AssignmentSetup class
         mock_wizard = Mock()
         mock_wizard.run_wizard_with_url.side_effect = Exception(

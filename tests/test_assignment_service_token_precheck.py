@@ -247,7 +247,7 @@ class TestAssignmentServiceTokenPreCheck:
     @patch('classroom_pilot.utils.token_manager.GitHubTokenManager')
     def test_setup_dry_run_no_token(self, mock_token_manager_class):
         """Test setup in dry-run mode when no token exists."""
-        # Mock token manager
+        # Mock token manager (not actually called in dry-run mode)
         mock_token_manager = MagicMock()
         mock_config_file = MagicMock()
         mock_config_file.exists.return_value = False
@@ -261,16 +261,16 @@ class TestAssignmentServiceTokenPreCheck:
         service = AssignmentService(dry_run=True)
         success, message = service.setup()
 
-        # Verify
-        assert success is False
+        # Verify - In dry-run mode, we just report what would happen
+        assert success is True  # Dry-run always succeeds, just reports what would happen
         assert "DRY RUN" in message
-        assert "token" in message.lower()
+        assert "assignment setup wizard" in message
 
     @patch.dict(os.environ, {'GITHUB_TOKEN': 'env_token_value'}, clear=True)
     @patch('classroom_pilot.utils.token_manager.GitHubTokenManager')
     def test_setup_dry_run_with_env_token_only(self, mock_token_manager_class):
         """Test setup in dry-run mode when only env token exists."""
-        # Mock token manager
+        # Mock token manager (not actually called in dry-run mode)
         mock_token_manager = MagicMock()
         mock_config_file = MagicMock()
         mock_config_file.exists.return_value = False
@@ -284,10 +284,10 @@ class TestAssignmentServiceTokenPreCheck:
         service = AssignmentService(dry_run=True)
         success, message = service.setup()
 
-        # Verify
-        assert success is False
+        # Verify - In dry-run mode, we just report what would happen
+        assert success is True  # Dry-run always succeeds, just reports what would happen
         assert "DRY RUN" in message
-        assert "GITHUB_TOKEN" in message
+        assert "assignment setup wizard" in message
 
     @patch.dict(os.environ, {'GITHUB_TOKEN': 'invalid_token'}, clear=True)
     @patch('classroom_pilot.utils.token_manager.GitHubTokenManager')

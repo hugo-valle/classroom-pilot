@@ -138,6 +138,15 @@ class AssignmentService:
             Tuple of (success: bool, message: str)
         """
         try:
+            # In dry-run mode, skip token validation entirely and just report success
+            if self.dry_run:
+                if simplified:
+                    return False, "DRY RUN: Simplified setup mode not yet implemented"
+                msg = "DRY RUN: Would run assignment setup wizard"
+                if url:
+                    msg += f" with GitHub Classroom URL: {url}"
+                return True, msg
+
             from ..utils.token_manager import GitHubTokenManager
 
             # Ensure a GitHub token is available before creating or launching the wizard.
@@ -164,8 +173,6 @@ class AssignmentService:
 
             # If no centralized token but an env token exists, offer to import it
             if not token and env_token:
-                if self.dry_run:
-                    return False, "DRY RUN: No centralized GitHub token configured; GITHUB_TOKEN is present in environment"
 
                 prompt = (
                     "No centralized token found, but GITHUB_TOKEN is set in your environment.\n"
@@ -211,9 +218,6 @@ class AssignmentService:
 
             # If still no token, prompt interactive creation (no env token present)
             if not token:
-                if self.dry_run:
-                    return False, "DRY RUN: No GitHub token configured (would prompt to create one)"
-
                 create_now = typer.confirm(
                     "No GitHub token found in config/keychain/environment. Create one now interactively?",
                     default=True
@@ -229,36 +233,6 @@ class AssignmentService:
             from ..assignments.setup import AssignmentSetup
 
             setup_wizard = AssignmentSetup()
-
-            if not token:
-                # In dry-run mode we just report missing token
-                if self.dry_run:
-                    return False, "DRY RUN: No GitHub token configured (would prompt to create one)"
-
-                # Ask the user whether to run the interactive token setup now
-                create_now = typer.confirm(
-                    "No GitHub token found in config/keychain/environment. Create one now interactively?",
-                    default=True
-                )
-
-                if create_now:
-                    try:
-                        new_token = token_manager.setup_new_token()
-                        if not new_token:
-                            return False, "GitHub token setup was cancelled or failed"
-                        token = new_token
-                    except Exception as e:
-                        return False, f"GitHub token setup failed: {e}"
-                else:
-                    return False, "No GitHub token configured. Set GITHUB_TOKEN or create ~/.config/classroom-pilot/token_config.json"
-
-            if self.dry_run:
-                if url:
-                    return True, f"DRY RUN: Would run setup wizard with GitHub Classroom URL: {url}"
-                elif simplified:
-                    return True, "DRY RUN: Would run simplified setup wizard with minimal prompts"
-                else:
-                    return True, "DRY RUN: Would run interactive assignment setup wizard"
 
             # TODO: Implement URL parsing for GitHub Classroom integration
             if url:
