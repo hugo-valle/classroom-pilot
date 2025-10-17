@@ -6,7 +6,9 @@ set -euo pipefail
 
 source "$(dirname "$0")/workflow_utils.sh"
 
-TEST_CONFIG_DIR="${1:-integration_test_data}"
+# Test error recovery script
+
+TEST_CONFIG_DIR="${1:-tests/fixtures}"
 
 # Test invalid configuration handling
 test_invalid_configuration() {
