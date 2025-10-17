@@ -147,6 +147,10 @@ class AssignmentService:
             Tuple of (success: bool, message: str)
         """
         try:
+            # Check for simplified mode first (not yet implemented)
+            if simplified and not self.dry_run:
+                return False, "Simplified setup mode not yet implemented"
+
             # In dry-run mode, skip token validation entirely and just report success
             if self.dry_run:
                 if simplified:

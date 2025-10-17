@@ -49,9 +49,13 @@ class TestAssignmentSetupCLI:
         # Combine stdout and stderr as help might be in either
         output = stdout + stderr
 
+        # Strip ANSI color codes for easier testing
+        import re
+        output = re.sub(r'\x1b\[[0-9;]*m', '', output)
+
         # Check that all options are documented
-        assert "--url" in output, "--url option not shown in help"
-        assert "--simplified" in output, "--simplified option not shown in help"
+        assert "--url" in output, f"--url option not shown in help. Output: {output[:500]}"
+        assert "--simplified" in output, f"--simplified option not shown in help. Output: {output[:500]}"
 
     def test_setup_dry_run_basic(self):
         """Test basic setup in dry-run mode."""
@@ -172,9 +176,16 @@ class TestAssignmentSetupService:
         success, message = service.setup()
         assert success is True
 
+    @patch('classroom_pilot.utils.token_manager.GitHubTokenManager')
     @patch('classroom_pilot.assignments.setup.AssignmentSetup')
-    def test_service_setup_with_mocked_wizard(self, mock_assignment_setup):
+    def test_service_setup_with_mocked_wizard(self, mock_assignment_setup, mock_token_manager):
         """Test service setup with mocked wizard."""
+        # Mock the token manager to return a valid token
+        mock_token_instance = Mock()
+        mock_token_instance.get_github_token.return_value = "test_token"
+        mock_token_instance.config_file.exists.return_value = True
+        mock_token_manager.return_value = mock_token_instance
+
         # Mock the AssignmentSetup class
         mock_wizard = Mock()
         mock_wizard.run_wizard.return_value = True
