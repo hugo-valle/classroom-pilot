@@ -53,6 +53,15 @@ class AssignmentService:
         Returns:
             Tuple of (success: bool, message: str)
         """
+        # In dry-run mode, just report what would happen
+        if self.dry_run:
+            msg = f"DRY RUN: Would orchestrate assignment workflow using {config_file}"
+            if step:
+                msg += f" (single step: {step})"
+            if skip_steps:
+                msg += f" (skipping: {skip_steps})"
+            return True, msg
+
         try:
             from ..assignments.orchestrator import (
                 AssignmentOrchestrator, WorkflowConfig, WorkflowStep
