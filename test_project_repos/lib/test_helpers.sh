@@ -11,6 +11,10 @@
 # - Output capture utilities
 #
 # Usage: source lib/test_helpers.sh
+#
+# IMPORTANT: Test tracking counters (TESTS_PASSED, TESTS_FAILED, FAILED_TESTS)
+# are only initialized if not already set, preserving existing values when
+# sourced multiple times. To reset counters explicitly, call init_test_tracking().
 ################################################################################
 
 # Color codes for output formatting
@@ -21,10 +25,13 @@ readonly COLOR_YELLOW='\033[0;33m'
 readonly COLOR_BLUE='\033[0;34m'
 readonly COLOR_GRAY='\033[0;90m'
 
-# Test tracking variables
-TESTS_PASSED=0
-TESTS_FAILED=0
-FAILED_TESTS=()
+# Test tracking variables - only initialize if unset to preserve existing values
+: "${TESTS_PASSED:=0}"
+: "${TESTS_FAILED:=0}"
+# Initialize FAILED_TESTS array only if not already declared
+if ! declare -p FAILED_TESTS &>/dev/null; then
+    FAILED_TESTS=()
+fi
 
 # Timer variables
 TIMER_START=0
@@ -80,13 +87,15 @@ log_debug() {
 # Test Result Tracking Functions
 ################################################################################
 
-# Initialize test tracking counters
+# Initialize test tracking counters to zero/empty
+# Call this function explicitly at the start of test scripts that need a fresh slate.
+# Note: Simply sourcing test_helpers.sh will NOT reset counters if already set.
 # Usage: init_test_tracking
 init_test_tracking() {
     TESTS_PASSED=0
     TESTS_FAILED=0
     FAILED_TESTS=()
-    log_debug "Test tracking initialized"
+    log_debug "Test tracking counters explicitly reset to zero"
 }
 
 # Mark a test as passed and log success
