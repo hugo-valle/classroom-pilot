@@ -1,6 +1,7 @@
 # GitHub Classroom Tools - Git Ignore
 
 # Generated files from tool execution
+test_project_repos/reports/
 generated/
 *.txt
 !requirements*.txt

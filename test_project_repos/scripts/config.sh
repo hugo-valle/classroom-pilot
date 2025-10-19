@@ -18,6 +18,10 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 TEST_DIR="$SCRIPT_DIR/.."
 TEST_PROJECT_REPOS_DIR="$TEST_DIR"
 
+# Centralized directory paths
+LIB_DIR="$TEST_DIR/lib"
+FIXTURES_DIR="$TEST_DIR/fixtures"
+
 # Python Version Configuration
 DEFAULT_PYTHON_VERSION="3.11"
 TEST_PYTHON_VERSIONS=("3.10" "3.11" "3.12")
@@ -113,12 +117,127 @@ CAPTURE_SCREENSHOTS=false
 RECORD_EXECUTION_TRACE=false
 ENABLE_PROFILING=false
 
+# QA Testing Configuration
+QA_TESTING_ENABLED=true
+QA_TESTS_DIR="$TEST_DIR/qa_tests"
+QA_LIB_DIR="$LIB_DIR"
+QA_FIXTURES_DIR="$FIXTURES_DIR/configs"
+QA_REPORT_DIR="$TEST_DIR/reports/qa"
+
+# QA Test Categories
+QA_TEST_CONFIG_VALIDATION=true
+QA_TEST_CLI_INTERFACE=true
+QA_TEST_API_FUNCTIONALITY=true
+QA_TEST_ERROR_HANDLING=true
+QA_TEST_EDGE_CASES=true
+
+# QA Configuration Fixtures
+QA_FIXTURE_VALID_MINIMAL="$QA_FIXTURES_DIR/valid_minimal.conf"
+QA_FIXTURE_VALID_COMPREHENSIVE="$QA_FIXTURES_DIR/valid_comprehensive.conf"
+QA_FIXTURE_INVALID_MISSING="$QA_FIXTURES_DIR/invalid_missing_required.conf"
+QA_FIXTURE_INVALID_URLS="$QA_FIXTURES_DIR/invalid_malformed_urls.conf"
+QA_FIXTURE_INVALID_TYPES="$QA_FIXTURES_DIR/invalid_wrong_types.conf"
+QA_FIXTURE_EDGE_EMPTY="$QA_FIXTURES_DIR/edge_case_empty_values.conf"
+QA_FIXTURE_EDGE_SPECIAL="$QA_FIXTURES_DIR/edge_case_special_characters.conf"
+QA_FIXTURE_EDGE_LONG="$QA_FIXTURES_DIR/edge_case_very_long_values.conf"
+
+# QA Testing Thresholds
+QA_MAX_EXECUTION_TIME=600  # 10 minutes
+QA_MIN_COVERAGE_PERCENT=80
+QA_MAX_ERROR_RATE_PERCENT=5
+
 # Export configuration for use in other scripts
 export PACKAGE_NAME EXPECTED_VERSION CLI_COMMAND PYTHON_MODULE
 export DEFAULT_PYTHON_VERSION TEST_PYTHON_VERSIONS
 export TEST_TIMEOUT MAX_RETRIES
 export COMPREHENSIVE_TESTING CLEANUP_AFTER_TESTS
 export DEFAULT_VERBOSE COLORED_OUTPUT
+export QA_TESTING_ENABLED QA_TESTS_DIR QA_LIB_DIR QA_FIXTURES_DIR QA_REPORT_DIR
+export LIB_DIR FIXTURES_DIR
+
+# QA Prerequisites Check Function
+check_qa_prerequisites() {
+    local errors=0
+    
+    # Check if classroom-pilot CLI is available
+    if ! command -v classroom-pilot >/dev/null 2>&1; then
+        echo "[ERROR] classroom-pilot CLI not found in PATH" >&2
+        echo "[ERROR] Please install classroom-pilot before running QA tests" >&2
+        echo "[INFO] Run: poetry install or pip install classroom-pilot" >&2
+        ((errors++))
+    else
+        echo "[INFO] classroom-pilot CLI found: $(command -v classroom-pilot)"
+    fi
+    
+    # Check QA directories exist
+    if [ ! -d "$QA_TESTS_DIR" ]; then
+        echo "[WARNING] QA tests directory not found: $QA_TESTS_DIR" >&2
+        mkdir -p "$QA_TESTS_DIR"
+        echo "[INFO] Created QA tests directory"
+    fi
+    
+    if [ ! -d "$QA_LIB_DIR" ]; then
+        echo "[ERROR] QA library directory not found: $QA_LIB_DIR" >&2
+        ((errors++))
+    fi
+    
+    if [ ! -d "$QA_FIXTURES_DIR" ]; then
+        echo "[ERROR] QA fixtures directory not found: $QA_FIXTURES_DIR" >&2
+        ((errors++))
+    fi
+    
+    # Check helper libraries exist
+    if [ ! -f "$QA_LIB_DIR/test_helpers.sh" ]; then
+        echo "[ERROR] Test helpers library not found: $QA_LIB_DIR/test_helpers.sh" >&2
+        ((errors++))
+    fi
+    
+    if [ ! -f "$QA_LIB_DIR/mock_helpers.sh" ]; then
+        echo "[ERROR] Mock helpers library not found: $QA_LIB_DIR/mock_helpers.sh" >&2
+        ((errors++))
+    fi
+    
+    # Check configuration fixtures exist
+    local fixtures=(
+        "$QA_FIXTURE_VALID_MINIMAL"
+        "$QA_FIXTURE_VALID_COMPREHENSIVE"
+        "$QA_FIXTURE_INVALID_MISSING"
+        "$QA_FIXTURE_INVALID_URLS"
+        "$QA_FIXTURE_INVALID_TYPES"
+        "$QA_FIXTURE_EDGE_EMPTY"
+        "$QA_FIXTURE_EDGE_SPECIAL"
+        "$QA_FIXTURE_EDGE_LONG"
+    )
+    
+    local missing_fixtures=0
+    for fixture in "${fixtures[@]}"; do
+        if [ ! -f "$fixture" ]; then
+            echo "[WARNING] Configuration fixture not found: $(basename "$fixture")" >&2
+            ((missing_fixtures++))
+        fi
+    done
+    
+    if [ "$missing_fixtures" -gt 0 ]; then
+        echo "[WARNING] $missing_fixtures configuration fixtures are missing" >&2
+    fi
+    
+    # Create QA report directory if it doesn't exist
+    if [ ! -d "$QA_REPORT_DIR" ]; then
+        mkdir -p "$QA_REPORT_DIR"
+        echo "[INFO] Created QA report directory: $QA_REPORT_DIR"
+    fi
+    
+    if [ "$errors" -gt 0 ]; then
+        echo "[ERROR] QA prerequisites check failed with $errors errors" >&2
+        return 1
+    fi
+    
+    echo "[INFO] QA prerequisites check passed"
+    return 0
+}
+
+# Export QA check function
+export -f check_qa_prerequisites
 
 # Validation function
 validate_config() {
