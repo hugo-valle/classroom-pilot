@@ -22,9 +22,8 @@ except ImportError:
 
 from ..utils import get_logger, GitManager
 from ..utils.github_exceptions import (
-    GitHubAPIError, GitHubAuthenticationError, GitHubRepositoryError,
-    GitHubNetworkError, github_api_retry, github_api_context,
-    handle_github_errors, is_github_available
+    GitHubAuthenticationError, GitHubRepositoryError,
+    github_api_retry, github_api_context
 )
 from ..config import ConfigLoader
 
@@ -192,11 +191,11 @@ class CollaboratorManager:
         try:
             # Use gh CLI to list collaborators
             cmd = ['gh', 'api', f'repos/{repo_name}/collaborators']
-            result = subprocess.run(
+            _proc = subprocess.run(
                 cmd, capture_output=True, text=True, check=True)
 
             import json
-            collaborators_data = json.loads(result.stdout)
+            collaborators_data = json.loads(_proc.stdout)
 
             collaborators = []
             for collab in collaborators_data:
@@ -300,7 +299,7 @@ class CollaboratorManager:
                 '--method', 'PUT',
                 '--field', f'permission={permission}'
             ]
-            result = subprocess.run(
+            subprocess.run(
                 cmd, capture_output=True, text=True, check=True)
 
             logger.info(
@@ -371,7 +370,7 @@ class CollaboratorManager:
                 'gh', 'api', f'repos/{repo_name}/collaborators/{username}',
                 '--method', 'DELETE'
             ]
-            result = subprocess.run(
+            subprocess.run(
                 cmd, capture_output=True, text=True, check=True)
 
             logger.info(
@@ -513,7 +512,7 @@ class CollaboratorManager:
                 '--method', 'PUT',
                 '--field', f'permission={permission}'
             ]
-            result = subprocess.run(
+            _proc = subprocess.run(
                 cmd, capture_output=True, text=True, check=True)
 
             logger.info(

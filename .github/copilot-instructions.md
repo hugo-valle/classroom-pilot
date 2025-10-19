@@ -483,6 +483,66 @@ def test_function(mock_config, temp_dir, mock_bash_wrapper):
 - **CLI Tests**: Command-line interface validation
 - **Error Tests**: Exception and error handling
 
+### 🎯 Testing Strategy: Two-Tier Approach
+
+This project uses a **two-tier testing strategy** with distinct but complementary testing environments:
+
+#### **Tier 1: `tests/` - Developer Testing (Primary Development)**
+- **Purpose**: Fast feedback during development, code validation, CI/CD integration
+- **Technology**: Python pytest (603+ test functions, ~12K lines)
+- **Scope**: Unit tests, integration tests, mocked dependencies
+- **Target Audience**: Developers during active development
+- **Execution**: `pytest tests/ -v` (runs in seconds)
+- **Examples**:
+  ```python
+  def test_assignment_service_setup_with_url():
+      service = AssignmentService(dry_run=True) 
+      success, message = service.setup(url="https://classroom.github.com/a/test")
+      assert "GitHub Classroom URL" in message
+  ```
+
+#### **Tier 2: `test_project_repos/` - End-to-End Validation (Release Testing)**
+- **Purpose**: Real-world validation, user workflow testing, release qualification
+- **Technology**: Bash scripts + Python (5.5K lines shell, 615 lines Python)
+- **Scope**: Complete workflows, real GitHub repositories, actual environments
+- **Target Audience**: QA engineers, release validation, user acceptance testing
+- **Execution**: `cd test_project_repos && ./scripts/run_full_test.sh` (runs in minutes)
+- **Examples**:
+  ```bash
+  # Tests real GitHub API integration, actual repository cloning
+  classroom-pilot assignments setup --url "https://real-github-classroom-url"
+  classroom-pilot assignments orchestrate --config real_assignment.conf
+  ```
+
+#### **When to Use Each Tier:**
+
+**Use `tests/` for:**
+- ✅ Daily development work
+- ✅ Feature development and bug fixes  
+- ✅ CI/CD pipeline integration
+- ✅ Code review validation
+- ✅ Component-level testing
+
+**Use `test_project_repos/` for:**
+- ✅ Pre-release validation
+- ✅ User acceptance testing
+- ✅ Cross-platform compatibility testing
+- ✅ Real GitHub integration testing
+- ✅ End-to-end workflow validation
+
+#### **Testing Pyramid Implementation:**
+```
+     /\
+    /  \  E2E Tests (test_project_repos/) 
+   /____\  - Real workflows, GitHub repos, user scenarios
+  /      \  Integration Tests (parts of tests/)
+ /        \  - Service integration, CLI integration  
+/          \ Unit Tests (most of tests/)
+\__________/ - Methods, classes, isolated components
+```
+
+**Critical Note**: Both tiers are essential. `tests/` provides fast developer feedback, while `test_project_repos/` ensures real-world functionality. Maintain both but focus daily development on `tests/` tier.
+
 ## 📝 Documentation Standards
 
 ### Docstring Format
@@ -622,13 +682,153 @@ Example (workflow referencing a script):
 
 ⸻
 
-✅ Best Practices
+## ✅ Best Practices
         •       Use official actions (like actions/checkout) when available.
         •       Use matrix builds for multiple Python versions.
         •       Cache dependencies where possible (actions/cache).
         •       Fail fast: configure set -e in scripts to stop on errors.
         •       Log clearly: echo progress messages for better CI visibility.
+⸻
 
+### Structure & Size
+	•	Modules: aim for ≤ 300–400 lines; split by concern (e.g., cli.py, services.py, io.py, config.py).
+	•	Functions: target ≤ 30–40 lines; early-returns; single responsibility.
+	•	Classes: small, focused; prefer plain functions for stateless helpers.
+	•	Cyclomatic complexity: keep ≤ 10 (use radon to check).
+
+### Reusability & Separation
+	•	Keep business logic out of CLI command handlers—put it in services/ or core/.
+	•	CLI layer does: parse args → call service → format output → set exit code.
+	•	Make services pure & testable; pass dependencies via parameters (or lightweight DI).
+	•	Provide a stable Python API so the same code can back GUI/Web later.
+
+### CLI UX Conventions
+	•	Global flags: --version, --help, --verbose/-v (stackable), --quiet, --debug, --dry-run.
+	•	Subcommands > flags for clarity: tool repos clone, not tool --clone.
+	•	Print human-friendly output to stdout; errors to stderr; exit with non-zero on failure.
+	•	Support file/dir globs, stdin (-), and JSON/YAML output via --format.
+	•	Be cross-platform (paths via pathlib; avoid bashisms; use shutil.which).
+
+### Config & Env
+	•	Precedence: CLI flags > env vars > config file > defaults.
+	•	Use pydantic-settings or dynaconf/django-environ-style approach.
+	•	Support XDG locations (Linux/macOS) and %APPDATA% (Windows).
+
+### Logging & Errors
+	•	Use Loguru or logging with a console handler (--debug sets level to DEBUG).
+	•	Don’t traceback on user errors—emit clear messages; show traceback only with --debug.
+	•	Map known failures to consistent exit codes (e.g., 2=usage, 3=not found, 4=network).
+
+### I/O, Subprocess, Perf
+	•	For subprocesses use subprocess.run(..., check=True, text=True, capture_output=True); set timeouts.
+	•	Stream large outputs; don’t load big files fully if avoidable.
+	•	Gracefully handle Ctrl+C (KeyboardInterrupt) and SIGTERM; clean temp files.
+
+### Type Safety & Style
+	•	Type hints everywhere; run mypy (or pyright) in CI.
+	•	ruff + black for lint/format; pre-commit hooks enabled.
+	•	Avoid global state; pure functions where possible.
+
+### Testing
+	•	pytest with:
+	•	Unit tests for services (no CLI).
+	•	CLI tests using typer.testing.CliRunner / Click runner.
+	•	Golden tests (snapshot output) for stable commands.
+	•	Mocks for filesystem (pyfakefs) and network (responses/httpx-mock).
+	•	Coverage: enforce ≥ 85% line coverage (exclude CLI glue if needed).
+	•	Test matrix: Python 3.9–3.11; Linux/macOS/Windows if possible.
+
+### Packaging & Distribution
+	•	Use pyproject.toml; build with hatchling or setuptools.
+	•	Entry point:
+
+```bash
+[project.scripts]
+mytool = "mytool.cli:app"
+```
+
+	•	Pin minimal versions; avoid heavy deps; keep install fast.
+	•	Version with SemVer; git tags drive release automation.
+
+### Security & Reliability
+	•	Never log secrets; redact tokens.
+	•	Validate all external inputs (files, URLs).
+	•	Add retries with backoff for network calls (e.g., tenacity).
+	•	Respect proxies and SSL; verify certificates.
+
+### Helpful Snippets
+
+Typer command skeleton (clean separation):
+```python
+# cli.py
+import sys, typer
+from loguru import logger
+from mytool.services.repos import clone_all
+app = typer.Typer()
+
+@app.callback()
+def main(verbose: int = typer.Option(0, "--verbose", "-v", count=True), debug: bool = False):
+    logger.remove()
+    level = "DEBUG" if debug or verbose >= 2 else "INFO" if verbose == 1 else "WARNING"
+    logger.add(sys.stderr, level=level, enqueue=True)
+
+@app.command()
+def clone(org: str, assignment: str, students: str, dest: str = "./repos", dry_run: bool = False) -> None:
+    try:
+        result = clone_all(org, assignment, students_path=students, dest=dest, dry_run=dry_run)
+        typer.echo(result.summary)
+    except Exception as exc:
+        logger.exception("Clone failed")
+        raise typer.Exit(code=1)
+
+if __name__ == "__main__":
+    app()
+``` 
+Service (pure, testable):
+
+```python
+# services/repos.py
+from pathlib import Path
+from dataclasses import dataclass
+
+@dataclass
+class CloneResult:
+    total: int
+    ok: int
+    failed: int
+    @property
+    def summary(self) -> str:
+        return f"Cloned: {self.ok}/{self.total}, failed: {self.failed}"
+
+def clone_all(org: str, assignment: str, students_path: str, dest: str, dry_run: bool) -> CloneResult:
+    students = [s.strip() for s in Path(students_path).read_text().splitlines() if s.strip()]
+    ok = failed = 0
+    Path(dest).mkdir(parents=True, exist_ok=True)
+    for s in students:
+        repo = f"https://github.com/{org}/{assignment}-{s}.git"
+        if dry_run:
+            ok += 1
+            continue
+        # call git via helper; raise on failure
+        from mytool.util.git import safe_clone
+        ok += 1 if safe_clone(repo, Path(dest) / f"{assignment}-{s}") else 0
+    failed = len(students) - ok
+    return CloneResult(total=len(students), ok=ok, failed=failed)
+
+CLI test:
+
+# tests/test_cli.py
+from typer.testing import CliRunner
+from mytool.cli import app
+
+def test_clone_help():
+    runner = CliRunner()
+    result = runner.invoke(app, ["clone", "--help"])
+    assert result.exit_code == 0
+    assert "assignment" in result.stdout
+```
+
+⸻
 
 ## 📚 Key Resources
 

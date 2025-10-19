@@ -8,9 +8,8 @@ existing bash script functionality.
 
 import os
 import subprocess
-import sys
 from pathlib import Path
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional
 
 # Import for resource management (Python 3.9+)
 try:
@@ -24,7 +23,6 @@ except ImportError:
         files = None
         as_file = None
 
-from .config import ConfigLoader
 from .utils import get_logger
 
 logger = get_logger("bash_wrapper")

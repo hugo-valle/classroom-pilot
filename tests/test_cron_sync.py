@@ -6,8 +6,7 @@ logging, error handling, and environment validation.
 """
 
 import pytest
-import time
-from unittest.mock import Mock, patch, MagicMock, call
+from unittest.mock import Mock, patch
 from pathlib import Path
 from datetime import datetime
 

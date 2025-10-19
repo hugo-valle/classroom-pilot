@@ -9,7 +9,7 @@ error handling scenarios, and batch processing operations.
 import json
 import subprocess
 from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock, call
+from unittest.mock import Mock, patch
 import pytest
 
 from classroom_pilot.assignments.cycle_collaborator import (

@@ -7,7 +7,7 @@ git operations, remote management, and complete workflow execution.
 
 import pytest
 import subprocess
-from unittest.mock import Mock, patch, MagicMock, call
+from unittest.mock import Mock, patch, call
 from pathlib import Path
 
 from classroom_pilot.assignments.push_manager import (

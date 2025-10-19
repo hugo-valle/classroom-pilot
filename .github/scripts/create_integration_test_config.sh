@@ -7,7 +7,8 @@ set -euo pipefail
 source "$(dirname "$0")/workflow_utils.sh"
 
 CONFIG_TYPE="${1:-basic}"
-OUTPUT_DIR="${2:-integration_test_data}"
+# Default output directory
+OUTPUT_DIR="${2:-tests/fixtures}"
 
 mkdir -p "$OUTPUT_DIR"
 

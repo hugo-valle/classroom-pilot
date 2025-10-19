@@ -5,7 +5,6 @@ This module provides a simplified command-line interface that avoids
 complex type annotations that cause compatibility issues in CI environments.
 """
 
-from pathlib import Path
 import typer
 
 from .config import Configuration

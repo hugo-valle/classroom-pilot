@@ -34,17 +34,14 @@ test reliability and speed while maintaining comprehensive coverage.
 """
 
 import pytest
-import tempfile
 from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock, call
-import os
+from unittest.mock import Mock, patch
 import subprocess
 
 from classroom_pilot.repos.fetch import (
     RepositoryFetcher,
     RepositoryInfo,
-    FetchResult,
-    GITHUB_AVAILABLE
+    FetchResult
 )
 from classroom_pilot.utils.github_exceptions import (
     GitHubAuthenticationError,

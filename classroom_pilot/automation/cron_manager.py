@@ -12,8 +12,7 @@ import os
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
-import re
+from typing import List, Optional, Tuple, Union
 from datetime import datetime
 
 from ..config import GlobalConfig
@@ -142,7 +141,7 @@ class CronManager:
 
         # Check cron service availability
         try:
-            result = subprocess.run(
+            subprocess.run(
                 ["crontab", "-l"],
                 capture_output=True,
                 text=True,
@@ -599,7 +598,7 @@ class CronManager:
                 mod_time = datetime.fromtimestamp(
                     stat.st_mtime).strftime("%Y-%m-%d %H:%M:%S")
 
-                output += f"\n=== Log File Info ===\n"
+                output += "\n=== Log File Info ===\n"
                 output += f"File: {self.log_file_path}\n"
                 output += f"Size: {size_str}\n"
                 output += f"Last modified: {mod_time}\n"

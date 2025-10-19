@@ -144,6 +144,7 @@ classroom-pilot assignments validate
 import classroom_pilot
 from classroom_pilot import ConfigLoader, ConfigValidator, BashWrapper
 from classroom_pilot import setup_logging, get_logger
+from classroom_pilot import AssignmentService, ReposService, SecretsService, AutomationService
 from classroom_pilot.assignments.setup import AssignmentSetup
 
 # Verify version
@@ -182,6 +183,27 @@ logger.debug("Debug message")
 logger.info("Info message")
 logger.warning("Warning message")
 logger.error("Error message")
+```
+
+### Service Layer Testing
+
+```python
+from classroom_pilot import AssignmentService, ReposService, SecretsService, AutomationService
+
+# Test service instantiation
+assignment_service = AssignmentService()
+repos_service = ReposService()
+secrets_service = SecretsService()
+automation_service = AutomationService()
+
+# Test service methods are available
+assert hasattr(assignment_service, 'orchestrate')
+assert hasattr(assignment_service, 'setup')
+assert hasattr(repos_service, 'clone_repository')
+assert hasattr(secrets_service, 'deploy_secrets')
+assert hasattr(automation_service, 'schedule_task')
+
+print("✓ All services instantiated successfully")
 ```
 
 ## 🔗 Integration Testing

@@ -60,12 +60,23 @@ Create a GitHub personal access token for classroom-pilot:
    - `repo` (for repository access)
    - `admin:org` (for organization management)
    - `write:org` (for secret management)
-3. Save the token securely:
+3. Save the token securely using the centralized token manager:
 
 ```bash
-# Create token file
-echo "ghp_your_token_here" > github_token.txt
-chmod 600 github_token.txt
+# Create centralized token config
+mkdir -p ~/.config/classroom-pilot
+cat > ~/.config/classroom-pilot/token_config.json << 'EOF'
+{
+    "github_token": "ghp_your_token_here",
+    "username": "your_username",
+    "scopes": ["repo", "admin:org", "write:org"],
+    "expires_at": null
+}
+EOF
+chmod 600 ~/.config/classroom-pilot/token_config.json
+
+# Or set as environment variable for CI/automation
+export GITHUB_TOKEN="ghp_your_token_here"
 ```
 
 ### GitHub CLI (Optional)

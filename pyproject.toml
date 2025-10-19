@@ -46,7 +46,7 @@ Documentation = "https://github.com/hugo-valle/classroom-pilot#readme"
 "Feature Requests" = "https://github.com/hugo-valle/classroom-pilot/issues"
 
 [project.scripts]
-classroom-pilot = "classroom_pilot.cli:main"
+classroom-pilot = "classroom_pilot.cli:app"
 
 [project.optional-dependencies]
 dev = [

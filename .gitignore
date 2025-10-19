@@ -1,6 +1,7 @@
 # GitHub Classroom Tools - Git Ignore
 
 # Generated files from tool execution
+test_project_repos/reports/
 generated/
 *.txt
 !requirements*.txt
@@ -94,3 +95,39 @@ docs-site/.mkdocs_cache/
 
 # Ignore test environment directories
 test_project_repos/test_environments/*
+# =============================================================================
+# Instructor-only files (GitHub Classroom automation)
+# =============================================================================
+# Token files for GitHub API access
+*token*.txt
+instructor_token.txt
+api_token.txt
+
+# Hidden credentials file
+.github_credentials
+
+# Assignment configuration (contains sensitive paths)
+assignment.conf
+
+# Generated batch files
+tools/generated/
+*.batch
+
+# Temporary files from automation scripts
+.temp_*
+temp_*
+
+# IDE and editor files
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+
+# Test files
+test_api_calls/
+
+# CI/CD Workflow Monitoring Artifacts
+workflow_health/
+workflow_status_aggregation/
+workflow_trends/

@@ -16,7 +16,6 @@ from typing import Optional, List
 
 from .utils import setup_logging, get_logger
 from .assignments.setup import AssignmentSetup
-from .config import ConfigLoader
 from .config.global_config import load_global_config, get_global_config
 
 # Initialize logger
@@ -91,6 +90,8 @@ repos_app = typer.Typer(
 secrets_app = typer.Typer(help="Secret and token management commands")
 automation_app = typer.Typer(
     help="Automation, scheduling, and batch processing commands")
+config_app = typer.Typer(
+    help="Configuration and token management commands")
 
 
 # Universal options callback for assignments commands
@@ -178,123 +179,99 @@ app.add_typer(assignments_app, name="assignments")
 app.add_typer(repos_app, name="repos")
 app.add_typer(secrets_app, name="secrets")
 app.add_typer(automation_app, name="automation")
+app.add_typer(config_app, name="config")
 
 
 # Assignment Commands
 @assignments_app.command("setup")
-def assignment_setup(ctx: typer.Context):
+def assignment_setup(
+    ctx: typer.Context,
+    url: str = typer.Option(
+        None,
+        "--url",
+        help="GitHub Classroom URL for simplified setup (auto-extracts organization and assignment info)"
+    ),
+    simplified: bool = typer.Option(
+        False,
+        "--simplified",
+        help="Use simplified setup wizard with minimal prompts"
+    )
+):
     """
     Launch interactive wizard to configure a new assignment.
 
     This command initializes an interactive setup wizard that guides users through
-    the complete process of configuring a new GitHub Classroom assignment. The wizard
-    collects all required configuration parameters and generates the assignment.conf
-    file needed for subsequent operations.
+    the complete process of configuring a new GitHub Classroom assignment.
 
-    The setup process includes:
-    - Assignment metadata configuration (name, description, organization)
-    - GitHub repository settings and template configuration  
-    - Student repository discovery parameters
-    - Secrets and token management setup
-    - Automation and workflow preferences
-
-    Supports universal options: --verbose, --dry-run
-
-    Raises:
-        SystemExit: If setup process is interrupted or fails.
-
-    Example:
+    Examples:
         $ classroom-pilot assignments setup
-        # Interactive wizard begins
-
-        $ classroom-pilot assignments setup --verbose --dry-run
-        # Shows what setup would do with detailed logging
+        $ classroom-pilot assignments setup --simplified
+        $ classroom-pilot assignments setup --url "https://classroom.github.com/..."
     """
     # Access universal options from context
     verbose = ctx.obj.get('verbose', False)
     dry_run = ctx.obj.get('dry_run', False)
 
-    if verbose:
-        logger.debug("Verbose mode enabled for assignment setup")
+    setup_logging(verbose)
 
-    if dry_run:
-        logger.info("DRY RUN: Would start assignment setup wizard")
-        logger.info("DRY RUN: Would create assignment.conf file")
-        return
+    # Delegate to AssignmentService (including dry-run logic)
+    try:
+        from .services.assignment_service import AssignmentService
 
-    logger.info("Starting assignment setup wizard")
-    setup = AssignmentSetup()
-    setup.run_wizard()
+        service = AssignmentService(dry_run=dry_run, verbose=verbose)
+        ok, message = service.setup(url=url, simplified=simplified)
+
+        if not ok:
+            logger.error(message)
+            raise typer.Exit(code=1)
+
+        logger.info(f"✅ {message}")
+
+    except Exception as e:
+        logger.error(f"Assignment setup failed: {e}")
+        raise typer.Exit(code=1)
 
 
 @assignments_app.command("validate-config")
 def assignment_validate_config(
+    ctx: typer.Context,
     config_file: str = typer.Option(
         "assignment.conf", "--config-file", "-c", help="Configuration file path to validate"
-    ),
-    verbose: bool = typer.Option(
-        False, "--verbose", "-v", help="Enable verbose output"
     )
 ):
     """
     Validate assignment configuration file.
 
-    This command validates the structure and content of an assignment configuration 
-    file, checking for required fields, valid URLs, proper formatting, and other
-    configuration requirements.
-
-    The validation includes:
-    - Required field presence checks
-    - GitHub URL format validation
-    - Organization name validation  
-    - Assignment name validation
-    - File path validation
-
     Example:
         $ classroom-pilot assignments validate-config
         $ classroom-pilot assignments validate-config --config-file custom.conf
     """
-    setup_logging(verbose=verbose)
-    logger.info(f"Validating configuration file: {config_file}")
+    # Access universal options from context
+    verbose = ctx.obj.get('verbose', False)
+    dry_run = ctx.obj.get('dry_run', False)
 
+    setup_logging(verbose)
+
+    if dry_run:
+        logger.info(
+            f"DRY RUN: Would validate configuration file: {config_file}")
+        return
+
+    # Delegate to AssignmentService
     try:
-        from .config import ConfigLoader, ConfigValidator
+        from .services.assignment_service import AssignmentService
 
-        # Load configuration
-        config_path = Path(config_file)
-        if not config_path.exists():
-            typer.echo(
-                f"❌ Configuration file not found: {config_file}", err=True)
+        service = AssignmentService(dry_run=dry_run, verbose=verbose)
+        ok, message = service.validate_config(config_file=config_file)
+
+        if not ok:
+            logger.error(message)
             raise typer.Exit(code=1)
 
-        loader = ConfigLoader(config_path)
-        config = loader.load()
-
-        if verbose:
-            typer.echo(f"📋 Loaded configuration from: {config_file}")
-            typer.echo(f"📊 Configuration contains {len(config)} entries")
-
-        # Validate configuration
-        validator = ConfigValidator()
-        is_valid, errors = validator.validate_full_config(config)
-
-        if is_valid:
-            typer.echo(f"✅ Configuration file is valid: {config_file}")
-            if verbose:
-                typer.echo("📝 Configuration details:")
-                for key, value in config.items():
-                    typer.echo(f"  {key}: {value}")
-        else:
-            typer.echo(
-                f"❌ Configuration validation failed: {config_file}", err=True)
-            typer.echo("📋 Validation errors:")
-            for error in errors:
-                typer.echo(f"  • {error}", err=True)
-            raise typer.Exit(code=1)
+        logger.info(f"✅ {message}")
 
     except Exception as e:
         logger.error(f"Configuration validation failed: {e}")
-        typer.echo(f"❌ Error validating configuration: {e}", err=True)
         raise typer.Exit(code=1)
 
 
@@ -318,24 +295,6 @@ def assignment_orchestrate(
     assistance operations. It provides the primary automation interface for
     managing GitHub Classroom assignments end-to-end.
 
-    The orchestration workflow includes:
-    - Template repository synchronization to GitHub Classroom
-    - Student repository discovery and validation
-    - Secrets and token deployment to student repositories
-    - Optional student assistance operations
-    - Optional collaborator access cycling
-    - Progress tracking and comprehensive error handling
-
-    Args:
-        force_yes (bool): Skip confirmation prompts and proceed automatically.
-        step (str): Execute only the specified workflow step.
-        skip_steps (str): Comma-separated list of steps to skip.
-        config_file (str): Path to assignment configuration file.
-                          Defaults to "assignment.conf" in current directory.
-
-    Raises:
-        typer.Exit: With code 1 if orchestration fails or encounters errors.
-
     Example:
         $ classroom-pilot assignments --dry-run --verbose orchestrate
         $ classroom-pilot assignments orchestrate --step discover
@@ -349,163 +308,72 @@ def assignment_orchestrate(
     setup_logging(verbose)
     logger.info("Starting assignment orchestration")
 
+    # Delegate to AssignmentService
     try:
-        # Import the Python orchestrator
-        from .assignments.orchestrator import AssignmentOrchestrator, WorkflowConfig, WorkflowStep
+        from .services.assignment_service import AssignmentService
 
-        # Initialize orchestrator with configuration
-        config_path = Path(config_file) if config_file else None
-        orchestrator = AssignmentOrchestrator(config_path)
-
-        # Validate configuration
-        if not orchestrator.validate_configuration():
-            logger.error("Configuration validation failed")
-            raise typer.Exit(code=1)
-
-        # Show configuration summary
-        orchestrator.show_configuration_summary()
-
-        # Parse workflow configuration
-        enabled_steps = set(WorkflowStep)
-        skip_step_set = set()
-        step_override = None
-
-        # Handle step override
-        if step:
-            try:
-                step_override = WorkflowStep(step.lower())
-                logger.info(f"Executing single step: {step_override.value}")
-            except ValueError:
-                valid_steps = [s.value for s in WorkflowStep]
-                logger.error(
-                    f"Invalid step '{step}'. Valid steps: {', '.join(valid_steps)}")
-                raise typer.Exit(code=1)
-
-        # Handle skip steps
-        if skip_steps:
-            for skip_step in skip_steps.split(','):
-                try:
-                    skip_step_set.add(WorkflowStep(skip_step.strip().lower()))
-                except ValueError:
-                    valid_steps = [s.value for s in WorkflowStep]
-                    logger.error(
-                        f"Invalid skip step '{skip_step}'. Valid steps: {', '.join(valid_steps)}")
-                    raise typer.Exit(code=1)
-
-        # Create workflow configuration
-        workflow_config = WorkflowConfig(
-            enabled_steps=enabled_steps,
-            dry_run=dry_run,
-            verbose=verbose,
+        service = AssignmentService(dry_run=dry_run, verbose=verbose)
+        ok, message = service.orchestrate(
+            config_file=config_file,
             force_yes=force_yes,
-            step_override=step_override,
-            skip_steps=skip_step_set
+            step=step,
+            skip_steps=skip_steps
         )
 
-        # Confirm execution (skip confirmation in dry-run mode)
-        if not dry_run and not orchestrator.confirm_execution(workflow_config):
-            logger.info("Orchestration cancelled by user")
-            raise typer.Exit(code=0)
-
-        # Execute workflow
-        results = orchestrator.execute_workflow(workflow_config)
-
-        # Generate and display report
-        report = orchestrator.generate_workflow_report()
-
-        # Check for failures
-        failed_steps = [r for r in results if not r.success]
-        if failed_steps:
-            logger.error(
-                f"Orchestration completed with {len(failed_steps)} failed steps")
+        if not ok:
+            logger.error(message)
             raise typer.Exit(code=1)
 
-        logger.info("✅ Assignment orchestration completed successfully")
+        logger.info(f"✅ {message}")
 
-    except ImportError as e:
-        logger.error(f"Failed to import orchestrator components: {e}")
-        logger.error("Make sure all required dependencies are installed")
-        raise typer.Exit(code=1)
     except Exception as e:
         logger.error(f"Assignment orchestration failed: {e}")
         raise typer.Exit(code=1)
 
 
 @assignments_app.command("help-student")
+@assignments_app.command("help-student")
 def help_student(
+    ctx: typer.Context,
     repo_url: str = typer.Argument(..., help="Student repository URL to help"),
     one_student: bool = typer.Option(
         False, "--one-student", help="Use template directly (bypass classroom repository)"),
-    dry_run: bool = typer.Option(
-        False, "--dry-run", help="Show what would be done without executing"),
     auto_confirm: bool = typer.Option(
         False, "--yes", "-y", help="Automatically confirm all prompts"),
-    verbose: bool = typer.Option(
-        False, "--verbose", "-v", help="Enable verbose output"),
     config_file: str = typer.Option(
         "assignment.conf", "--config", "-c", help="Configuration file path")
 ):
     """
     Help a specific student with repository updates.
 
-    This command assists instructors in helping students who are having difficulty
-    updating their repositories with template changes. It can clone the student's
-    repository, apply updates, and handle merge conflicts automatically.
-
-    The command supports two modes:
-    - Default mode: Uses classroom repository for updates
-    - One-student mode: Uses template repository directly (--one-student)
-
-    Args:
-        repo_url: URL of the student repository to help
-        one_student: Use template repository directly instead of classroom
-        dry_run: Preview operations without making changes
-        auto_confirm: Skip confirmation prompts
-        verbose: Enable detailed logging
-        config_file: Path to configuration file
-
     Example:
         $ classroom-pilot assignments help-student https://github.com/org/assignment-student123
         $ classroom-pilot assignments help-student --one-student https://github.com/org/assignment-student123
     """
+    # Access universal options from context
+    verbose = ctx.obj.get('verbose', False)
+    dry_run = ctx.obj.get('dry_run', False)
+
     setup_logging(verbose)
-    logger.info("Starting student assistance")
 
+    # Delegate to AssignmentService
     try:
-        from .assignments.student_helper import StudentUpdateHelper, OperationResult
+        from .services.assignment_service import AssignmentService
 
-        # Initialize helper
-        config_path = Path(config_file) if config_file else None
-        helper = StudentUpdateHelper(config_path, auto_confirm=auto_confirm)
+        service = AssignmentService(dry_run=dry_run, verbose=verbose)
+        ok, message = service.help_student(
+            repo_url=repo_url,
+            one_student=one_student,
+            auto_confirm=auto_confirm,
+            config_file=config_file
+        )
 
-        # Validate configuration
-        if not helper.validate_configuration():
-            logger.error("Configuration validation failed")
+        if not ok:
+            logger.error(message)
             raise typer.Exit(code=1)
 
-        if dry_run:
-            logger.info("DRY RUN: Would help student with repository updates")
-            logger.info(f"Repository: {repo_url}")
-            logger.info(
-                f"Mode: {'Template direct' if one_student else 'Classroom'}")
-            return
+        logger.info(f"✅ {message}")
 
-        # Help the student
-        result = helper.help_single_student(
-            repo_url, use_template_direct=one_student)
-
-        # Display result
-        if result.result == OperationResult.SUCCESS:
-            logger.info(f"✅ Successfully helped student: {result.message}")
-        elif result.result == OperationResult.UP_TO_DATE:
-            logger.info(f"ℹ️ Student already up to date: {result.message}")
-        else:
-            logger.error(f"❌ Failed to help student: {result.message}")
-            raise typer.Exit(code=1)
-
-    except ImportError as e:
-        logger.error(f"Failed to import student helper: {e}")
-        raise typer.Exit(code=1)
     except Exception as e:
         logger.error(f"Student assistance failed: {e}")
         raise typer.Exit(code=1)
@@ -513,72 +381,44 @@ def help_student(
 
 @assignments_app.command("help-students")
 def help_students(
+    ctx: typer.Context,
     repo_file: str = typer.Argument(...,
                                     help="File containing student repository URLs"),
     auto_confirm: bool = typer.Option(
         False, "--yes", "-y", help="Automatically confirm all prompts"),
-    verbose: bool = typer.Option(
-        False, "--verbose", "-v", help="Enable verbose output"),
     config_file: str = typer.Option(
         "assignment.conf", "--config", "-c", help="Configuration file path")
 ):
     """
     Help multiple students with repository updates (batch processing).
 
-    This command processes a file containing student repository URLs and helps
-    each student with updates. It provides a summary of successful updates,
-    students who were already up to date, and any errors encountered.
-
-    The repository file should contain one URL per line:
-        https://github.com/org/assignment-student1
-        https://github.com/org/assignment-student2
-        # Comments are ignored
-        https://github.com/org/assignment-student3
-
-    Args:
-        repo_file: Path to file containing student repository URLs
-        auto_confirm: Skip all confirmation prompts
-        verbose: Enable detailed logging
-        config_file: Path to configuration file
-
     Example:
         $ classroom-pilot assignments help-students student-repos.txt
         $ classroom-pilot assignments help-students student-repos.txt --yes
     """
+    # Access universal options from context
+    verbose = ctx.obj.get('verbose', False)
+    dry_run = ctx.obj.get('dry_run', False)
+
     setup_logging(verbose)
-    logger.info("Starting batch student assistance")
 
+    # Delegate to AssignmentService
     try:
-        from .assignments.student_helper import StudentUpdateHelper
+        from .services.assignment_service import AssignmentService
 
-        # Initialize helper
-        config_path = Path(config_file) if config_file else None
-        helper = StudentUpdateHelper(config_path, auto_confirm=auto_confirm)
+        service = AssignmentService(dry_run=dry_run, verbose=verbose)
+        ok, message = service.help_students(
+            repo_file=repo_file,
+            auto_confirm=auto_confirm,
+            config_file=config_file
+        )
 
-        # Validate configuration
-        if not helper.validate_configuration():
-            logger.error("Configuration validation failed")
+        if not ok:
+            logger.error(message)
             raise typer.Exit(code=1)
 
-        # Process students
-        repo_file_path = Path(repo_file)
-        summary = helper.batch_help_students(repo_file_path)
+        logger.info(f"✅ {message}")
 
-        # Display summary
-        helper.display_batch_summary(summary)
-
-        if summary.errors > 0:
-            logger.warning(f"Completed with {summary.errors} errors")
-            raise typer.Exit(code=1)
-        else:
-            logger.info("✅ Batch student assistance completed successfully")
-
-    except ImportError as e:
-        logger.error(f"Failed to import student helper: {e}")
-        raise typer.Exit(code=1)
-    except FileNotFoundError as e:
-        logger.error(f"Repository file not found: {e}")
-        raise typer.Exit(code=1)
     except Exception as e:
         logger.error(f"Batch student assistance failed: {e}")
         raise typer.Exit(code=1)
@@ -586,61 +426,44 @@ def help_students(
 
 @assignments_app.command("check-student")
 def check_student(
+    ctx: typer.Context,
     repo_url: str = typer.Argument(...,
                                    help="Student repository URL to check"),
-    verbose: bool = typer.Option(
-        False, "--verbose", "-v", help="Enable verbose output"),
     config_file: str = typer.Option(
         "assignment.conf", "--config", "-c", help="Configuration file path")
 ):
     """
     Check the status of a student repository.
 
-    This command checks whether a student repository needs updates by comparing
-    commits with the template and classroom repositories. It provides detailed
-    status information including accessibility and update requirements.
-
-    Args:
-        repo_url: URL of the student repository to check
-        verbose: Enable detailed logging
-        config_file: Path to configuration file
-
     Example:
         $ classroom-pilot assignments check-student https://github.com/org/assignment-student123
     """
+    # Access universal options from context
+    verbose = ctx.obj.get('verbose', False)
+    dry_run = ctx.obj.get('dry_run', False)
+
     setup_logging(verbose)
-    logger.info("Checking student repository status")
 
+    # Delegate to AssignmentService
     try:
-        from .assignments.student_helper import StudentUpdateHelper
+        from .services.assignment_service import AssignmentService
 
-        # Initialize helper
-        config_path = Path(config_file) if config_file else None
-        helper = StudentUpdateHelper(config_path)
+        service = AssignmentService(dry_run=dry_run, verbose=verbose)
+        ok, message = service.check_student(
+            repo_url=repo_url,
+            config_file=config_file
+        )
 
-        # Validate configuration
-        if not helper.validate_configuration():
-            logger.error("Configuration validation failed")
-            raise typer.Exit(code=1)
+        if not ok:
+            logger.error(message)
+            # Check if it's an accessibility issue vs update needed
+            if "not accessible" in message:
+                raise typer.Exit(code=1)
+            else:
+                raise typer.Exit(code=2)  # Needs update
 
-        # Check student status
-        status = helper.check_student_status(repo_url)
+        logger.info(f"✅ {message}")
 
-        # Display status
-        helper.display_student_status(status)
-
-        # Exit with appropriate code
-        if not status.accessible:
-            raise typer.Exit(code=1)
-        elif status.needs_update:
-            logger.info("ℹ️ Student needs updates")
-            raise typer.Exit(code=2)
-        else:
-            logger.info("✅ Student is up to date")
-
-    except ImportError as e:
-        logger.error(f"Failed to import student helper: {e}")
-        raise typer.Exit(code=1)
     except Exception as e:
         logger.error(f"Student status check failed: {e}")
         raise typer.Exit(code=1)
@@ -874,16 +697,13 @@ def cycle_single_collaborator(
 
 @assignments_app.command("cycle-collaborators")
 def cycle_multiple_collaborators(
+    ctx: typer.Context,
     batch_file: str = typer.Argument(...,
                                      help="File containing repository URLs or usernames"),
     repo_url_mode: bool = typer.Option(
         False, "--repo-urls", help="Treat batch file as repository URLs (extract usernames)"),
     force: bool = typer.Option(
         False, "--force", "-f", help="Force cycling even when access appears correct"),
-    dry_run: bool = typer.Option(
-        False, "--dry-run", "-n", help="Show what would be done without making changes"),
-    verbose: bool = typer.Option(
-        False, "--verbose", "-v", help="Enable verbose output"),
     config_file: str = typer.Option(
         "assignment.conf", "--config", "-c", help="Configuration file path")
 ):
@@ -904,12 +724,16 @@ def cycle_multiple_collaborators(
         force: Force cycling even when access appears correct
         dry_run: Preview actions without making changes
         verbose: Enable detailed logging
-        config_file: Path to configuration file
+        Supports universal options: --verbose, --dry-run
 
     Example:
         $ classroom-pilot assignments cycle-collaborators student-repos.txt --repo-urls
         $ classroom-pilot assignments cycle-collaborators usernames.txt --force
     """
+    # Access universal options from context
+    verbose = ctx.obj.get('verbose', False)
+    dry_run = ctx.obj.get('dry_run', False)
+
     setup_logging(verbose)
     logger.info("Cycling multiple repository collaborator permissions")
 
@@ -1032,6 +856,7 @@ def check_repository_access(
 
 @assignments_app.command("push-to-classroom")
 def push_to_classroom(
+    ctx: typer.Context,
     force: bool = typer.Option(
         False, "--force", "-f", help="Force push without confirmation"),
     interactive: bool = typer.Option(
@@ -1039,11 +864,7 @@ def push_to_classroom(
     branch: str = typer.Option(
         "main", "--branch", "-b", help="Branch to push to classroom repository"),
     config_file: str = typer.Option(
-        "assignment.conf", "--config", "-c", help="Configuration file path"),
-    verbose: bool = typer.Option(
-        False, "--verbose", "-v", help="Enable verbose output"),
-    dry_run: bool = typer.Option(
-        False, "--dry-run", help="Show what would be done without executing")
+        "assignment.conf", "--config", "-c", help="Configuration file path")
 ):
     """
     Push template repository changes to the classroom repository.
@@ -1073,6 +894,10 @@ def push_to_classroom(
         # Non-interactive mode for automation
         classroom-pilot assignments push-to-classroom --non-interactive --force
     """
+    # Access universal options from context
+    verbose = ctx.obj.get('verbose', False)
+    dry_run = ctx.obj.get('dry_run', False)
+
     try:
         from .assignments.push_manager import ClassroomPushManager, PushResult
 
@@ -1083,8 +908,7 @@ def push_to_classroom(
         if dry_run:
             logger.info("🔍 DRY RUN MODE - No changes will be made")
 
-        # Initialize manager
-        config_path = Path(config_file) if config_file else None
+    # Initialize manager
         manager = ClassroomPushManager(assignment_root=Path.cwd())
         manager.branch = branch
 
@@ -1187,21 +1011,18 @@ def repos_fetch(
         logger.info(
             f"DRY RUN: Would fetch student repositories using config: {config_file}")
         return
-
-    # Use Python implementation
+    # Delegate to ReposService
     try:
-        from .repos.fetch import RepositoryFetcher
+        from .services.repos_service import ReposService
 
-        config_path = Path(config_file) if config_file else None
-        fetcher = RepositoryFetcher(config_path)
-
-        success = fetcher.fetch_all_repositories(verbose=verbose)
-        if not success:
-            logger.error("Repository fetch failed")
+        service = ReposService(dry_run=dry_run, verbose=verbose)
+        ok, message = service.fetch(config_file=config_file)
+        if not ok:
+            logger.error(message)
             raise typer.Exit(code=1)
-
-    except ImportError as e:
-        logger.error(f"Failed to import repos fetcher: {e}")
+        logger.info(f"✅ {message}")
+    except Exception as e:
+        logger.error(f"Repository fetch failed: {e}")
         raise typer.Exit(code=1)
 
 
@@ -1245,22 +1066,18 @@ def repos_update(
             f"DRY RUN: Would update repositories using config: {config_file}")
         return
         return
-
-    # Use Python implementation
+    # Delegate to ReposService
     try:
-        from .assignments.student_helper import StudentUpdateHelper
+        from .services.repos_service import ReposService
 
-        config_path = Path(config_file) if config_file else None
-        helper = StudentUpdateHelper(config_path)
-
-        success, message = helper.execute_update_workflow(
-            auto_confirm=True, verbose=verbose)
-        if not success:
-            logger.error(f"Repository update failed: {message}")
+        service = ReposService(dry_run=dry_run, verbose=verbose)
+        ok, message = service.update(config_file=config_file)
+        if not ok:
+            logger.error(message)
             raise typer.Exit(code=1)
-
-    except ImportError as e:
-        logger.error(f"Failed to import student update helper: {e}")
+        logger.info(f"✅ {message}")
+    except Exception as e:
+        logger.error(f"Repository update failed: {e}")
         raise typer.Exit(code=1)
 
 
@@ -1303,26 +1120,18 @@ def repos_push(
         logger.info(
             f"DRY RUN: Would push to classroom repository using config: {config_file}")
         return
-
-    # Use Python implementation
+    # Delegate to ReposService
     try:
-        from .assignments.push_manager import ClassroomPushManager, PushResult
+        from .services.repos_service import ReposService
 
-        manager = ClassroomPushManager(assignment_root=Path.cwd())
-
-        result, message = manager.execute_push_workflow(
-            force=False, interactive=False)
-
-        if result == PushResult.SUCCESS:
-            logger.info(f"✅ {message}")
-        elif result == PushResult.UP_TO_DATE:
-            logger.info(f"ℹ️ {message}")
-        else:
-            logger.error(f"Repository push failed: {message}")
+        service = ReposService(dry_run=dry_run, verbose=verbose)
+        ok, message = service.push(config_file=config_file)
+        if not ok:
+            logger.error(message)
             raise typer.Exit(code=1)
-
-    except ImportError as e:
-        logger.error(f"Failed to import push manager: {e}")
+        logger.info(f"✅ {message}")
+    except Exception as e:
+        logger.error(f"Repository push failed: {e}")
         raise typer.Exit(code=1)
 
 
@@ -1370,7 +1179,7 @@ def repos_cycle_collaborator(
 
     if verbose:
         logger.debug(
-            f"Verbose mode enabled for cycling collaborator permissions")
+            "Verbose mode enabled for cycling collaborator permissions")
 
     logger.info("Cycling collaborator permissions")
 
@@ -1382,44 +1191,33 @@ def repos_cycle_collaborator(
         logger.info(f"DRY RUN: List mode: {list_collaborators}")
         logger.info(f"DRY RUN: Force mode: {force}")
         return
-
-    # Use Python implementation
+    # Delegate to ReposService
     try:
-        from .assignments.cycle_collaborator import CycleCollaboratorManager
+        from .services.repos_service import ReposService
 
-        config_path = Path(config_file) if config_file else None
-        manager = CycleCollaboratorManager(config_path)
+        service = ReposService(dry_run=dry_run, verbose=verbose)
+        ok, message = service.cycle_collaborator(
+            assignment_prefix=assignment_prefix,
+            username=username,
+            organization=organization,
+            list_collaborators=list_collaborators,
+            force=force,
+            config_file=config_file,
+        )
 
-        # Build repository URL from parameters if provided
-        repo_url = None
-        if assignment_prefix and username and organization:
-            repo_url = f"https://github.com/{organization}/{assignment_prefix}-{username}"
+        if not ok:
+            logger.error(message)
+            raise typer.Exit(code=1)
 
+        # If listing, output collaborators lines
         if list_collaborators:
-            # List mode
-            if repo_url:
-                collaborators = manager.list_repository_collaborators(repo_url)
-                for collab in collaborators:
-                    logger.info(f"  {collab['login']}: {collab['permission']}")
-            else:
-                logger.error(
-                    "Repository URL required for listing collaborators")
-                raise typer.Exit(code=1)
+            for line in message.splitlines():
+                logger.info(line)
         else:
-            # Cycle mode
-            if repo_url:
-                success, message = manager.cycle_single_repository(
-                    repo_url, force=force)
-                if not success:
-                    logger.error(f"Collaborator cycling failed: {message}")
-                    raise typer.Exit(code=1)
-            else:
-                logger.error(
-                    "Repository URL required for cycling collaborators")
-                raise typer.Exit(code=1)
+            logger.info(f"✅ {message}")
 
-    except ImportError as e:
-        logger.error(f"Failed to import cycle collaborator manager: {e}")
+    except Exception as e:
+        logger.error(f"Collaborator cycling failed: {e}")
         raise typer.Exit(code=1)
 
 
@@ -1457,7 +1255,6 @@ def secrets_add(
         $ classroom-pilot secrets add
         $ classroom-pilot secrets add --repos "url1,url2" --verbose --dry-run
     """
-    from .secrets.github_secrets import GitHubSecretsManager
 
     # Access universal options from context
     verbose = ctx.obj.get('verbose', False)
@@ -1505,22 +1302,21 @@ def secrets_add(
                         for url in repo_urls.split(',') if url.strip()]
         logger.info(f"Processing {len(target_repos)} specified repositories")
 
-    # Create secrets manager with global configuration
+    # Delegate secrets deployment to service layer
     try:
-        secrets_manager = GitHubSecretsManager(dry_run=dry_run)
+        from .services.secrets_service import SecretsService
 
-        # Add secrets using global configuration
-        success = secrets_manager.add_secrets_from_global_config(
-            repo_urls=target_repos)
+        service = SecretsService(dry_run=dry_run, verbose=verbose)
+        ok, message = service.add_secrets(repo_urls=target_repos)
 
-        if not success:
-            logger.error("Secret management failed")
+        if not ok:
+            logger.error(f"Secret management failed: {message}")
             raise typer.Exit(code=1)
 
-        logger.info("✅ Secret management completed successfully")
+        logger.info(f"✅ {message}")
 
     except Exception as e:
-        logger.error(f"Failed to initialize secrets manager: {e}")
+        logger.error(f"Secrets command failed: {e}")
         raise typer.Exit(code=1)
 
 
@@ -1597,28 +1393,15 @@ def automation_cron_install(
             logger.info(f"DRY RUN: Schedule: {schedule}")
         logger.info(f"DRY RUN: Config file: {config_file}")
         return
-
     try:
-        from .automation import CronManager
+        from .services.automation_service import AutomationService
 
-        # Load configuration
-        cron_manager = CronManager()
-
-        logger.info(f"Installing cron job for steps: {', '.join(steps)}")
-
-        result, message = cron_manager.install_cron_job(steps, schedule)
-
-        if result.value == "success":
-            typer.echo(f"✅ {message}", color=typer.colors.GREEN)
-        elif result.value == "already_exists":
-            typer.echo(f"⚠️  {message}", color=typer.colors.YELLOW)
-        else:
+        service = AutomationService(dry_run=dry_run, verbose=verbose)
+        ok, message = service.cron_install(steps, schedule, config_file)
+        if not ok:
             typer.echo(f"❌ {message}", color=typer.colors.RED)
             raise typer.Exit(code=1)
-
-    except ImportError as e:
-        logger.error(f"Failed to import required modules: {e}")
-        raise typer.Exit(code=1)
+        typer.echo(f"✅ {message}", color=typer.colors.GREEN)
     except Exception as e:
         logger.error(f"Cron job installation failed: {e}")
         raise typer.Exit(code=1)
@@ -1626,12 +1409,9 @@ def automation_cron_install(
 
 @automation_app.command("cron-remove")
 def automation_cron_remove(
+    ctx: typer.Context,
     steps: Optional[List[str]] = typer.Argument(
         None, help="Workflow steps to remove (sync, secrets, cycle, discover, assist) or 'all'"),
-    dry_run: bool = typer.Option(
-        False, "--dry-run", help="Show what would be done without executing"),
-    verbose: bool = typer.Option(
-        False, "--verbose", "-v", help="Enable verbose output"),
     config_file: str = typer.Option(
         "assignment.conf", "--config", "-c", help="Configuration file path")
 ):
@@ -1646,44 +1426,30 @@ def automation_cron_remove(
         classroom-pilot automation cron-remove all
         classroom-pilot automation cron-remove secrets cycle
     """
+    # Access universal options from context
+    verbose = ctx.obj.get('verbose', False)
+    dry_run = ctx.obj.get('dry_run', False)
+
     setup_logging(verbose)
 
     try:
-        from .automation import CronManager
+        from .services.automation_service import AutomationService
 
-        # Load configuration
-        cron_manager = CronManager()
-
-        # Default to removing all if no steps specified
-        if not steps:
-            steps = "all"
-        elif len(steps) == 1 and steps[0] == "all":
-            steps = "all"
+        service = AutomationService(dry_run=dry_run, verbose=verbose)
 
         if dry_run:
-            if steps == "all":
+            if not steps or (len(steps) == 1 and steps[0] == 'all'):
                 typer.echo("[DRY RUN] Would remove all assignment cron jobs")
             else:
                 typer.echo(
                     f"[DRY RUN] Would remove cron job for steps: {', '.join(steps)}")
             return
 
-        logger.info(
-            f"Removing cron job for steps: {steps if isinstance(steps, str) else ', '.join(steps)}")
-
-        result, message = cron_manager.remove_cron_job(steps)
-
-        if result.value == "success":
-            typer.echo(f"✅ {message}", color=typer.colors.GREEN)
-        elif result.value == "not_found":
-            typer.echo(f"⚠️  {message}", color=typer.colors.YELLOW)
-        else:
+        ok, message = service.cron_remove(steps, config_file)
+        if not ok:
             typer.echo(f"❌ {message}", color=typer.colors.RED)
             raise typer.Exit(code=1)
-
-    except ImportError as e:
-        logger.error(f"Failed to import required modules: {e}")
-        raise typer.Exit(code=1)
+        typer.echo(f"✅ {message}", color=typer.colors.GREEN)
     except Exception as e:
         logger.error(f"Cron job removal failed: {e}")
         raise typer.Exit(code=1)
@@ -1722,12 +1488,15 @@ def automation_cron_status(
         return
 
     try:
-        from .automation import CronManager
+        from .services.automation_service import AutomationService
 
-        # Load configuration
-        cron_manager = CronManager()
-        status = cron_manager.get_cron_status()
+        service = AutomationService(dry_run=dry_run, verbose=verbose)
+        ok, data = service.cron_status(config_file)
+        if not ok:
+            logger.error(data)
+            raise typer.Exit(code=1)
 
+        status = data
         if not status.has_jobs:
             typer.echo("⚠️  No assignment cron jobs are installed",
                        color=typer.colors.YELLOW)
@@ -1748,9 +1517,8 @@ def automation_cron_status(
 
             if status.log_file_exists and status.last_log_activity:
                 typer.echo("📋 Recent log activity:")
-                # Show last few lines, truncated if too long
                 log_lines = status.last_log_activity.splitlines()
-                for line in log_lines[-3:]:  # Show last 3 lines
+                for line in log_lines[-3:]:
                     typer.echo(f"   {line}")
             elif status.log_file_exists:
                 typer.echo("📋 Log file exists but no recent activity")
@@ -1758,9 +1526,6 @@ def automation_cron_status(
                 typer.echo(
                     "⚠️  No log file found - cron jobs may not have run yet")
 
-    except ImportError as e:
-        logger.error(f"Failed to import required modules: {e}")
-        raise typer.Exit(code=1)
     except Exception as e:
         logger.error(f"Failed to get cron job status: {e}")
         raise typer.Exit(code=1)
@@ -1787,19 +1552,13 @@ def automation_cron_logs(
     setup_logging(verbose)
 
     try:
-        from .automation import CronManager
+        from .services.automation_service import AutomationService
 
-        # Load configuration
-        cron_manager = CronManager()
-
-        logger.info(f"Showing recent workflow logs ({lines} lines)...")
-
-        success, output = cron_manager.show_logs(lines)
-
+        service = AutomationService(dry_run=False, verbose=verbose)
+        success, output = service.cron_logs(lines)
         if success:
             typer.echo(output)
         else:
-            # Check if it's a "file not found" case (normal condition)
             if "Log file not found" in output or "not found" in output.lower():
                 typer.echo("📋 No logs available yet",
                            color=typer.colors.YELLOW)
@@ -1808,13 +1567,9 @@ def automation_cron_logs(
                 typer.echo(
                     "Once cron jobs start running, their output will appear here.")
             else:
-                # Other errors should still be reported
                 typer.echo(f"❌ {output}", color=typer.colors.RED)
                 raise typer.Exit(code=1)
 
-    except ImportError as e:
-        logger.error(f"Failed to import required modules: {e}")
-        raise typer.Exit(code=1)
     except Exception as e:
         logger.error(f"Failed to show logs: {e}")
         raise typer.Exit(code=1)
@@ -1832,15 +1587,15 @@ def automation_cron_schedules():
         classroom-pilot automation cron-schedules
     """
     try:
-        from .automation import CronManager
+        from .services.automation_service import AutomationService
 
-        cron_manager = CronManager()
-        output = cron_manager.list_default_schedules()
+        service = AutomationService()
+        ok, output = service.cron_schedules()
+        if not ok:
+            logger.error(output)
+            raise typer.Exit(code=1)
         typer.echo(output)
 
-    except ImportError as e:
-        logger.error(f"Failed to import required modules: {e}")
-        raise typer.Exit(code=1)
     except Exception as e:
         logger.error(f"Failed to list schedules: {e}")
         raise typer.Exit(code=1)
@@ -1848,14 +1603,11 @@ def automation_cron_schedules():
 
 @automation_app.command("cron-sync")
 def automation_cron_sync(
+    ctx: typer.Context,
     steps: List[str] = typer.Argument(
         None, help="Workflow steps to execute (sync, discover, secrets, assist, cycle)"),
     config_file: str = typer.Option(
         "assignment.conf", "--config", "-c", help="Configuration file path"),
-    verbose: bool = typer.Option(
-        False, "--verbose", "-v", help="Enable verbose output"),
-    dry_run: bool = typer.Option(
-        False, "--dry-run", help="Show what would be done without executing"),
     stop_on_failure: bool = typer.Option(
         False, "--stop-on-failure", help="Stop execution on first step failure"),
     show_log: bool = typer.Option(
@@ -1898,86 +1650,71 @@ def automation_cron_sync(
         # Verbose execution for debugging
         classroom-pilot automation cron-sync --verbose sync
     """
+    # Access universal options from context
+    verbose = ctx.obj.get('verbose', False)
+    dry_run = ctx.obj.get('dry_run', False)
+
     try:
-        from .automation.cron_sync import CronSyncManager, CronSyncResult
+        from .services.automation_service import AutomationService
 
-        # Set up logging
-        setup_logging(verbose)
-        logger.info("🔄 Starting automated workflow cron job")
+        service = AutomationService(dry_run=dry_run, verbose=verbose)
+        ok, result = service.cron_sync(
+            steps, dry_run, verbose, stop_on_failure, show_log)
+        if not ok:
+            logger.error(result)
+            raise typer.Exit(code=1)
 
+        # If dry-run, print summary and return
         if dry_run:
-            logger.info("🔍 DRY RUN MODE - No workflow steps will be executed")
-
-        # Initialize manager
-        manager = CronSyncManager(assignment_root=Path.cwd())
-
-        # Default to sync if no steps provided
-        if not steps:
-            steps = ["sync"]
-
-        if dry_run:
-            # Show what would be executed
             logger.info("📋 Workflow steps that would be executed:")
-            for i, step in enumerate(steps, 1):
+            for i, step in enumerate(steps or ["sync"], 1):
                 logger.info(f"  {i}. {step}")
-            logger.info(f"📂 Log file: {manager.log_file}")
+            logger.info(
+                f"📂 Log file: {result.get('log_file') if isinstance(result, dict) else 'unknown'}")
             logger.info(
                 "✅ Dry run completed - use without --dry-run to execute")
             return
 
-        # Execute cron sync workflow
-        result = manager.execute_cron_sync(
-            steps=steps,
-            verbose=verbose,
-            stop_on_failure=stop_on_failure
-        )
+        # Otherwise result is the CronSync result object
+        res = result
+        try:
+            getattr(res, 'overall_result', None)
+        except Exception:
+            pass
 
-        # Report results
-        if result.overall_result == CronSyncResult.SUCCESS:
+        # Attempt to interpret result similar to prior behavior
+        if hasattr(res, 'overall_result') and res.overall_result.name == 'SUCCESS':
             logger.info(
-                f"✅ All workflow steps completed successfully in {result.total_execution_time:.2f}s")
-        elif result.overall_result == CronSyncResult.PARTIAL_FAILURE:
+                f"✅ All workflow steps completed successfully in {getattr(res, 'total_execution_time', 0):.2f}s")
+        elif hasattr(res, 'overall_result') and res.overall_result.name == 'PARTIAL_FAILURE':
             logger.warning(
-                f"⚠️ Some workflow steps failed: {result.error_summary}")
-            logger.info(f"📂 Check log file: {result.log_file_path}")
-        elif result.overall_result == CronSyncResult.COMPLETE_FAILURE:
+                f"⚠️ Some workflow steps failed: {getattr(res, 'error_summary', '')}")
+            logger.info(
+                f"📂 Check log file: {getattr(res, 'log_file_path', '')}")
+        elif hasattr(res, 'overall_result') and res.overall_result.name == 'COMPLETE_FAILURE':
             logger.error(
-                f"❌ All workflow steps failed: {result.error_summary}")
-            logger.error(f"📂 Check log file: {result.log_file_path}")
-        elif result.overall_result == CronSyncResult.ENVIRONMENT_ERROR:
-            logger.error(f"🏗️ Environment error: {result.error_summary}")
-        elif result.overall_result == CronSyncResult.CONFIGURATION_ERROR:
-            logger.error(f"⚙️ Configuration error: {result.error_summary}")
+                f"❌ All workflow steps failed: {getattr(res, 'error_summary', '')}")
+            logger.error(
+                f"📂 Check log file: {getattr(res, 'log_file_path', '')}")
 
-        # Show execution summary
-        if result.steps_executed:
+        if hasattr(res, 'steps_executed') and res.steps_executed:
             logger.info("📊 Step execution summary:")
-            for step_result in result.steps_executed:
+            for step_result in res.steps_executed:
                 status = "✅" if step_result.success else "❌"
                 logger.info(
                     f"  {status} {step_result.step.value}: {step_result.message}")
 
-        # Show log tail if requested
-        if show_log:
+        if show_log and hasattr(res, 'get_log_tail'):
             logger.info("📋 Recent log entries:")
-            log_lines = manager.get_log_tail(20)
-            for line in log_lines[-10:]:  # Show last 10 lines
+            log_lines = res.get_log_tail(20)
+            for line in log_lines[-10:]:
                 logger.info(f"  {line}")
 
-        # Set exit code based on result
-        if result.overall_result in [CronSyncResult.COMPLETE_FAILURE,
-                                     CronSyncResult.ENVIRONMENT_ERROR,
-                                     CronSyncResult.CONFIGURATION_ERROR]:
+        if hasattr(res, 'overall_result') and res.overall_result.name in ['COMPLETE_FAILURE', 'ENVIRONMENT_ERROR', 'CONFIGURATION_ERROR']:
             raise typer.Exit(code=1)
-        elif result.overall_result == CronSyncResult.PARTIAL_FAILURE:
-            raise typer.Exit(code=2)  # Partial failure exit code
+        if hasattr(res, 'overall_result') and res.overall_result.name == 'PARTIAL_FAILURE':
+            raise typer.Exit(code=2)
 
-    except ImportError as e:
-        logger.error(f"Failed to import cron sync manager: {e}")
-        raise typer.Exit(code=1)
-    except KeyboardInterrupt:
-        logger.info("❌ Cron sync cancelled by user")
-        raise typer.Exit(code=1)
     except Exception as e:
         logger.error(f"Cron sync workflow failed: {e}")
         if verbose:
@@ -1988,12 +1725,9 @@ def automation_cron_sync(
 
 @automation_app.command("cron")
 def automation_cron(
+    ctx: typer.Context,
     action: str = typer.Option(
         "status", "--action", "-a", help="Action to perform (status, install, remove)"),
-    dry_run: bool = typer.Option(
-        False, "--dry-run", help="Show what would be done without executing"),
-    verbose: bool = typer.Option(
-        False, "--verbose", "-v", help="Enable verbose output"),
     config_file: str = typer.Option(
         "assignment.conf", "--config", "-c", help="Configuration file path")
 ):
@@ -2013,6 +1747,10 @@ def automation_cron(
         verbose (bool): If True, enables verbose logging output.
         config_file (str): Path to the configuration file to use.
     """
+    # Access universal options from context
+    verbose = ctx.obj.get('verbose', False)
+    dry_run = ctx.obj.get('dry_run', False)
+
     setup_logging(verbose)
 
     typer.echo("⚠️  This is a legacy command. Consider using specific commands:",
@@ -2103,23 +1841,18 @@ def automation_sync(
         logger.info("DRY RUN: Would run scheduled sync")
         logger.info(f"DRY RUN: Config file: {config_file}")
         return
-
-    # Use Python implementation
     try:
-        from .automation.cron_sync import CronSyncManager, CronSyncResult
+        from .services.automation_service import AutomationService
 
-        manager = CronSyncManager(assignment_root=Path.cwd())
-
-        result = manager.execute_cron_sync(["sync"], verbose=verbose)
-
-        if result.overall_result == CronSyncResult.SUCCESS:
-            logger.info("✅ Scheduled sync completed successfully")
-        else:
-            logger.error(f"Scheduled sync failed: {result.error_summary}")
+        service = AutomationService(dry_run=dry_run, verbose=verbose)
+        ok, message = service.sync(
+            config_file=config_file, dry_run=dry_run, verbose=verbose)
+        if not ok:
+            logger.error(message)
             raise typer.Exit(code=1)
-
-    except ImportError as e:
-        logger.error(f"Failed to import cron sync manager: {e}")
+        logger.info(message)
+    except Exception as e:
+        logger.error(f"Scheduled sync failed: {e}")
         raise typer.Exit(code=1)
 
 
@@ -2137,14 +1870,407 @@ def automation_batch():
     setup_logging()
     logger.info("Batch processing interface")
 
-    # TODO: Implement batch processing
-    typer.echo("🚧 Batch processing commands coming soon!")
+    try:
+        from .services.automation_service import AutomationService
+
+        service = AutomationService()
+        ok, message = service.batch()
+        typer.echo(message)
+    except Exception as e:
+        logger.error(f"Batch processing failed: {e}")
+        raise typer.Exit(code=1)
 
 
-def main():
-    """Main entry point for the CLI application."""
-    app()
+# ========================================
+# Configuration Commands
+# ========================================
+
+@config_app.command("set-token")
+def config_set_token(
+    token: str = typer.Argument(
+        ...,
+        help="GitHub Personal Access Token (classic or fine-grained)"
+    ),
+    expires_at: str = typer.Option(
+        None,
+        "--expires-at",
+        "-e",
+        help="Token expiration date in ISO format (e.g., '2026-10-19T00:00:00+00:00')"
+    ),
+    force: bool = typer.Option(
+        False,
+        "--force",
+        "-f",
+        help="Force update even if existing token is valid"
+    )
+):
+    """
+    Update the GitHub Personal Access Token used for API operations.
+
+    This command validates and saves a new GitHub token to the token configuration file.
+    The token is validated for required scopes and expiration before being saved.
+
+    Required token scopes:
+    - repo (Full control of private repositories)
+    - read:org (Read organization data)
+
+    Examples:
+        # Set a new token (expiration auto-detected for fine-grained tokens)
+        classroom-pilot config set-token ghp_YourNewTokenHere
+
+        # Set token with explicit expiration date (for classic tokens)
+        classroom-pilot config set-token ghp_YourToken --expires-at "2026-10-19T00:00:00+00:00"
+
+        # Force update without validation
+        classroom-pilot config set-token ghp_YourNewTokenHere --force
+
+    Generate tokens at: https://github.com/settings/tokens
+    """
+    setup_logging()
+
+    try:
+        from .utils.token_manager import GitHubTokenManager
+        from .utils.github_classroom_api import GitHubClassroomAPI
+
+        logger.info("🔑 Updating GitHub Personal Access Token...")
+
+        # Validate token format
+        if not token.startswith(('ghp_', 'github_pat_')):
+            logger.warning(
+                "⚠️ Token doesn't start with 'ghp_' or 'github_pat_'")
+            logger.warning("This might not be a valid GitHub token format")
+            if not force:
+                confirm = typer.confirm("Continue anyway?")
+                if not confirm:
+                    logger.info("Token update cancelled")
+                    raise typer.Exit(0)
+
+        # Create API client to validate token
+        if not force:
+            logger.info("Validating token...")
+            api_client = GitHubClassroomAPI(token)
+
+            # Check token expiration
+            expiration_info = api_client.check_token_expiration()
+
+            if expiration_info.get('is_expired'):
+                logger.error("❌ Token has already expired!")
+                logger.error(
+                    f"Expired on: {expiration_info.get('expires_at', 'unknown date')}")
+                logger.error(
+                    "Please generate a new token at: https://github.com/settings/tokens")
+                raise typer.Exit(1)
+
+            if not expiration_info.get('is_valid'):
+                error_msg = expiration_info.get('error', 'Unknown error')
+                logger.error(f"❌ Token validation failed: {error_msg}")
+                raise typer.Exit(1)
+
+            # Log expiration info
+            if expiration_info.get('days_remaining') is not None:
+                days = expiration_info['days_remaining']
+                if days <= 7:
+                    logger.warning(f"⚠️ Token expires in {days} days!")
+                elif days <= 30:
+                    logger.info(f"ℹ️ Token expires in {days} days")
+                else:
+                    logger.info(f"✓ Token valid for {days} more days")
+            else:
+                logger.info(
+                    "✓ Token is valid (classic token with no expiration)")
+
+            # Check token scopes
+            scope_info = api_client.validate_token_scopes()
+
+            if not scope_info.get('valid'):
+                logger.error("❌ Token validation failed")
+                raise typer.Exit(1)
+
+            scopes = scope_info.get('scopes', [])
+            logger.info(
+                f"Token scopes: {', '.join(scopes) if scopes else 'none'}")
+
+            # Check for required scopes
+            if not scope_info.get('has_repo'):
+                logger.warning(
+                    "⚠️ Token lacks 'repo' scope - some operations may fail")
+            else:
+                logger.info("✓ Token has 'repo' scope")
+
+            if not scope_info.get('has_read_org'):
+                logger.warning(
+                    "⚠️ Token lacks 'read:org' scope - organization access may be limited")
+            else:
+                logger.info("✓ Token has 'read:org' or 'admin:org' scope")
+
+            # Warn if critical scopes are missing
+            if not scope_info.get('has_repo') or not scope_info.get('has_read_org'):
+                logger.warning("")
+                logger.warning(
+                    "⚠️ IMPORTANT: This token is missing critical scopes!")
+                logger.warning("You may experience authorization failures.")
+                logger.warning("")
+                logger.warning("Required scopes:")
+                logger.warning(
+                    "  ✓ repo - Full control of private repositories")
+                logger.warning("  ✓ read:org - Read organization data")
+                logger.warning("")
+                if not typer.confirm("Do you want to save this token anyway?"):
+                    logger.info("Token update cancelled")
+                    raise typer.Exit(0)
+
+        # Validate expiration date format if provided
+        validated_expires_at = None
+        if expires_at:
+            try:
+                from datetime import datetime
+                # Parse to validate format
+                datetime.fromisoformat(expires_at.replace('Z', '+00:00'))
+                validated_expires_at = expires_at
+                logger.info(f"✓ Expiration date set to: {expires_at}")
+            except ValueError as e:
+                logger.error(f"❌ Invalid date format: {e}")
+                logger.error("Expected ISO format: YYYY-MM-DDTHH:MM:SS+00:00")
+                raise typer.Exit(1)
+
+        # Save token with metadata
+        token_manager = GitHubTokenManager()
+
+        # Get scopes from validation if we ran it, otherwise let save_token detect them
+        scopes_to_save = None
+        if not force:
+            scopes_to_save = scope_info.get('scopes', [])
+
+        success = token_manager.save_token(
+            token,
+            expires_at=validated_expires_at,
+            scopes=scopes_to_save
+        )
+
+        if not success:
+            logger.error("❌ Failed to save token")
+            raise typer.Exit(1)
+
+        logger.info("")
+        logger.info("✅ Token updated successfully!")
+        logger.info(f"Token saved to: {token_manager.config_file}")
+        logger.info("")
+        logger.info(
+            "You can now use classroom-pilot commands with the new token.")
+
+    except Exception as e:
+        logger.error(f"Failed to update token: {e}")
+        raise typer.Exit(1)
+
+
+@config_app.command("check-token")
+def config_check_token():
+    """
+    Check the current GitHub token status, expiration, and scopes.
+
+    This command validates the currently configured token and displays:
+    - Token validity status
+    - Expiration date (for fine-grained tokens)
+    - Days until expiration
+    - Configured scopes
+    - Warnings for missing required scopes
+
+    Example:
+        classroom-pilot config check-token
+    """
+    setup_logging()
+
+    try:
+        from .utils.token_manager import GitHubTokenManager
+        from .utils.github_classroom_api import GitHubClassroomAPI
+
+        logger.info("🔍 Checking GitHub token status...")
+        logger.info("")
+
+        # Get token
+        token_manager = GitHubTokenManager()
+        token = token_manager.get_github_token()
+
+        if not token:
+            logger.error("❌ No GitHub token found!")
+            logger.error("")
+            logger.error("To set a token:")
+            logger.error("  classroom-pilot config set-token <your-token>")
+            logger.error("")
+            logger.error(
+                "Generate tokens at: https://github.com/settings/tokens")
+            raise typer.Exit(1)
+
+        # Create API client
+        api_client = GitHubClassroomAPI(token)
+
+        # Check expiration
+        logger.info("📅 Token Expiration:")
+        expiration_info = api_client.check_token_expiration()
+
+        if expiration_info.get('is_expired'):
+            expires_at = expiration_info.get('expires_at')
+            days_past = abs(expiration_info.get('days_remaining', 0))
+
+            logger.error("  ❌ Token has EXPIRED!")
+            if expires_at:
+                # Format the date in a more readable way
+                try:
+                    from datetime import datetime
+                    dt = datetime.fromisoformat(
+                        expires_at.replace('Z', '+00:00'))
+                    formatted_date = dt.strftime('%B %d, %Y at %I:%M %p %Z')
+                    logger.error(f"  Expired on: {formatted_date}")
+                except Exception:
+                    # Fallback to ISO format if parsing fails
+                    logger.error(f"  Expired on: {expires_at}")
+
+                if days_past > 0:
+                    logger.error(
+                        f"  ({days_past} day{'s' if days_past != 1 else ''} ago)")
+            else:
+                logger.error(
+                    "  Expiration date: Not available in token config")
+            logger.error("")
+            logger.error("🔧 To fix:")
+            logger.error(
+                "  1. Generate new token: https://github.com/settings/tokens")
+            logger.error(
+                "  2. Update token: classroom-pilot config set-token <new-token>")
+            raise typer.Exit(1)
+
+        if not expiration_info.get('is_valid'):
+            error_msg = expiration_info.get('error', 'Unknown error')
+            logger.error(f"  ❌ Token is invalid: {error_msg}")
+            raise typer.Exit(1)
+
+        # Display expiration info
+        if expiration_info.get('days_remaining') is not None:
+            days = expiration_info['days_remaining']
+            expires_at = expiration_info.get('expires_at', 'unknown')
+            if days <= 7:
+                logger.warning(
+                    f"  ⚠️ Expires in {days} days (on {expires_at})")
+                logger.warning("  Consider generating a new token soon!")
+            elif days <= 30:
+                logger.info(f"  ⏰ Expires in {days} days (on {expires_at})")
+            else:
+                logger.info(
+                    f"  ✓ Valid for {days} more days (until {expires_at})")
+            logger.info(
+                f"  Token type: {expiration_info.get('token_type', 'unknown')}")
+        else:
+            # Classic token - check if user manually set expiration in config
+            logger.info("  ✓ Token is valid")
+
+            # Try to get stored expiration date from config file
+            stored_expiration = None
+            try:
+                import json
+                if token_manager.config_file.exists():
+                    with open(token_manager.config_file, 'r') as f:
+                        config_data = json.load(f)
+                        stored_expiration = config_data.get(
+                            'github_token', {}).get('expires_at')
+            except Exception as e:
+                logger.debug(f"Could not read stored expiration: {e}")
+
+            if stored_expiration:
+                # Calculate days remaining from stored expiration
+                try:
+                    from datetime import datetime, timezone
+                    expires_dt = datetime.fromisoformat(
+                        stored_expiration.replace('Z', '+00:00'))
+                    now = datetime.now(timezone.utc)
+                    days_remaining = (expires_dt - now).days
+
+                    # Format the date nicely
+                    formatted_date = expires_dt.strftime(
+                        '%B %d, %Y at %I:%M %p %Z')
+
+                    if days_remaining < 0:
+                        logger.error(f"  ❌ Token expired on: {formatted_date}")
+                        logger.error(f"  ({abs(days_remaining)} days ago)")
+                    elif days_remaining <= 7:
+                        logger.warning(
+                            f"  ⚠️ Expires in {days_remaining} days")
+                        logger.warning(f"  Expiration date: {formatted_date}")
+                        logger.warning(
+                            "  Consider generating a new token soon!")
+                    elif days_remaining <= 30:
+                        logger.info(f"  ⏰ Expires in {days_remaining} days")
+                        logger.info(f"  Expiration date: {formatted_date}")
+                    else:
+                        logger.info(
+                            f"  ✓ Valid for {days_remaining} more days")
+                        logger.info(f"  Expiration date: {formatted_date}")
+
+                    logger.info(
+                        f"  Token type: classic (expiration set manually)")
+                except Exception as e:
+                    logger.debug(
+                        f"Could not parse stored expiration date: {e}")
+                    logger.info(
+                        f"  Expiration date (manually set): {stored_expiration}")
+                    logger.info(f"  Token type: classic")
+            else:
+                logger.info(f"  Token type: classic (no expiration set)")
+                logger.warning(
+                    "  ⚠️ Consider setting an expiration date for tracking:")
+                logger.warning(
+                    "     classroom-pilot config set-token <token> --expires-at <date>")
+
+        logger.info("")
+
+        # Check scopes
+        logger.info("🔐 Token Scopes:")
+        scope_info = api_client.validate_token_scopes()
+
+        if not scope_info.get('valid'):
+            logger.error("  ❌ Could not validate token scopes")
+            raise typer.Exit(1)
+
+        scopes = scope_info.get('scopes', [])
+        if scopes:
+            logger.info(f"  Configured scopes: {', '.join(scopes)}")
+        else:
+            logger.warning("  ⚠️ No scopes found (this is unusual)")
+
+        logger.info("")
+        logger.info("📋 Required Scopes Check:")
+
+        if scope_info.get('has_repo'):
+            logger.info("  ✓ repo - Full control of private repositories")
+        else:
+            logger.error(
+                "  ❌ repo - MISSING! (Required for repository operations)")
+
+        if scope_info.get('has_read_org'):
+            logger.info("  ✓ read:org - Read organization data")
+        else:
+            logger.error(
+                "  ❌ read:org - MISSING! (Required for organization access)")
+
+        logger.info("")
+
+        # Overall status
+        if scope_info.get('has_repo') and scope_info.get('has_read_org'):
+            logger.info(
+                "✅ Token is properly configured with all required scopes!")
+        else:
+            logger.warning("⚠️ Token is missing some required scopes")
+            logger.warning(
+                "Some operations may fail with authorization errors")
+            logger.warning("")
+            logger.warning("To fix:")
+            logger.warning("  1. Generate new token with required scopes")
+            logger.warning(
+                "  2. Update: classroom-pilot config set-token <new-token>")
+
+    except Exception as e:
+        logger.error(f"Failed to check token: {e}")
+        raise typer.Exit(1)
 
 
 if __name__ == "__main__":
-    main()
+    app()

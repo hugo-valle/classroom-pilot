@@ -413,7 +413,7 @@ test_config_validation() {
     fi
     
     # Test configuration validation with classroom-pilot
-    if conda run -n "$TEST_ENV_NAME" classroom-pilot assignments validate-config --config-file "$GENERATED_CONFIG_FILE"; then
+    if conda run -n "$TEST_ENV_NAME" classroom-pilot --config "$GENERATED_CONFIG_FILE" assignments validate-config; then
         mark_test_passed "Configuration validation passed"
     else
         mark_test_failed "Configuration validation" "classroom-pilot config validation failed"
@@ -438,7 +438,7 @@ test_assignment_setup() {
     
     # Test assignment setup in dry-run mode
     log_info "Running assignment setup in dry-run mode"
-    if conda run -n "$TEST_ENV_NAME" classroom-pilot assignments setup --config-file "$GENERATED_CONFIG_FILE" --dry-run --verbose; then
+    if conda run -n "$TEST_ENV_NAME" classroom-pilot --config "$GENERATED_CONFIG_FILE" assignments --dry-run setup --verbose; then
         mark_test_passed "Assignment setup dry-run passed"
     else
         mark_test_failed "Assignment setup" "Assignment setup dry-run failed"
@@ -471,7 +471,7 @@ test_repo_operations() {
     
     # Test collaborator operations (help only - no actual changes)
     log_info "Testing collaborator operations"
-    if conda run -n "$TEST_ENV_NAME" classroom-pilot repos collaborator --help > /dev/null; then
+    if conda run -n "$TEST_ENV_NAME" classroom-pilot repos cycle-collaborator --help > /dev/null; then
         mark_test_passed "Collaborator operations available"
     else
         mark_test_failed "Repository operations" "Collaborator operations not available"
@@ -495,7 +495,7 @@ test_secrets_management() {
     
     # Test secrets validation (dry-run mode only)
     log_info "Testing secrets validation"
-    if conda run -n "$TEST_ENV_NAME" classroom-pilot secrets validate --config-file "$GENERATED_CONFIG_FILE" --dry-run; then
+    if conda run -n "$TEST_ENV_NAME" classroom-pilot --config "$GENERATED_CONFIG_FILE" secrets --dry-run add; then
         mark_test_passed "Secrets validation passed"
     else
         log_warning "Secrets validation failed (this may be expected in test environment)"

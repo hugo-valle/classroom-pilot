@@ -7,71 +7,17 @@ and other common operations used throughout the package.
 Note: This module is being migrated to the utils/ package for better organization.
 """
 
-import logging
 import os
 import re
-import sys
 from pathlib import Path
 from typing import Optional, List, Union
 from urllib.parse import urlparse
 
 # Import from new utils package
-from .utils.logger import setup_logging, get_logger
-from .utils.git import GitManager
-from .utils.paths import PathManager
+from .utils.logger import get_logger
 
 # Initialize logger
 logger = get_logger("utils")
-
-
-def setup_logging(verbose: bool = False) -> None:
-    """
-    Set up logging with colored output for consistency.
-
-    Args:
-        verbose: Enable verbose (DEBUG) logging
-    """
-    # Set logging level
-    level = logging.DEBUG if verbose else logging.INFO
-
-    # Create formatter with colors
-    class ColoredFormatter(logging.Formatter):
-        """Custom formatter with colored output."""
-
-        COLORS = {
-            'DEBUG': '\033[36m',    # Cyan
-            'INFO': '\033[32m',     # Green
-            'WARNING': '\033[33m',  # Yellow
-            'ERROR': '\033[31m',    # Red
-            'CRITICAL': '\033[35m',  # Magenta
-        }
-
-        RESET = '\033[0m'
-
-        def format(self, record):
-            if record.levelname in self.COLORS:
-                record.levelname = f"{self.COLORS[record.levelname]}{record.levelname}{self.RESET}"
-            return super().format(record)
-
-    # Configure handler
-    handler = logging.StreamHandler(sys.stdout)
-
-    if sys.stdout.isatty():
-        # Use colored output for terminal
-        formatter = ColoredFormatter('%(levelname)s: %(message)s')
-    else:
-        # Use plain output for non-terminal (e.g., pipes, files)
-        formatter = logging.Formatter('%(levelname)s: %(message)s')
-
-    handler.setFormatter(formatter)
-
-    # Configure logger
-    logger.setLevel(level)
-    logger.handlers.clear()
-    logger.addHandler(handler)
-
-    # Prevent propagation to root logger
-    logger.propagate = False
 
 
 def validate_github_url(

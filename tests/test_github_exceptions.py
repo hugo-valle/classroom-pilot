@@ -5,12 +5,9 @@ This file combines working tests for existing functionality with skipped tests
 that are marked as TODO for future implementation.
 """
 
-import time
-import unittest.mock
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import patch
 import pytest
 import requests
-from github import GithubException, RateLimitExceededException, BadCredentialsException
 from github import UnknownObjectException
 
 from classroom_pilot.utils.github_exceptions import (

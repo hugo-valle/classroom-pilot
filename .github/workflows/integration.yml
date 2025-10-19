@@ -49,13 +49,13 @@ jobs:
           TEST_REPOS="test-assignment-repo-1,test-assignment-repo-2,test-assignment-repo-3"
           echo "test-org=$TEST_ORG" >> $GITHUB_OUTPUT
           echo "test-repos=$TEST_REPOS" >> $GITHUB_OUTPUT
-          ./.github/scripts/create_integration_test_config.sh basic integration_test_data
+          ./.github/scripts/create_integration_test_config.sh basic tests/fixtures
 
       - name: Upload Integration Test Configuration
         uses: actions/upload-artifact@v4
         with:
           name: integration-test-config
-          path: integration_test_data/
+          path: tests/fixtures/
           retention-days: 1
 
   full-workflow-simulation:
@@ -84,7 +84,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: integration-test-config
-          path: integration_test_data/
+          path: tests/fixtures/
 
       - name: Load Workflow Utilities
         run: |
@@ -95,16 +95,16 @@ jobs:
         run: ./.github/scripts/test_cli_commands.sh
 
       - name: Test Assignment Orchestration Workflow
-        run: ./.github/scripts/run_integration_tests.sh integration_test_data
+        run: ./.github/scripts/run_integration_tests.sh tests/fixtures
 
       - name: Test Repository Fetch Workflow
         run: ./.github/scripts/test_cli_commands.sh
 
       - name: Test Secrets Management Workflow
-        run: ./.github/scripts/run_integration_tests.sh integration_test_data
+        run: ./.github/scripts/run_integration_tests.sh tests/fixtures
 
       - name: Test Complete Multi-Script Workflow
-        run: ./.github/scripts/run_integration_tests.sh integration_test_data
+        run: ./.github/scripts/run_integration_tests.sh tests/fixtures
 
       - name: Export Workflow Metrics
         run: |
@@ -137,7 +137,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: integration-test-config
-          path: integration_test_data/
+          path: tests/fixtures/
 
       - name: Load Workflow Utilities
         run: |
@@ -188,7 +188,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: integration-test-config
-          path: integration_test_data/
+          path: tests/fixtures/
 
       - name: Load Workflow Utilities
         run: |
@@ -196,13 +196,13 @@ jobs:
           echo "Loaded utilities for error recovery testing"
 
       - name: Test Invalid Configuration Handling
-        run: ./.github/scripts/test_error_recovery.sh integration_test_data
+        run: ./.github/scripts/test_error_recovery.sh tests/fixtures
 
       - name: Test Network Failure Simulation
-        run: ./.github/scripts/test_error_recovery.sh integration_test_data
+        run: ./.github/scripts/test_error_recovery.sh tests/fixtures
 
       - name: Test Missing Dependencies Handling
-        run: ./.github/scripts/test_error_recovery.sh integration_test_data
+        run: ./.github/scripts/test_error_recovery.sh tests/fixtures
 
       - name: Export Error Recovery Metrics
         run: |
@@ -235,7 +235,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: integration-test-config
-          path: integration_test_data/
+          path: tests/fixtures/
 
       - name: Load Workflow Utilities
         run: |
@@ -243,13 +243,13 @@ jobs:
           echo "Loaded utilities for configuration validation testing"
 
       - name: Test Basic Configuration Scenarios
-        run: ./.github/scripts/create_integration_test_config.sh minimal integration_test_data
+        run: ./.github/scripts/create_integration_test_config.sh minimal tests/fixtures
 
       - name: Test Advanced Configuration Scenarios
-        run: ./.github/scripts/create_integration_test_config.sh advanced integration_test_data
+        run: ./.github/scripts/create_integration_test_config.sh advanced tests/fixtures
 
       - name: Test Edge Case Configuration Scenarios
-        run: ./.github/scripts/create_integration_test_config.sh edge-case integration_test_data
+        run: ./.github/scripts/create_integration_test_config.sh edge-case tests/fixtures
 
       - name: Export Configuration Validation Metrics
         run: |
@@ -286,7 +286,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: integration-test-config
-          path: integration_test_data/
+          path: tests/fixtures/
 
       - name: Load Workflow Utilities
         run: |
@@ -297,7 +297,7 @@ jobs:
         run: ./.github/scripts/test_cli_commands.sh
 
       - name: Test CLI Cross-Platform Compatibility
-        run: ./.github/scripts/run_integration_tests.sh integration_test_data
+        run: ./.github/scripts/run_integration_tests.sh tests/fixtures
 
       - name: Export Cross-Platform Metrics
         run: |

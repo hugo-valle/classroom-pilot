@@ -10,23 +10,21 @@ This module handles:
 """
 
 from pathlib import Path
-from typing import List, Dict, Optional, Tuple
+from typing import List, Dict, Optional
 import subprocess
 import os
-import re
 from dataclasses import dataclass
 
 try:
-    from github import Github, Repository, GithubException
+    from github import Github, GithubException
     GITHUB_AVAILABLE = True
 except ImportError:
     GITHUB_AVAILABLE = False
 
 from ..utils import get_logger, GitManager, PathManager
 from ..utils.github_exceptions import (
-    GitHubAPIError, GitHubAuthenticationError, GitHubDiscoveryError,
-    GitHubRepositoryError, GitHubNetworkError, github_api_retry,
-    github_api_context, handle_github_errors, is_github_available
+    GitHubAuthenticationError, GitHubDiscoveryError,
+    github_api_retry
 )
 from ..config import ConfigLoader
 

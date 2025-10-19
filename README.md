@@ -229,7 +229,8 @@ ASSIGNMENT_FILE="homework.py"
 GITHUB_HOSTS="github.enterprise.com,git.company.internal"
 
 # Optional: Authentication
-GITHUB_TOKEN_FILE="github_token.txt"
+# Prefer centralized token manager (~/.config/classroom-pilot/token_config.json) or set GITHUB_TOKEN
+# Example (CI): export GITHUB_TOKEN="ghp_your_token_here"
 
 # Optional: Secrets management
 SECRETS_LIST="API_KEY,DATABASE_URL,SECRET_TOKEN"
@@ -269,7 +270,7 @@ classroom-pilot assignments orchestrate
 
 ### Security Guidelines
 
-- **Store GitHub tokens securely** using `GITHUB_TOKEN_FILE`
+- **Store GitHub tokens securely** using the centralized token manager or OS keychain; avoid placing token files in the repository root.
 - **Use environment variables** for sensitive configuration
 - **Review `--dry-run` output** before executing changes
 - **Limit repository access** with proper filtering
