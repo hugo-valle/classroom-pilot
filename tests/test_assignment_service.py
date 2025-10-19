@@ -208,14 +208,22 @@ class TestAssignmentServiceSetup:
 class TestAssignmentServiceOrchestrate:
     """Test assignment orchestration functionality."""
 
-    def test_orchestrate_dry_run(self):
+    @patch('classroom_pilot.assignments.orchestrator.AssignmentOrchestrator')
+    def test_orchestrate_dry_run(self, mock_orchestrator):
         """Test orchestration in dry-run mode."""
+        # Mock the orchestrator and its validation
+        mock_orch = Mock()
+        mock_orch.validate_configuration.return_value = True
+        mock_orchestrator.return_value = mock_orch
+
         service = AssignmentService(dry_run=True)
         success, message = service.orchestrate()
 
         assert success is True
         assert "DRY RUN" in message
         assert "orchestrate assignment workflow" in message
+        # Verify configuration was validated even in dry-run
+        mock_orch.validate_configuration.assert_called_once()
 
     @patch('classroom_pilot.assignments.orchestrator.AssignmentOrchestrator')
     def test_orchestrate_success(self, mock_orchestrator):
@@ -296,10 +304,16 @@ class TestAssignmentServiceStudentHelp:
 
 
 class TestAssignmentServiceIntegration:
-    """Integration tests for AssignmentService."""
+    """Integration tests combining multiple service operations."""
 
-    def test_service_chain_dry_run(self):
+    @patch('classroom_pilot.assignments.orchestrator.AssignmentOrchestrator')
+    def test_service_chain_dry_run(self, mock_orchestrator):
         """Test chaining multiple service calls in dry-run mode."""
+        # Mock the orchestrator for the orchestrate() call
+        mock_orch = Mock()
+        mock_orch.validate_configuration.return_value = True
+        mock_orchestrator.return_value = mock_orch
+
         service = AssignmentService(dry_run=True, verbose=True)
 
         # Test setup
