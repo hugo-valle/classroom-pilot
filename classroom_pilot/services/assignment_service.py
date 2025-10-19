@@ -53,15 +53,6 @@ class AssignmentService:
         Returns:
             Tuple of (success: bool, message: str)
         """
-        # In dry-run mode, just report what would happen
-        if self.dry_run:
-            msg = f"DRY RUN: Would orchestrate assignment workflow using {config_file}"
-            if step:
-                msg += f" (single step: {step})"
-            if skip_steps:
-                msg += f" (skipping: {skip_steps})"
-            return True, msg
-
         try:
             from ..assignments.orchestrator import (
                 AssignmentOrchestrator, WorkflowConfig, WorkflowStep
@@ -71,9 +62,18 @@ class AssignmentService:
             config_path = Path(config_file) if config_file else None
             self.orchestrator = AssignmentOrchestrator(config_path)
 
-            # Validate configuration
+            # Validate configuration (even in dry-run mode to catch errors early)
             if not self.orchestrator.validate_configuration():
                 return False, "Configuration validation failed"
+
+            # In dry-run mode, report what would happen after validation
+            if self.dry_run:
+                msg = f"DRY RUN: Would orchestrate assignment workflow using {config_file}"
+                if step:
+                    msg += f" (single step: {step})"
+                if skip_steps:
+                    msg += f" (skipping: {skip_steps})"
+                return True, msg
 
             # Show configuration summary
             self.orchestrator.show_configuration_summary()
