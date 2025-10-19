@@ -76,6 +76,72 @@ class GitHubTokenManager:
         logger.error("❌ No GitHub token found")
         return None  # Let caller handle the setup
 
+    def save_token(self, token, expires_at=None, scopes=None):
+        """
+        Save a GitHub token to the config file with metadata.
+
+        Args:
+            token (str): The GitHub Personal Access Token
+            expires_at (str, optional): ISO format expiration date (e.g., "2026-10-19T00:00:00+00:00")
+                                       If provided, this OVERRIDES any expiration from GitHub API
+            scopes (list, optional): List of token scopes
+
+        Returns:
+            bool: True if saved successfully, False otherwise
+        """
+        try:
+            # Verify token is valid
+            token_data = self._verify_and_get_token_info(token)
+            if not token_data:
+                logger.error("Failed to verify token")
+                return False
+
+            # IMPORTANT: Override expires_at if provided by user
+            # This allows manual expiration tracking for classic tokens
+            if expires_at:
+                token_data['expires_at'] = expires_at
+                # Mark that this was manually set
+                token_data['expires_at_source'] = 'manual'
+                logger.debug(
+                    f"Using manually provided expiration: {expires_at}")
+            elif token_data.get('expires_at'):
+                # Mark that this came from GitHub API
+                token_data['expires_at_source'] = 'github_api'
+                logger.debug(
+                    f"Using GitHub API expiration: {token_data['expires_at']}")
+            else:
+                # No expiration available
+                token_data['expires_at_source'] = 'none'
+                logger.debug("No expiration date available")
+
+            # Override scopes if provided
+            if scopes:
+                token_data['scopes'] = scopes
+
+            # Create config directory if it doesn't exist
+            self.config_dir.mkdir(parents=True, exist_ok=True)
+
+            # Prepare config data
+            config_data = {
+                'github_token': token_data,
+                'stored_at': datetime.now(timezone.utc).isoformat(),
+                'storage_type': 'config_file'
+            }
+
+            # Write to config file
+            with open(self.config_file, 'w') as f:
+                json.dump(config_data, f, indent=2)
+
+            # Set restrictive permissions (owner read/write only)
+            self.config_file.chmod(0o600)
+
+            logger.debug(f"Token saved to: {self.config_file}")
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to save token: {e}")
+            return False
+
     def setup_new_token(self):
         """Guide user through setting up a new GitHub token.
 
