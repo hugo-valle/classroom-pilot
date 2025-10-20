@@ -225,8 +225,9 @@ mock_environment_setup() {
     ORIGINAL_HOME="$HOME"
     ORIGINAL_PATH="$PATH"
     
-    # Set up mock GitHub token
-    setup_mock_github_token
+    # Set up mock GitHub token (capture output to prevent leaking to stdout)
+    local mock_token
+    mock_token=$(setup_mock_github_token)
     
     # Set up mock paths
     export CLASSROOM_PILOT_TEST_MODE="true"

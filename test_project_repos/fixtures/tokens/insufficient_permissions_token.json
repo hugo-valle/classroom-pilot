@@ -1,0 +1,16 @@
+{
+    "github_token": {
+        "token": "ghp_insufficientPermissionsTestTokenNotReal123456",
+        "verified_at": "2025-10-19T12:00:00Z",
+        "username": "test-user",
+        "user_type": "User",
+        "user_id": "12345678",
+        "scopes": [
+            "repo"
+        ],
+        "expires_at": "2026-10-19T12:00:00Z",
+        "token_type": "classic"
+    },
+    "stored_at": "2025-10-19T12:00:00Z",
+    "storage_type": "config_file"
+}

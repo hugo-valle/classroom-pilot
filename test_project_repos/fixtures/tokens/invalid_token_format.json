@@ -1,0 +1,7 @@
+{
+    "github_token": {
+        "token": "invalid_token_12345_not_a_real_github_token"
+    },
+    "stored_at": "2025-10-19T12:00:00Z",
+    "storage_type": "config_file"
+}

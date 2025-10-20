@@ -1,0 +1,21 @@
+{
+    "github_token": {
+        "token": "ghp_1234567890abcdefghijklmnopqrstuvwxyzABCDEF",
+        "verified_at": "2025-10-19T12:00:00Z",
+        "username": "test-user",
+        "user_type": "User",
+        "user_id": "12345678",
+        "scopes": [
+            "repo",
+            "read:org",
+            "admin:repo_hook",
+            "workflow"
+        ],
+        "expires_at": null,
+        "token_type": "classic",
+        "rate_limit_remaining": "5000",
+        "rate_limit_limit": "5000"
+    },
+    "stored_at": "2025-10-19T12:00:00Z",
+    "storage_type": "config_file"
+}
