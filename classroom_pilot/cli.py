@@ -1228,7 +1228,9 @@ def secrets_add(
     assignment_root: str = typer.Option(
         None, "--assignment-root", "-r", help="Path to assignment template repository root directory"),
     repo_urls: str = typer.Option(
-        None, "--repos", help="Comma-separated list of repository URLs to process")
+        None, "--repos", help="Comma-separated list of repository URLs to process"),
+    force_update: bool = typer.Option(
+        False, "--force", "-f", help="Force update secrets even if they already exist and are up to date")
 ):
     """
     Add or update secrets in student repositories using global configuration.
@@ -1245,6 +1247,8 @@ def secrets_add(
                                        If not provided, uses current directory.
         repo_urls (str, optional): Comma-separated list of repository URLs. If not provided,
                                   auto-discovery will be attempted (when implemented).
+        force_update (bool, optional): Force update secrets even if they already exist and are up to date.
+                                      Useful for fixing incorrect secret values.
 
     Supports universal options: --verbose, --dry-run
 
@@ -1254,6 +1258,7 @@ def secrets_add(
     Example:
         $ classroom-pilot secrets add
         $ classroom-pilot secrets add --repos "url1,url2" --verbose --dry-run
+        $ classroom-pilot secrets add --force  # Force update all secrets
     """
 
     # Access universal options from context
@@ -1307,7 +1312,8 @@ def secrets_add(
         from .services.secrets_service import SecretsService
 
         service = SecretsService(dry_run=dry_run, verbose=verbose)
-        ok, message = service.add_secrets(repo_urls=target_repos)
+        ok, message = service.add_secrets(
+            repo_urls=target_repos, force_update=force_update)
 
         if not ok:
             logger.error(f"Secret management failed: {message}")
