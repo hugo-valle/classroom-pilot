@@ -1042,5 +1042,272 @@ class TestRepositoryFetcherErrorHandling:
             fetcher.discover_repositories('python-basics', 'test-org')
 
 
+class TestRepositoryFetcherFetchAllRepositories:
+    """
+    TestRepositoryFetcherFetchAllRepositories contains unit tests for the fetch_all_repositories
+    method added to RepositoryFetcher. This method is the main entry point that combines
+    repository discovery and fetching into a single workflow.
+
+    Test Cases:
+    - test_fetch_all_repositories_success: Tests successful discovery and fetch workflow
+    - test_fetch_all_repositories_missing_config: Tests error when config missing required fields
+    - test_fetch_all_repositories_no_repos_found: Tests handling when no repositories discovered
+    - test_fetch_all_repositories_all_fetch_failures: Tests when all fetches fail
+    - test_fetch_all_repositories_partial_success: Tests partial success scenario
+    - test_fetch_all_repositories_exception_handling: Tests exception handling
+    """
+
+    @patch('classroom_pilot.repos.fetch.PathManager')
+    @patch('classroom_pilot.repos.fetch.GitManager')
+    @patch('classroom_pilot.repos.fetch.ConfigLoader')
+    def test_fetch_all_repositories_success(self, mock_config_loader, mock_git_manager, mock_path_manager):
+        """
+        Test successful fetch_all_repositories workflow.
+
+        This test verifies that fetch_all_repositories correctly:
+        - Reads configuration for ASSIGNMENT_NAME and GITHUB_ORGANIZATION
+        - Calls discover_repositories with correct parameters
+        - Calls fetch_repositories with discovered repos
+        - Returns True when at least one repository is successfully fetched
+        """
+        mock_config_instance = Mock()
+        mock_config_instance.load.return_value = {
+            'ASSIGNMENT_NAME': 'python-basics',
+            'GITHUB_ORGANIZATION': 'test-org'
+        }
+        mock_config_loader.return_value = mock_config_instance
+
+        fetcher = RepositoryFetcher.__new__(RepositoryFetcher)
+        fetcher.config_loader = mock_config_instance
+        fetcher.config = mock_config_instance.load.return_value
+        fetcher.git_manager = mock_git_manager.return_value
+        fetcher.path_manager = mock_path_manager.return_value
+        fetcher.github_client = None
+
+        # Mock discover_repositories to return test repos
+        test_repos = [
+            RepositoryInfo(
+                name='python-basics-student1',
+                url='https://github.com/test-org/python-basics-student1',
+                clone_url='https://github.com/test-org/python-basics-student1.git',
+                is_student_repo=True,
+                student_identifier='student1'
+            ),
+            RepositoryInfo(
+                name='python-basics-student2',
+                url='https://github.com/test-org/python-basics-student2',
+                clone_url='https://github.com/test-org/python-basics-student2.git',
+                is_student_repo=True,
+                student_identifier='student2'
+            )
+        ]
+
+        # Mock fetch_repositories to return successful results
+        fetch_results = [
+            FetchResult(repository=test_repos[0],
+                        success=True, was_cloned=True),
+            FetchResult(repository=test_repos[1],
+                        success=True, was_cloned=True)
+        ]
+
+        with patch.object(fetcher, 'discover_repositories', return_value=test_repos) as mock_discover, \
+                patch.object(fetcher, 'fetch_repositories', return_value=fetch_results) as mock_fetch:
+
+            result = fetcher.fetch_all_repositories(verbose=True)
+
+            assert result is True
+            mock_discover.assert_called_once_with(
+                assignment_prefix='python-basics',
+                organization='test-org'
+            )
+            mock_fetch.assert_called_once_with(test_repos)
+
+    @patch('classroom_pilot.repos.fetch.PathManager')
+    @patch('classroom_pilot.repos.fetch.GitManager')
+    @patch('classroom_pilot.repos.fetch.ConfigLoader')
+    def test_fetch_all_repositories_missing_config(self, mock_config_loader, mock_git_manager, mock_path_manager):
+        """
+        Test fetch_all_repositories with missing configuration fields.
+
+        This test verifies that fetch_all_repositories returns False and logs
+        an error when required configuration fields are missing.
+        """
+        mock_config_instance = Mock()
+        mock_config_instance.load.return_value = {
+            'GITHUB_ORGANIZATION': 'test-org'
+            # Missing ASSIGNMENT_NAME
+        }
+        mock_config_loader.return_value = mock_config_instance
+
+        fetcher = RepositoryFetcher.__new__(RepositoryFetcher)
+        fetcher.config_loader = mock_config_instance
+        fetcher.config = mock_config_instance.load.return_value
+        fetcher.git_manager = mock_git_manager.return_value
+        fetcher.path_manager = mock_path_manager.return_value
+        fetcher.github_client = None
+
+        result = fetcher.fetch_all_repositories(verbose=False)
+
+        assert result is False
+
+    @patch('classroom_pilot.repos.fetch.PathManager')
+    @patch('classroom_pilot.repos.fetch.GitManager')
+    @patch('classroom_pilot.repos.fetch.ConfigLoader')
+    def test_fetch_all_repositories_no_repos_found(self, mock_config_loader, mock_git_manager, mock_path_manager):
+        """
+        Test fetch_all_repositories when no repositories are discovered.
+
+        This test verifies that fetch_all_repositories returns False and logs
+        a warning when discover_repositories returns an empty list.
+        """
+        mock_config_instance = Mock()
+        mock_config_instance.load.return_value = {
+            'ASSIGNMENT_NAME': 'python-basics',
+            'GITHUB_ORGANIZATION': 'test-org'
+        }
+        mock_config_loader.return_value = mock_config_instance
+
+        fetcher = RepositoryFetcher.__new__(RepositoryFetcher)
+        fetcher.config_loader = mock_config_instance
+        fetcher.config = mock_config_instance.load.return_value
+        fetcher.git_manager = mock_git_manager.return_value
+        fetcher.path_manager = mock_path_manager.return_value
+        fetcher.github_client = None
+
+        with patch.object(fetcher, 'discover_repositories', return_value=[]):
+            result = fetcher.fetch_all_repositories(verbose=False)
+
+            assert result is False
+
+    @patch('classroom_pilot.repos.fetch.PathManager')
+    @patch('classroom_pilot.repos.fetch.GitManager')
+    @patch('classroom_pilot.repos.fetch.ConfigLoader')
+    def test_fetch_all_repositories_all_fetch_failures(self, mock_config_loader, mock_git_manager, mock_path_manager):
+        """
+        Test fetch_all_repositories when all repository fetches fail.
+
+        This test verifies that fetch_all_repositories returns False when
+        all discovered repositories fail to fetch.
+        """
+        mock_config_instance = Mock()
+        mock_config_instance.load.return_value = {
+            'ASSIGNMENT_NAME': 'python-basics',
+            'GITHUB_ORGANIZATION': 'test-org'
+        }
+        mock_config_loader.return_value = mock_config_instance
+
+        fetcher = RepositoryFetcher.__new__(RepositoryFetcher)
+        fetcher.config_loader = mock_config_instance
+        fetcher.config = mock_config_instance.load.return_value
+        fetcher.git_manager = mock_git_manager.return_value
+        fetcher.path_manager = mock_path_manager.return_value
+        fetcher.github_client = None
+
+        test_repos = [
+            RepositoryInfo(
+                name='python-basics-student1',
+                url='https://github.com/test-org/python-basics-student1',
+                clone_url='https://github.com/test-org/python-basics-student1.git',
+                is_student_repo=True
+            )
+        ]
+
+        # All fetches fail
+        fetch_results = [
+            FetchResult(
+                repository=test_repos[0], success=False, error_message="Fetch failed")
+        ]
+
+        with patch.object(fetcher, 'discover_repositories', return_value=test_repos), \
+                patch.object(fetcher, 'fetch_repositories', return_value=fetch_results):
+
+            result = fetcher.fetch_all_repositories(verbose=False)
+
+            assert result is False
+
+    @patch('classroom_pilot.repos.fetch.PathManager')
+    @patch('classroom_pilot.repos.fetch.GitManager')
+    @patch('classroom_pilot.repos.fetch.ConfigLoader')
+    def test_fetch_all_repositories_partial_success(self, mock_config_loader, mock_git_manager, mock_path_manager):
+        """
+        Test fetch_all_repositories with partial success.
+
+        This test verifies that fetch_all_repositories returns True when
+        at least one repository is successfully fetched, even if others fail.
+        """
+        mock_config_instance = Mock()
+        mock_config_instance.load.return_value = {
+            'ASSIGNMENT_NAME': 'python-basics',
+            'GITHUB_ORGANIZATION': 'test-org'
+        }
+        mock_config_loader.return_value = mock_config_instance
+
+        fetcher = RepositoryFetcher.__new__(RepositoryFetcher)
+        fetcher.config_loader = mock_config_instance
+        fetcher.config = mock_config_instance.load.return_value
+        fetcher.git_manager = mock_git_manager.return_value
+        fetcher.path_manager = mock_path_manager.return_value
+        fetcher.github_client = None
+
+        test_repos = [
+            RepositoryInfo(
+                name='python-basics-student1',
+                url='https://github.com/test-org/python-basics-student1',
+                clone_url='https://github.com/test-org/python-basics-student1.git',
+                is_student_repo=True
+            ),
+            RepositoryInfo(
+                name='python-basics-student2',
+                url='https://github.com/test-org/python-basics-student2',
+                clone_url='https://github.com/test-org/python-basics-student2.git',
+                is_student_repo=True
+            )
+        ]
+
+        # One success, one failure
+        fetch_results = [
+            FetchResult(repository=test_repos[0],
+                        success=True, was_cloned=True),
+            FetchResult(
+                repository=test_repos[1], success=False, error_message="Network error")
+        ]
+
+        with patch.object(fetcher, 'discover_repositories', return_value=test_repos), \
+                patch.object(fetcher, 'fetch_repositories', return_value=fetch_results):
+
+            result = fetcher.fetch_all_repositories(verbose=False)
+
+            assert result is True
+
+    @patch('classroom_pilot.repos.fetch.PathManager')
+    @patch('classroom_pilot.repos.fetch.GitManager')
+    @patch('classroom_pilot.repos.fetch.ConfigLoader')
+    def test_fetch_all_repositories_exception_handling(self, mock_config_loader, mock_git_manager, mock_path_manager):
+        """
+        Test fetch_all_repositories exception handling.
+
+        This test verifies that fetch_all_repositories gracefully handles
+        exceptions during the workflow and returns False.
+        """
+        mock_config_instance = Mock()
+        mock_config_instance.load.return_value = {
+            'ASSIGNMENT_NAME': 'python-basics',
+            'GITHUB_ORGANIZATION': 'test-org'
+        }
+        mock_config_loader.return_value = mock_config_instance
+
+        fetcher = RepositoryFetcher.__new__(RepositoryFetcher)
+        fetcher.config_loader = mock_config_instance
+        fetcher.config = mock_config_instance.load.return_value
+        fetcher.git_manager = mock_git_manager.return_value
+        fetcher.path_manager = mock_path_manager.return_value
+        fetcher.github_client = None
+
+        with patch.object(fetcher, 'discover_repositories', side_effect=Exception("Unexpected error")):
+            result = fetcher.fetch_all_repositories(verbose=False)
+
+            assert result is False
+
+
 if __name__ == '__main__':
     pytest.main([__file__])

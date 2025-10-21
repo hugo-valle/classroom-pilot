@@ -803,3 +803,44 @@ Instructional Team
         if self.temp_dir.exists():
             self.logger.info("Cleaning up temporary files...")
             shutil.rmtree(self.temp_dir, ignore_errors=True)
+
+    def execute_update_workflow(self, auto_confirm: bool = False, verbose: bool = False) -> tuple[bool, str]:
+        """
+        Execute the update workflow for student repositories.
+
+        This is the main entry point for updating student repositories. It validates
+        the configuration, checks if the classroom repository is ready, and returns
+        status information.
+
+        Args:
+            auto_confirm (bool): If True, automatically confirm all prompts.
+            verbose (bool): Enable verbose logging output.
+
+        Returns:
+            tuple[bool, str]: Success status and descriptive message.
+
+        Example:
+            >>> helper = StudentUpdateHelper(config_path="assignment.conf")
+            >>> success, message = helper.execute_update_workflow(auto_confirm=True)
+            >>> if success:
+            ...     print(f"Update workflow complete: {message}")
+        """
+        try:
+            # Update auto_confirm if provided
+            if auto_confirm:
+                self.auto_confirm = auto_confirm
+
+            # Validate configuration
+            if not self.validate_configuration():
+                return False, "Configuration validation failed"
+
+            # Check if classroom is ready
+            if not self.check_classroom_ready():
+                return False, "Classroom repository not ready for updates"
+
+            # Return success with message
+            return True, "Update workflow validated successfully"
+
+        except Exception as e:
+            self.logger.error(f"Update workflow failed: {e}")
+            return False, str(e)
