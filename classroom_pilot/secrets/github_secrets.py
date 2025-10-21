@@ -376,12 +376,13 @@ class GitHubSecretsManager:
             f"Batch processing complete: {results['success']} success, {results['failed']} failed")
         return results
 
-    def add_secrets_from_global_config(self, repo_urls: Optional[List[str]] = None) -> bool:
+    def add_secrets_from_global_config(self, repo_urls: Optional[List[str]] = None, force_update: bool = False) -> bool:
         """
         Add secrets to repositories using global configuration.
 
         Args:
             repo_urls: List of repository URLs (if None, auto-discover from config)
+            force_update: Force update secrets even if they already exist and are up to date
 
         Returns:
             True if successful, False otherwise
@@ -452,7 +453,7 @@ class GitHubSecretsManager:
                     secret_config.name,
                     secret_value,
                     secret_config.max_age_days,
-                    force_update=False,
+                    force_update=force_update,
                     skip_validation=not secret_config.validate_format
                 )
 

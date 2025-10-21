@@ -17,13 +17,14 @@ class SecretsService:
         self.dry_run = dry_run
         self.verbose = verbose
 
-    def add_secrets(self, repo_urls: Optional[List[str]] = None) -> Tuple[bool, str]:
+    def add_secrets(self, repo_urls: Optional[List[str]] = None, force_update: bool = False) -> Tuple[bool, str]:
         """
         Execute the secrets deployment flow using the global configuration.
 
         Args:
             repo_urls: Optional list of repository URLs to target. If None,
                 auto-discovery will be attempted by the underlying manager.
+            force_update: Force update secrets even if they already exist and are up to date.
 
         Returns:
             Tuple[bool, str]: (success, message). On success, success=True and
@@ -54,7 +55,7 @@ class SecretsService:
             # name `repo_urls` (not `repository_urls`) — pass the value
             # using the correct keyword to avoid TypeError.
             success = secrets_manager.add_secrets_from_global_config(
-                repo_urls=target_repos)
+                repo_urls=target_repos, force_update=force_update)
 
             if not success:
                 return False, "Secret management failed"
