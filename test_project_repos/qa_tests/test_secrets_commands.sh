@@ -70,6 +70,9 @@ cleanup() {
         rm -rf "$TEST_TEMP_DIR"
     fi
     
+    # Remove test assignment.conf if we created it
+    rm -f "$PROJECT_ROOT/assignment.conf" 2>/dev/null || true
+    
     # Restore original working directory
     cd "$ORIGINAL_PWD" || true
 }
@@ -91,8 +94,14 @@ setup_test_environment() {
     local mock_token
     mock_token=$(setup_mock_github_token)
     
+    # Setup mock GitHub CLI to avoid hitting real API
+    mock_gh_command
+    
     # Create temporary directory for test files
     TEST_TEMP_DIR=$(mktemp -d -t "secrets_test_XXXXXX")
+    
+    # Create assignment.conf in PROJECT_ROOT for commands that require it
+    create_minimal_test_config "$PROJECT_ROOT"
     
     log_info "Test environment ready. Temp dir: $TEST_TEMP_DIR"
 }
@@ -157,6 +166,122 @@ EOF
     fi
     
     echo "$dest_path"
+}
+
+create_secrets_config_with_token() {
+    local config_type="$1"
+    local token_value="${2:-mock_test_token_12345}"
+    local dest_path="${3:-$TEST_TEMP_DIR/assignment.conf}"
+    
+    # Create base config
+    create_test_config "$config_type" "$dest_path"
+    
+    # Append token value to config
+    echo "" >> "$dest_path"
+    echo "# Token values" >> "$dest_path"
+    echo "INSTRUCTOR_TESTS_TOKEN_VALUE=\"$token_value\"" >> "$dest_path"
+    
+    echo "$dest_path"
+}
+
+create_invalid_secrets_config() {
+    local invalid_type="$1"
+    local dest_path="${2:-$TEST_TEMP_DIR/invalid_assignment.conf}"
+    
+    case "$invalid_type" in
+        "malformed_secrets")
+            cat > "$dest_path" <<'EOF'
+CLASSROOM_URL="https://classroom.github.com/classrooms/123/assignments/test"
+GITHUB_ORGANIZATION="test-org"
+ASSIGNMENT_NAME="test-assignment"
+SECRETS_CONFIG="
+MISSING_DESCRIPTION_TOKEN
+INVALID:DELIMITER:FORMAT:EXTRA:false
+NO_REQUIRED_FLAG:Token description
+"
+STEP_MANAGE_SECRETS=true
+EOF
+            ;;
+        "invalid_url")
+            cat > "$dest_path" <<'EOF'
+CLASSROOM_URL="not-a-valid-url"
+GITHUB_ORGANIZATION="test-org"
+ASSIGNMENT_NAME="test-assignment"
+SECRETS_CONFIG="
+TEST_SECRET:Test secret:false
+"
+STEP_MANAGE_SECRETS=true
+EOF
+            ;;
+        "empty_secrets")
+            cat > "$dest_path" <<'EOF'
+CLASSROOM_URL="https://classroom.github.com/classrooms/123/assignments/test"
+GITHUB_ORGANIZATION="test-org"
+ASSIGNMENT_NAME="test-assignment"
+SECRETS_CONFIG=""
+STEP_MANAGE_SECRETS=true
+EOF
+            ;;
+        *)
+            # Use fixture if available
+            local fixture_path="$SECRETS_FIXTURES_DIR/${invalid_type}.conf"
+            if [ -f "$fixture_path" ]; then
+                cp "$fixture_path" "$dest_path"
+            else
+                log_error "Unknown invalid config type: $invalid_type"
+                return 1
+            fi
+            ;;
+    esac
+    
+    echo "$dest_path"
+}
+
+verify_dry_run_output() {
+    local output="$1"
+    local command_description="${2:-command}"
+    
+    # Check for dry-run indicators
+    if echo "$output" | grep -qi "dry.run\|would\|simulation\|preview"; then
+        log_info "✓ Dry-run indicators found in output"
+        return 0
+    else
+        log_error "✗ No dry-run indicators found in output for $command_description"
+        return 1
+    fi
+}
+
+verify_verbose_output() {
+    local output="$1"
+    local expected_details="${2:-}"
+    
+    # Check output length (verbose should be longer)
+    local line_count
+    line_count=$(echo "$output" | wc -l)
+    
+    if [ "$line_count" -gt 5 ]; then
+        log_info "✓ Verbose output detected ($line_count lines)"
+        
+        # Check for common verbose indicators
+        if echo "$output" | grep -qiE "DEBUG|INFO|processing|executing|step"; then
+            log_info "✓ Verbose logging patterns found"
+            
+            # Check for specific expected details if provided
+            if [ -n "$expected_details" ]; then
+                if echo "$output" | grep -q "$expected_details"; then
+                    log_info "✓ Expected details found: $expected_details"
+                    return 0
+                else
+                    log_warning "⚠ Expected details not found: $expected_details"
+                    return 1
+                fi
+            fi
+            return 0
+        fi
+    fi
+    
+    log_error "✗ Insufficient verbose output"
+    return 1
 }
 
 ################################################################################
@@ -401,7 +526,7 @@ test_secrets_add_error_cases() {
     
     # Test without config
     local output exit_code=0
-    output=$(cd "$TEST_TEMP_DIR" && poetry run classroom-pilot secrets add --repos "https://github.com/test-org/repo1" 2>&1) || exit_code=$?
+    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot --assignment-root "$TEST_TEMP_DIR" secrets add --repos "https://github.com/test-org/repo1" 2>&1) || exit_code=$?
     
     if [ $exit_code -ne 0 ]; then
         mark_test_passed "secrets add fails gracefully without config"
@@ -425,7 +550,7 @@ test_secrets_add_force_error_cases() {
     
     # Test --force without config
     local output exit_code=0
-    output=$(cd "$TEST_TEMP_DIR" && poetry run classroom-pilot secrets add --repos "https://github.com/test-org/repo1" --force 2>&1) || exit_code=$?
+    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot --assignment-root "$TEST_TEMP_DIR" secrets add --repos "https://github.com/test-org/repo1" --force 2>&1) || exit_code=$?
     
     if [ $exit_code -ne 0 ]; then
         mark_test_passed "secrets add --force fails gracefully without config"
@@ -484,32 +609,105 @@ test_secrets_manage_dry_run() {
 test_secrets_add_auto_discovery() {
     log_step "Testing secrets add auto-discovery"
     
+    # Seed mock GitHub CLI with predictable repo responses
+    local mock_repos_json
+    mock_repos_json=$(mock_github_repo_list "test-org" 3)
+    
+    # Override mock gh command with specific response for this test
+    local mock_gh_script="$MOCK_DATA_DIR/bin/gh"
+    cat > "$mock_gh_script" <<EOF
+#!/bin/bash
+# Mock gh for auto-discovery test
+case "\$1" in
+    "repo")
+        if [ "\$2" = "list" ]; then
+            echo "test-org/test-assignment-student1"
+            echo "test-org/test-assignment-student2"
+            echo "test-org/test-assignment-student3"
+            exit 0
+        fi
+        ;;
+    "api")
+        echo '$mock_repos_json'
+        exit 0
+        ;;
+    *)
+        echo "gh \$*"
+        exit 0
+        ;;
+esac
+EOF
+    chmod +x "$mock_gh_script"
+    
     local config_file
     config_file=$(create_test_config "basic")
     
     local output exit_code=0
-    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot secrets add 2>&1) || exit_code=$?
+    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot secrets add --dry-run 2>&1) || exit_code=$?
     
-    if echo "$output" | grep -qi "discover\|repository\|classroom"; then
+    # Verify explicit repo names or counts
+    local discovered_count=0
+    if echo "$output" | grep -q "test-assignment-student1"; then
+        discovered_count=$((discovered_count + 1))
+    fi
+    if echo "$output" | grep -q "test-assignment-student2"; then
+        discovered_count=$((discovered_count + 1))
+    fi
+    if echo "$output" | grep -q "test-assignment-student3"; then
+        discovered_count=$((discovered_count + 1))
+    fi
+    
+    if [ $discovered_count -ge 2 ]; then
+        mark_test_passed "secrets add discovers specific repos (found $discovered_count/3)"
+    elif echo "$output" | grep -qi "3.*repositor"; then
+        mark_test_passed "secrets add reports correct repo count"
+    elif echo "$output" | grep -qi "discover\|repository"; then
+        log_warning "Auto-discovery attempted but specific repos not verified"
         mark_test_passed "secrets add attempts auto-discovery"
     else
-        log_warning "Auto-discovery message not detected in output"
+        mark_test_failed "secrets add auto-discovery" "No discovery evidence found in output"
     fi
 }
 
 test_secrets_add_auto_discovery_no_repos() {
     log_step "Testing secrets add auto-discovery with no repos found"
     
+    # Override mock gh command to return empty list
+    local mock_gh_script="$MOCK_DATA_DIR/bin/gh"
+    cat > "$mock_gh_script" <<'EOF'
+#!/bin/bash
+# Mock gh with no repos
+case "$1" in
+    "repo")
+        if [ "$2" = "list" ]; then
+            exit 0
+        fi
+        ;;
+    "api")
+        echo '[]'
+        exit 0
+        ;;
+    *)
+        echo "gh $*"
+        exit 0
+        ;;
+esac
+EOF
+    chmod +x "$mock_gh_script"
+    
     local config_file
     config_file=$(create_test_config "basic")
     
     local output exit_code=0
-    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot secrets add 2>&1) || exit_code=$?
+    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot secrets add --dry-run 2>&1) || exit_code=$?
     
-    if echo "$output" | grep -qi "no repositories\|not found\|unable to discover"; then
-        mark_test_passed "secrets add handles no repos gracefully"
+    # Check for explicit "0 repositories" or "no repositories found" message
+    if echo "$output" | grep -qiE "0 repositor|no repositor.*found|found 0|unable to.*discover"; then
+        mark_test_passed "secrets add reports 0 repos discovered"
+    elif [ $exit_code -ne 0 ] && echo "$output" | grep -qi "no.*repo\|not found"; then
+        mark_test_passed "secrets add handles no repos gracefully with error"
     else
-        log_warning "Expected 'no repositories' message not found"
+        mark_test_failed "secrets add no repos" "Expected explicit '0 repositories' message, got: $output"
     fi
 }
 
@@ -562,7 +760,7 @@ test_secrets_add_dry_run() {
     config_file=$(create_test_config "basic")
     
     local output exit_code=0
-    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot secrets add --repos "https://github.com/test-org/repo1" --dry-run 2>&1) || exit_code=$?
+    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot secrets --dry-run add --repos "https://github.com/test-org/repo1" 2>&1) || exit_code=$?
     
     if echo "$output" | grep -qi "dry run\|would"; then
         mark_test_passed "secrets add --dry-run shows simulation"
@@ -578,7 +776,7 @@ test_secrets_add_verbose_dry_run() {
     config_file=$(create_test_config "basic")
     
     local output exit_code=0
-    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot secrets add --repos "https://github.com/test-org/repo1" --verbose --dry-run 2>&1) || exit_code=$?
+    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot secrets --dry-run add --repos "https://github.com/test-org/repo1" --verbose 2>&1) || exit_code=$?
     
     if echo "$output" | grep -qi "dry\|verbose"; then
         mark_test_passed "secrets add --verbose --dry-run combines options"
@@ -955,10 +1153,10 @@ main() {
     esac
     
     # Display results
-    print_test_summary
+    show_test_summary
     
     # Exit with appropriate code
-    if [ "$FAILED_TESTS" -eq 0 ]; then
+    if [ "$TESTS_FAILED" -eq 0 ]; then
         exit 0
     else
         exit 1

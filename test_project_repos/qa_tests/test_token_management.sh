@@ -65,6 +65,9 @@ cleanup() {
     
     # Note: No keychain cleanup needed - tests use mocked keychain access
     
+    # Remove test assignment.conf if we created it
+    rm -f "$PROJECT_ROOT/assignment.conf" 2>/dev/null || true
+    
     # Restore environment (Comment 9: Proper cleanup of mocked environment)
     unset GITHUB_TOKEN
     restore_environment
@@ -99,6 +102,9 @@ setup_test_environment() {
     
     # Create config directory in mock HOME
     mkdir -p "$TOKEN_CONFIG_DIR"
+    
+    # Create assignment.conf in PROJECT_ROOT for commands that require it
+    create_minimal_test_config "$PROJECT_ROOT"
     
     log_info "Isolated test environment ready"
 }

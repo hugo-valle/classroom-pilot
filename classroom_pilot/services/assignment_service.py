@@ -339,6 +339,11 @@ class AssignmentService:
             Tuple of (success: bool, message: str)
         """
         try:
+            # Early return for dry run mode
+            if self.dry_run:
+                mode = "Template direct" if one_student else "Classroom"
+                return True, f"DRY RUN: Would help student {repo_url} (Mode: {mode})"
+
             from ..assignments.student_helper import StudentUpdateHelper, OperationResult
 
             # Initialize helper
@@ -349,10 +354,6 @@ class AssignmentService:
             # Validate configuration
             if not helper.validate_configuration():
                 return False, "Configuration validation failed"
-
-            if self.dry_run:
-                mode = "Template direct" if one_student else "Classroom"
-                return True, f"DRY RUN: Would help student {repo_url} (Mode: {mode})"
 
             # Help the student
             result = helper.help_single_student(
@@ -389,6 +390,10 @@ class AssignmentService:
             Tuple of (success: bool, message: str)
         """
         try:
+            # Early return for dry run mode
+            if self.dry_run:
+                return True, f"DRY RUN: Would help students from file: {repo_file}"
+
             from ..assignments.student_helper import StudentUpdateHelper
 
             # Initialize helper
@@ -399,9 +404,6 @@ class AssignmentService:
             # Validate configuration
             if not helper.validate_configuration():
                 return False, "Configuration validation failed"
-
-            if self.dry_run:
-                return True, f"DRY RUN: Would help students from file: {repo_file}"
 
             # Process students
             repo_file_path = Path(repo_file)
@@ -439,6 +441,10 @@ class AssignmentService:
             Tuple of (success: bool, message: str)
         """
         try:
+            # Early return for dry run mode
+            if self.dry_run:
+                return True, f"DRY RUN: Would check student repository: {repo_url}"
+
             from ..assignments.student_helper import StudentUpdateHelper
 
             # Initialize helper
@@ -448,9 +454,6 @@ class AssignmentService:
             # Validate configuration
             if not helper.validate_configuration():
                 return False, "Configuration validation failed"
-
-            if self.dry_run:
-                return True, f"DRY RUN: Would check student repository: {repo_url}"
 
             # Check student status
             status = helper.check_student_status(repo_url)

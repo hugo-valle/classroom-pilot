@@ -252,6 +252,14 @@ def assignment_validate_config(
 
     setup_logging(verbose)
 
+    # Get assignment_root from parent context if it was specified
+    assignment_root = ctx.parent.parent.params.get(
+        'assignment_root', None) if ctx.parent and ctx.parent.parent else None
+
+    # Resolve config file path relative to assignment_root if specified
+    if assignment_root and not Path(config_file).is_absolute():
+        config_file = str(Path(assignment_root) / config_file)
+
     if dry_run:
         logger.info(
             f"DRY RUN: Would validate configuration file: {config_file}")
@@ -594,7 +602,7 @@ def assignment_manage(ctx: typer.Context):
     dry_run = ctx.parent.params.get('dry_run', False)
 
     if verbose:
-        setup_logging(level="DEBUG")
+        setup_logging(verbose=True)
         logger.debug("Verbose mode enabled for assignment management")
     else:
         setup_logging()
@@ -645,7 +653,7 @@ def cycle_single_collaborator(
     dry_run = ctx.parent.params.get('dry_run', False)
 
     if verbose:
-        setup_logging(level="DEBUG")
+        setup_logging(verbose=True)
         logger.debug(
             f"Verbose mode enabled for cycling collaborator {username} on {repo_url}")
     else:
@@ -1346,7 +1354,7 @@ def secrets_manage(ctx: typer.Context):
     dry_run = ctx.parent.params.get('dry_run', False)
 
     if verbose:
-        setup_logging(level="DEBUG")
+        setup_logging(verbose=True)
         logger.debug("Verbose mode enabled for secrets management")
     else:
         setup_logging()

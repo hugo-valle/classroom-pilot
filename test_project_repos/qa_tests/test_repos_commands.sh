@@ -64,6 +64,12 @@ cleanup() {
         rm -rf "$TEST_TEMP_DIR"
     fi
     
+    # Remove test assignment.conf if we created it
+    if [ -f "$PROJECT_ROOT/assignment.conf" ]; then
+        rm -f "$PROJECT_ROOT/assignment.conf"
+        log_info "Removed test assignment.conf from PROJECT_ROOT"
+    fi
+    
     # Restore original working directory
     cd "$ORIGINAL_PWD" || true
 }
@@ -87,6 +93,9 @@ setup_test_environment() {
     
     # Create temporary directory for test files
     TEST_TEMP_DIR=$(mktemp -d -t "repos_test_XXXXXX")
+    
+    # Create assignment.conf in PROJECT_ROOT for commands that require it
+    create_minimal_test_config "$PROJECT_ROOT"
     
     log_info "Test environment ready. Temp dir: $TEST_TEMP_DIR"
 }

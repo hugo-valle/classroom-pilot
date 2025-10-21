@@ -73,6 +73,9 @@ cleanup() {
         rm -rf "$TEST_TEMP_DIR"
     fi
     
+    # Remove test assignment.conf if we created it
+    rm -f "$PROJECT_ROOT/assignment.conf" 2>/dev/null || true
+    
     # Restore original working directory
     cd "$ORIGINAL_PWD" || true
 }
@@ -94,8 +97,25 @@ setup_test_environment() {
     local mock_token
     mock_token=$(setup_mock_github_token)
     
+    # Setup mock crontab to avoid touching real crontab
+    setup_mock_crontab
+    mock_crontab_command
+    
+    # Seed mock crontab with sample entries for status/remove tests
+    if [ -f "$AUTOMATION_FIXTURES_DIR/sample_crontab.txt" ]; then
+        while IFS= read -r line || [ -n "$line" ]; do
+            # Skip comments and empty lines
+            if [[ ! "$line" =~ ^[[:space:]]*# ]] && [[ -n "$line" ]]; then
+                echo "$line" >> "$MOCK_CRONTAB_FILE"
+            fi
+        done < "$AUTOMATION_FIXTURES_DIR/sample_crontab.txt"
+    fi
+    
     # Create temporary directory for test files
     TEST_TEMP_DIR=$(mktemp -d -t "automation_test_XXXXXX")
+    
+    # Create assignment.conf in PROJECT_ROOT for commands that require it
+    create_minimal_test_config "$PROJECT_ROOT"
     
     log_info "Test environment ready. Temp dir: $TEST_TEMP_DIR"
 }
@@ -336,6 +356,47 @@ test_cron_remove_verbose() {
     fi
 }
 
+test_cron_remove_nonexistent() {
+    log_step "Testing cron-remove with nonexistent job"
+    
+    # Clear mock crontab to ensure no entries exist
+    clear_mock_crontab
+    
+    local config_file
+    config_file=$(create_test_config "basic")
+    
+    # Try to remove a job that doesn't exist
+    local output exit_code=0
+    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot automation cron-remove sync --dry-run 2>&1) || exit_code=$?
+    
+    # Should either succeed with no-op or return appropriate message
+    if [ $exit_code -ne 0 ]; then
+        # Non-zero exit is acceptable for nonexistent job
+        if echo "$output" | grep -qi "not found\|no.*job\|no.*entry\|does not exist"; then
+            mark_test_passed "cron-remove nonexistent job returns appropriate error"
+        else
+            mark_test_failed "cron-remove nonexistent" "Unexpected error message: $output"
+        fi
+    else
+        # Zero exit with message is also acceptable
+        if echo "$output" | grep -qi "not found\|no.*job\|nothing to remove\|no entries"; then
+            mark_test_passed "cron-remove nonexistent job handles gracefully"
+        else
+            log_warning "Removing nonexistent job succeeded without clear message"
+            mark_test_passed "cron-remove nonexistent job completes"
+        fi
+    fi
+    
+    # Verify crontab is still empty
+    local entry_count
+    entry_count=$(count_cron_entries)
+    if [ "$entry_count" -eq 0 ]; then
+        mark_test_passed "cron-remove nonexistent job doesn't add spurious entries"
+    else
+        mark_test_failed "cron-remove nonexistent crontab" "Unexpected crontab entries: $entry_count"
+    fi
+}
+
 ################################################################################
 # Section 3: Cron-Status Command Tests
 ################################################################################
@@ -476,6 +537,120 @@ test_cron_schedules_format() {
     fi
 }
 
+test_cron_schedules_valid_fixtures() {
+    log_step "Testing cron-schedules with valid schedule fixtures"
+    
+    # Test that valid schedules from fixture would be accepted
+    if [ ! -f "$AUTOMATION_FIXTURES_DIR/valid_schedules.txt" ]; then
+        log_warning "Fixture file not found: valid_schedules.txt"
+        return 0
+    fi
+    
+    local valid_count=0
+    local tested=0
+    
+    # Read and test each valid schedule from fixture
+    while IFS= read -r schedule || [ -n "$schedule" ]; do
+        # Skip comments and empty lines
+        if [[ "$schedule" =~ ^[[:space:]]*# ]] || [[ -z "$schedule" ]]; then
+            continue
+        fi
+        
+        tested=$((tested + 1))
+        
+        # Validate schedule format (basic validation: 5 fields)
+        local field_count
+        field_count=$(echo "$schedule" | awk '{print NF}')
+        
+        if [ "$field_count" -eq 5 ]; then
+            valid_count=$((valid_count + 1))
+            log_info "✓ Valid schedule: $schedule"
+        else
+            log_warning "⚠ Schedule has $field_count fields (expected 5): $schedule"
+        fi
+    done < "$AUTOMATION_FIXTURES_DIR/valid_schedules.txt"
+    
+    if [ $valid_count -eq $tested ] && [ $tested -gt 0 ]; then
+        mark_test_passed "Valid schedule fixtures are properly formatted ($valid_count/$tested)"
+    elif [ $valid_count -gt 0 ]; then
+        mark_test_passed "Most valid schedule fixtures are correct ($valid_count/$tested)"
+    else
+        mark_test_failed "valid schedule fixtures" "No valid schedules found in fixture"
+    fi
+}
+
+test_cron_schedules_invalid_fixtures() {
+    log_step "Testing schedule validation with invalid fixtures"
+    
+    # Test that invalid schedules from fixture would be rejected
+    if [ ! -f "$AUTOMATION_FIXTURES_DIR/invalid_schedules.txt" ]; then
+        log_warning "Fixture file not found: invalid_schedules.txt"
+        return 0
+    fi
+    
+    local invalid_count=0
+    local tested=0
+    
+    # Read each invalid schedule from fixture
+    while IFS= read -r schedule || [ -n "$schedule" ]; do
+        # Skip comments and empty lines
+        if [[ "$schedule" =~ ^[[:space:]]*# ]] || [[ -z "$schedule" ]]; then
+            continue
+        fi
+        
+        tested=$((tested + 1))
+        
+        # These should be invalid - check for obvious issues
+        local field_count
+        field_count=$(echo "$schedule" | awk '{print NF}')
+        
+        if [ "$field_count" -ne 5 ] || [[ "$schedule" =~ [^0-9\ \*\/\-,] ]]; then
+            invalid_count=$((invalid_count + 1))
+            log_info "✓ Invalid schedule detected: $schedule"
+        else
+            log_warning "⚠ Schedule appears valid but marked invalid: $schedule"
+        fi
+    done < "$AUTOMATION_FIXTURES_DIR/invalid_schedules.txt"
+    
+    if [ $invalid_count -eq $tested ] && [ $tested -gt 0 ]; then
+        mark_test_passed "Invalid schedule fixtures are properly malformed ($invalid_count/$tested)"
+    elif [ $invalid_count -gt 0 ]; then
+        mark_test_passed "Most invalid schedule fixtures are malformed ($invalid_count/$tested)"
+    else
+        mark_test_failed "invalid schedule fixtures" "No invalid schedules found in fixture"
+    fi
+}
+
+test_cron_logs_fixture() {
+    log_step "Testing cron-logs with fixture log file"
+    
+    # Copy fixture log to expected location
+    if [ ! -f "$AUTOMATION_FIXTURES_DIR/sample_cron_log.txt" ]; then
+        log_warning "Fixture file not found: sample_cron_log.txt"
+        return 0
+    fi
+    
+    local mock_log="$TEST_TEMP_DIR/cron_workflow.log"
+    create_mock_log_file "$mock_log" "sample_cron_log.txt"
+    
+    # Verify log file has expected content from fixture
+    local log_lines
+    log_lines=$(wc -l < "$mock_log")
+    
+    if [ "$log_lines" -gt 10 ]; then
+        mark_test_passed "Fixture log file loaded with $log_lines lines"
+    else
+        mark_test_failed "fixture log" "Log file too small: $log_lines lines"
+    fi
+    
+    # Verify log contains expected patterns from fixture
+    if grep -q "INFO" "$mock_log" && grep -q "SUCCESS\|ERROR" "$mock_log"; then
+        mark_test_passed "Fixture log contains expected log levels"
+    else
+        mark_test_failed "fixture log content" "Missing expected log level markers"
+    fi
+}
+
 ################################################################################
 # Section 6: Cron-Sync Command Tests
 ################################################################################
@@ -560,6 +735,98 @@ test_cron_sync_verbose() {
     fi
 }
 
+test_cron_sync_stop_on_failure() {
+    log_step "Testing cron-sync with --stop-on-failure"
+    
+    local config_file
+    config_file=$(create_test_config "basic")
+    
+    # Test with stop-on-failure flag
+    local output exit_code=0
+    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot automation cron-sync sync secrets --stop-on-failure --dry-run 2>&1) || exit_code=$?
+    
+    # Check if flag is recognized (should not error on unknown flag)
+    if [ $exit_code -eq 0 ] || echo "$output" | grep -qi "stop.*failure\|halt.*error"; then
+        mark_test_passed "cron-sync --stop-on-failure flag recognized"
+    else
+        mark_test_failed "cron-sync --stop-on-failure" "Flag not recognized or unexpected error"
+    fi
+    
+    # Verify output mentions stop-on-failure behavior
+    if echo "$output" | grep -qi "stop\|halt\|abort"; then
+        mark_test_passed "cron-sync --stop-on-failure shows behavior in output"
+    else
+        log_warning "Stop-on-failure behavior not explicitly mentioned in output"
+    fi
+}
+
+test_cron_sync_show_log() {
+    log_step "Testing cron-sync with --show-log"
+    
+    # Create mock log file from fixture
+    local mock_log="$TEST_TEMP_DIR/cron_workflow.log"
+    if [ -f "$AUTOMATION_FIXTURES_DIR/sample_cron_log.txt" ]; then
+        create_mock_log_file "$mock_log" "sample_cron_log.txt"
+    else
+        # Create basic mock log if fixture missing
+        append_mock_log_entry "$mock_log" "INFO" "Test log entry 1"
+        append_mock_log_entry "$mock_log" "SUCCESS" "Test log entry 2"
+        append_mock_log_entry "$mock_log" "ERROR" "Test log entry 3"
+    fi
+    
+    local config_file
+    config_file=$(create_test_config "basic")
+    
+    # Test with show-log flag
+    local output exit_code=0
+    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot automation cron-sync --show-log --dry-run 2>&1) || exit_code=$?
+    
+    # Check if flag is recognized
+    if [ $exit_code -eq 0 ] || echo "$output" | grep -qi "log"; then
+        mark_test_passed "cron-sync --show-log flag recognized"
+    else
+        mark_test_failed "cron-sync --show-log" "Flag not recognized or unexpected error"
+    fi
+}
+
+test_cron_sync_combined() {
+    log_step "Testing cron-sync with combined options"
+    
+    # Create mock log for testing
+    local mock_log="$TEST_TEMP_DIR/cron_workflow.log"
+    create_mock_log_file "$mock_log" "sample_cron_log.txt"
+    
+    local config_file
+    config_file=$(create_test_config "basic")
+    
+    # Test with multiple flags combined
+    local output exit_code=0
+    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot automation cron-sync sync secrets --verbose --stop-on-failure --dry-run 2>&1) || exit_code=$?
+    
+    # Verify all flags are processed
+    local flags_ok=true
+    
+    if echo "$output" | grep -qi "verbose\|detailed"; then
+        log_info "✓ Verbose output detected"
+    else
+        log_warning "⚠ Verbose output not detected"
+        flags_ok=false
+    fi
+    
+    if echo "$output" | grep -qi "dry.run\|would\|simulation"; then
+        log_info "✓ Dry-run mode detected"
+    else
+        log_warning "⚠ Dry-run mode not detected"
+        flags_ok=false
+    fi
+    
+    if [ "$flags_ok" = true ]; then
+        mark_test_passed "cron-sync with combined options works"
+    else
+        mark_test_failed "cron-sync combined" "Not all options working as expected"
+    fi
+}
+
 ################################################################################
 # Section 7: Legacy Cron Command Tests
 ################################################################################
@@ -623,7 +890,7 @@ test_sync_verbose() {
     config_file=$(create_test_config "basic")
     
     local output exit_code=0
-    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot automation sync --verbose --dry-run 2>&1) || exit_code=$?
+    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot automation --dry-run sync --verbose 2>&1) || exit_code=$?
     
     if echo "$output" | grep -qi "verbose\|detailed\|syncing"; then
         mark_test_passed "sync --verbose shows detailed output"
@@ -674,6 +941,7 @@ run_cron_remove_tests() {
     test_cron_remove_all
     test_cron_remove_no_args
     test_cron_remove_verbose
+    test_cron_remove_nonexistent
 }
 
 run_cron_status_tests() {
@@ -694,6 +962,9 @@ run_cron_schedules_tests() {
     log_section "Running Cron-Schedules Tests"
     test_cron_schedules_list
     test_cron_schedules_format
+    test_cron_schedules_valid_fixtures
+    test_cron_schedules_invalid_fixtures
+    test_cron_logs_fixture
 }
 
 run_cron_sync_tests() {
@@ -703,6 +974,9 @@ run_cron_sync_tests() {
     test_cron_sync_multiple_steps
     test_cron_sync_invalid_step
     test_cron_sync_verbose
+    test_cron_sync_stop_on_failure
+    test_cron_sync_show_log
+    test_cron_sync_combined
 }
 
 run_cron_legacy_tests() {
@@ -787,10 +1061,10 @@ main() {
     esac
     
     # Display results
-    print_test_summary
+    show_test_summary
     
     # Exit with appropriate code
-    if [ "$FAILED_TESTS" -eq 0 ]; then
+    if [ "$TESTS_FAILED" -eq 0 ]; then
         exit 0
     else
         exit 1

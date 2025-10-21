@@ -257,16 +257,24 @@ class TestAssignmentServiceValidateConfig:
         assert "validate configuration" in message
 
     @patch('classroom_pilot.config.ConfigValidator')
-    def test_validate_config_success(self, mock_validator):
+    def test_validate_config_success(self, mock_validator, tmp_path):
         """Test successful config validation."""
+        # Create a temporary config file
+        config_file = tmp_path / "assignment.conf"
+        config_file.write_text("""
+CLASSROOM_URL=https://classroom.github.com/test
+TEMPLATE_REPO_URL=https://github.com/test/template
+GITHUB_ORGANIZATION=test-org
+""")
+
         # Mock the validator
         mock_val = Mock()
         mock_val.validate_config_file.return_value = (True, [])
         mock_validator.return_value = mock_val
 
-        # Use the existing assignment.conf file which exists in the test environment
+        # Validate the config file
         service = AssignmentService(dry_run=False)
-        success, message = service.validate_config("assignment.conf")
+        success, message = service.validate_config(str(config_file))
 
         assert success is True
         assert "is valid" in message

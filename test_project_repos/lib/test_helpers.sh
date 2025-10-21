@@ -75,6 +75,12 @@ log_step() {
     echo ""
 }
 
+# Alias for log_step - for backwards compatibility
+# Usage: log_section "Section Title"
+log_section() {
+    log_step "$@"
+}
+
 # Log debug message in gray (only shown in verbose mode)
 # Usage: log_debug "message"
 log_debug() {
@@ -102,7 +108,8 @@ init_test_tracking() {
 # Usage: mark_test_passed "test_name"
 mark_test_passed() {
     local test_name="$1"
-    ((TESTS_PASSED++))
+    # Use assignment form to avoid non-zero exit codes under 'set -e'
+    TESTS_PASSED=$((TESTS_PASSED + 1))
     log_success "✓ Test passed: $test_name"
 }
 
@@ -111,7 +118,8 @@ mark_test_passed() {
 mark_test_failed() {
     local test_name="$1"
     local reason="${2:-Unknown reason}"
-    ((TESTS_FAILED++))
+    # Use assignment form to avoid non-zero exit codes under 'set -e'
+    TESTS_FAILED=$((TESTS_FAILED + 1))
     FAILED_TESTS+=("$test_name: $reason")
     log_error "✗ Test failed: $test_name - $reason"
 }
@@ -501,13 +509,53 @@ capture_both() {
 }
 
 ################################################################################
+# Test Configuration Helper
+################################################################################
+
+# Create a minimal assignment.conf for testing
+# Usage: create_minimal_test_config "/path/to/project_root"
+# Creates assignment.conf in the specified directory if it doesn't exist
+create_minimal_test_config() {
+    local target_dir="${1:-.}"
+    local config_file="$target_dir/assignment.conf"
+    
+    if [ -f "$config_file" ]; then
+        log_debug "assignment.conf already exists at $config_file"
+        return 0
+    fi
+    
+    log_info "Creating minimal test assignment.conf at $config_file"
+    
+    cat > "$config_file" << 'EOF'
+# Minimal Test Configuration
+# Auto-generated for QA testing
+CLASSROOM_URL=https://classroom.github.com/classrooms/123456/assignments/test-assignment
+TEMPLATE_REPO_URL=https://github.com/test-org/test-assignment-template
+GITHUB_ORGANIZATION=test-org
+ASSIGNMENT_NAME=test-assignment
+ASSIGNMENT_FILE=assignment.ipynb
+CLASSROOM_REPO_URL=https://github.com/test-org/classroom-test-assignment
+COLLABORATOR_USERS=ta1,ta2,instructor
+EOF
+    
+    if [ -f "$config_file" ]; then
+        log_debug "Successfully created test assignment.conf"
+        return 0
+    else
+        log_error "Failed to create test assignment.conf"
+        return 1
+    fi
+}
+
+################################################################################
 # Export all functions
 ################################################################################
 
-export -f log_info log_success log_error log_warning log_step log_debug
+export -f log_info log_success log_error log_warning log_step log_section log_debug
 export -f init_test_tracking mark_test_passed mark_test_failed get_test_summary show_test_summary
 export -f assert_command_exists assert_file_exists assert_file_contains assert_exit_code
 export -f assert_output_contains assert_output_matches assert_not_empty
+export -f create_minimal_test_config
 export -f run_test_case run_command_test create_temp_test_dir cleanup_temp_test_dir setup_test_config
 export -f start_timer stop_timer assert_performance
 export -f capture_stdout capture_stderr capture_both

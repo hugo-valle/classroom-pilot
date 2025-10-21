@@ -247,7 +247,11 @@ class ConfigValidator:
             path = Path(config_path) if not isinstance(
                 config_path, Path) else config_path
 
-            # Load configuration from file
+            # Check if file exists before loading
+            if not path.exists():
+                return False, [f"Configuration file not found: {path}"]
+
+            # Load configuration from file with explicit path
             loader = ConfigLoader(config_path=path)
             config_dict = loader.load()
 

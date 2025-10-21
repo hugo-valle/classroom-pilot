@@ -220,10 +220,20 @@ class TestWorkflowCommands:
             os.getenv("GITHUB_TOKEN") or os.getenv("GH_TOKEN")),
         reason="Skipping orchestration test in CI without GitHub token"
     )
-    def test_assist_command_dry_run(self):
+    def test_assist_command_dry_run(self, tmp_path):
         """Test the assignment orchestrate command (full workflow) in dry-run mode."""
+        # Create a temporary config file
+        config_file = tmp_path / "assignment.conf"
+        config_file.write_text("""
+CLASSROOM_URL=https://classroom.github.com/test
+TEMPLATE_REPO_URL=https://github.com/test/template
+GITHUB_ORGANIZATION=test-org
+ASSIGNMENT_NAME=test-assignment
+""")
+
         success, stdout, stderr = run_cli_command(
-            "python -m classroom_pilot assignments --dry-run --verbose orchestrate")
+            f"python -m classroom_pilot assignments --dry-run --verbose orchestrate --config {config_file}",
+            cwd=tmp_path)
         assert success, f"Assignment orchestrate command failed: {stdout}\n{stderr}"
         # Dry run message appears in stderr from logger
         assert "DRY RUN:" in stderr
