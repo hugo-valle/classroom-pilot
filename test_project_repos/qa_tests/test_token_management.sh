@@ -705,7 +705,7 @@ def mock_requests_get(url, **kwargs):
         }
     return mock_response
 
-with patch('requests.get', side_effect=mock_requests_get):
+with patch('classroom_pilot.utils.token_manager.requests.get', side_effect=mock_requests_get):
     manager = GitHubTokenManager()
     test_token = 'ghp_valid_test_token_12345678901234567890'
     token_data = manager._verify_and_get_token_info(test_token)
@@ -909,7 +909,7 @@ from io import StringIO
 from datetime import datetime, timedelta
 
 # Add project to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
+sys.path.insert(0, '$PROJECT_ROOT')
 
 from classroom_pilot.utils.token_manager import GitHubTokenManager
 
@@ -953,7 +953,7 @@ else:
         mark_test_failed "Token expiration warning" "$message"
     fi
     
-    mock_environment_cleanup
+    restore_environment
     restore_token_config
 }
 
@@ -975,7 +975,7 @@ from io import StringIO
 from datetime import datetime, timedelta
 
 # Add project to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
+sys.path.insert(0, '$PROJECT_ROOT')
 
 from classroom_pilot.utils.token_manager import GitHubTokenManager
 
@@ -1019,7 +1019,7 @@ else:
         mark_test_failed "Expired token handling" "$message"
     fi
     
-    mock_environment_cleanup
+    restore_environment
     restore_token_config
 }
 
@@ -1174,7 +1174,7 @@ def mock_subprocess_run(cmd, **kwargs):
         mock_result.stdout = ''
     return mock_result
 
-with patch('requests.get', side_effect=mock_requests_get):
+with patch('classroom_pilot.utils.token_manager.requests.get', side_effect=mock_requests_get):
     with patch('subprocess.run', side_effect=mock_subprocess_run):
         manager = GitHubTokenManager()
         
@@ -1200,8 +1200,8 @@ with patch('requests.get', side_effect=mock_requests_get):
         print('SUCCESS|Token stored and retrieved from keychain')
 " 2>/dev/null)
     
-    local status=$(echo "$result" | cut -d'|' -f1)
-    local message=$(echo "$result" | cut -d'|' -f2)
+    local status=$(echo "$result" | tail -1 | cut -d'|' -f1)
+    local message=$(echo "$result" | tail -1 | cut -d'|' -f2)
     
     if [ "$status" == "SUCCESS" ]; then
         mark_test_passed "Token export to keychain"
@@ -1323,7 +1323,7 @@ from io import StringIO
 from unittest.mock import patch, MagicMock
 
 # Add project to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
+sys.path.insert(0, '$PROJECT_ROOT')
 
 from classroom_pilot.utils.token_manager import GitHubTokenManager
 
@@ -1408,7 +1408,7 @@ except Exception as e:
         mark_test_failed "Token masking in logs" "$message"
     fi
     
-    mock_environment_cleanup
+    restore_environment
     restore_token_config
 }
 

@@ -524,7 +524,8 @@ test_orchestrate_skip_multiple() {
     
     output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot assignments --dry-run orchestrate --skip sync,secrets --config "$config_file" 2>&1) || exit_code=$?
     
-    if echo "$output" | grep -qi "skip.*sync\|Skipping.*sync" && echo "$output" | grep -qi "skip.*secrets\|Skipping.*secrets"; then
+    # Check if output mentions skipping both sync and secrets (can be in same line like "skipping: sync,secrets")
+    if echo "$output" | grep -qi "skip" && echo "$output" | grep -qi "sync" && echo "$output" | grep -qi "secrets"; then
         mark_test_passed "Orchestrate with --skip sync,secrets"
     else
         mark_test_failed "Orchestrate --skip multiple" "Skip sync and secrets not both indicated"

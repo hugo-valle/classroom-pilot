@@ -752,10 +752,12 @@ def cycle_multiple_collaborators(
         config_path = Path(config_file) if config_file else None
         manager = CycleCollaboratorManager(config_path, auto_confirm=True)
 
-        # Validate configuration
-        if not manager.validate_configuration():
-            logger.error("Configuration validation failed")
-            raise typer.Exit(code=1)
+        # Skip validation in dry-run mode
+        if not dry_run:
+            # Validate configuration
+            if not manager.validate_configuration():
+                logger.error("Configuration validation failed")
+                raise typer.Exit(code=1)
 
         batch_file_path = Path(batch_file)
         if not batch_file_path.exists():

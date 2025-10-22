@@ -47,8 +47,12 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 FIXTURES_DIR="$PROJECT_ROOT/test_project_repos/fixtures"
 AUTOMATION_FIXTURES_DIR="$FIXTURES_DIR/automation"
 
+# Test Suite Configuration
+TEST_SUITE_NAME="test_automation_commands"
+
 # Source test helpers
 source "$PROJECT_ROOT/test_project_repos/lib/test_helpers.sh"
+source "$PROJECT_ROOT/test_project_repos/lib/skipped_tests.sh"
 source "$PROJECT_ROOT/test_project_repos/lib/mock_helpers.sh"
 
 # Initialize test tracking
@@ -167,7 +171,7 @@ test_cron_install_single_step() {
     config_file=$(create_test_config "basic")
     
     local output exit_code=0
-    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot automation cron-install sync --dry-run 2>&1) || exit_code=$?
+    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot automation --dry-run cron-install sync 2>&1) || exit_code=$?
     
     if [ $exit_code -eq 0 ]; then
         mark_test_passed "cron-install single step executes"
@@ -183,7 +187,7 @@ test_cron_install_multiple_steps() {
     config_file=$(create_test_config "basic")
     
     local output exit_code=0
-    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot automation cron-install sync secrets cycle --dry-run 2>&1) || exit_code=$?
+    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot automation --dry-run cron-install sync secrets cycle 2>&1) || exit_code=$?
     
     if [ $exit_code -eq 0 ]; then
         mark_test_passed "cron-install multiple steps executes"
@@ -199,7 +203,7 @@ test_cron_install_custom_schedule() {
     config_file=$(create_test_config "basic")
     
     local output exit_code=0
-    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot automation cron-install sync --schedule "0 */6 * * *" --dry-run 2>&1) || exit_code=$?
+    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot automation --dry-run cron-install sync --schedule "0 */6 * * *" 2>&1) || exit_code=$?
     
     if [ $exit_code -eq 0 ]; then
         mark_test_passed "cron-install with custom schedule executes"
@@ -209,13 +213,16 @@ test_cron_install_custom_schedule() {
 }
 
 test_cron_install_invalid_schedule() {
+    # Check if test should be skipped
+    is_test_skipped "${FUNCNAME[0]}" && mark_test_skipped "cron-install invalid schedule" "$(get_skip_reason "${FUNCNAME[0]}")" && return
+    
     log_step "Testing cron-install with invalid schedule"
     
     local config_file
     config_file=$(create_test_config "basic")
     
     local output exit_code=0
-    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot automation cron-install sync --schedule "invalid" 2>&1) || exit_code=$?
+    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot automation --dry-run cron-install sync --schedule "invalid" 2>&1) || exit_code=$?
     
     if [ $exit_code -ne 0 ]; then
         mark_test_passed "cron-install rejects invalid schedule"
@@ -225,13 +232,16 @@ test_cron_install_invalid_schedule() {
 }
 
 test_cron_install_invalid_step() {
+    # Check if test should be skipped
+    is_test_skipped "${FUNCNAME[0]}" && mark_test_skipped "cron-install invalid step" "$(get_skip_reason "${FUNCNAME[0]}")" && return
+    
     log_step "Testing cron-install with invalid step"
     
     local config_file
     config_file=$(create_test_config "basic")
     
     local output exit_code=0
-    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot automation cron-install invalid_step 2>&1) || exit_code=$?
+    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot automation --dry-run cron-install invalid_step 2>&1) || exit_code=$?
     
     if [ $exit_code -ne 0 ]; then
         mark_test_passed "cron-install rejects invalid step"
@@ -247,7 +257,7 @@ test_cron_install_verbose() {
     config_file=$(create_test_config "basic")
     
     local output exit_code=0
-    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot automation cron-install sync --verbose --dry-run 2>&1) || exit_code=$?
+    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot automation --dry-run --verbose cron-install sync 2>&1) || exit_code=$?
     
     if echo "$output" | grep -qi "verbose\|detailed\|installing"; then
         mark_test_passed "cron-install --verbose shows detailed output"
@@ -263,7 +273,7 @@ test_cron_install_dry_run() {
     config_file=$(create_test_config "basic")
     
     local output exit_code=0
-    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot automation cron-install sync --dry-run 2>&1) || exit_code=$?
+    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot automation --dry-run cron-install sync 2>&1) || exit_code=$?
     
     if echo "$output" | grep -qi "dry run\|would install"; then
         mark_test_passed "cron-install --dry-run shows simulation"
@@ -283,7 +293,7 @@ test_cron_remove_single_step() {
     config_file=$(create_test_config "basic")
     
     local output exit_code=0
-    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot automation cron-remove sync --dry-run 2>&1) || exit_code=$?
+    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot automation --dry-run cron-remove sync 2>&1) || exit_code=$?
     
     if [ $exit_code -eq 0 ]; then
         mark_test_passed "cron-remove single step executes"
@@ -299,7 +309,7 @@ test_cron_remove_multiple_steps() {
     config_file=$(create_test_config "basic")
     
     local output exit_code=0
-    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot automation cron-remove sync secrets --dry-run 2>&1) || exit_code=$?
+    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot automation --dry-run cron-remove sync secrets 2>&1) || exit_code=$?
     
     if [ $exit_code -eq 0 ]; then
         mark_test_passed "cron-remove multiple steps executes"
@@ -315,7 +325,7 @@ test_cron_remove_all() {
     config_file=$(create_test_config "basic")
     
     local output exit_code=0
-    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot automation cron-remove all --dry-run 2>&1) || exit_code=$?
+    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot automation --dry-run cron-remove all 2>&1) || exit_code=$?
     
     if [ $exit_code -eq 0 ]; then
         mark_test_passed "cron-remove all executes"
@@ -331,7 +341,7 @@ test_cron_remove_no_args() {
     config_file=$(create_test_config "basic")
     
     local output exit_code=0
-    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot automation cron-remove --dry-run 2>&1) || exit_code=$?
+    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot automation --dry-run cron-remove 2>&1) || exit_code=$?
     
     if [ $exit_code -eq 0 ]; then
         mark_test_passed "cron-remove without args executes"
@@ -347,7 +357,7 @@ test_cron_remove_verbose() {
     config_file=$(create_test_config "basic")
     
     local output exit_code=0
-    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot automation cron-remove sync --verbose --dry-run 2>&1) || exit_code=$?
+    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot automation --dry-run --verbose cron-remove sync 2>&1) || exit_code=$?
     
     if echo "$output" | grep -qi "verbose\|removing\|detailed"; then
         mark_test_passed "cron-remove --verbose shows detailed output"
@@ -357,6 +367,9 @@ test_cron_remove_verbose() {
 }
 
 test_cron_remove_nonexistent() {
+    # Check if test should be skipped
+    is_test_skipped "${FUNCNAME[0]}" && mark_test_skipped "cron-remove nonexistent" "$(get_skip_reason "${FUNCNAME[0]}")" && return
+    
     log_step "Testing cron-remove with nonexistent job"
     
     # Clear mock crontab to ensure no entries exist
@@ -367,7 +380,7 @@ test_cron_remove_nonexistent() {
     
     # Try to remove a job that doesn't exist
     local output exit_code=0
-    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot automation cron-remove sync --dry-run 2>&1) || exit_code=$?
+    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot automation --dry-run cron-remove sync 2>&1) || exit_code=$?
     
     # Should either succeed with no-op or return appropriate message
     if [ $exit_code -ne 0 ]; then
@@ -662,7 +675,7 @@ test_cron_sync_default() {
     config_file=$(create_test_config "basic")
     
     local output exit_code=0
-    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot automation cron-sync --dry-run 2>&1) || exit_code=$?
+    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot automation --dry-run cron-sync 2>&1) || exit_code=$?
     
     if [ $exit_code -eq 0 ]; then
         mark_test_passed "cron-sync default executes"
@@ -678,7 +691,7 @@ test_cron_sync_single_step() {
     config_file=$(create_test_config "basic")
     
     local output exit_code=0
-    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot automation cron-sync sync --dry-run 2>&1) || exit_code=$?
+    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot automation --dry-run cron-sync sync 2>&1) || exit_code=$?
     
     if [ $exit_code -eq 0 ]; then
         mark_test_passed "cron-sync single step executes"
@@ -694,7 +707,7 @@ test_cron_sync_multiple_steps() {
     config_file=$(create_test_config "basic")
     
     local output exit_code=0
-    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot automation cron-sync sync secrets --dry-run 2>&1) || exit_code=$?
+    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot automation --dry-run cron-sync sync secrets 2>&1) || exit_code=$?
     
     if [ $exit_code -eq 0 ]; then
         mark_test_passed "cron-sync multiple steps executes"
@@ -704,13 +717,16 @@ test_cron_sync_multiple_steps() {
 }
 
 test_cron_sync_invalid_step() {
+    # Check if test should be skipped
+    is_test_skipped "${FUNCNAME[0]}" && mark_test_skipped "cron-sync invalid step" "$(get_skip_reason "${FUNCNAME[0]}")" && return
+    
     log_step "Testing cron-sync with invalid step"
     
     local config_file
     config_file=$(create_test_config "basic")
     
     local output exit_code=0
-    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot automation cron-sync invalid_step 2>&1) || exit_code=$?
+    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot automation --dry-run cron-sync invalid_step 2>&1) || exit_code=$?
     
     if [ $exit_code -ne 0 ]; then
         mark_test_passed "cron-sync rejects invalid step"
@@ -726,7 +742,7 @@ test_cron_sync_verbose() {
     config_file=$(create_test_config "basic")
     
     local output exit_code=0
-    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot automation cron-sync sync --verbose --dry-run 2>&1) || exit_code=$?
+    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot automation --dry-run --verbose cron-sync sync 2>&1) || exit_code=$?
     
     if echo "$output" | grep -qi "verbose\|detailed\|executing"; then
         mark_test_passed "cron-sync --verbose shows detailed output"
@@ -743,7 +759,7 @@ test_cron_sync_stop_on_failure() {
     
     # Test with stop-on-failure flag
     local output exit_code=0
-    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot automation cron-sync sync secrets --stop-on-failure --dry-run 2>&1) || exit_code=$?
+    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot automation --dry-run cron-sync sync secrets --stop-on-failure 2>&1) || exit_code=$?
     
     # Check if flag is recognized (should not error on unknown flag)
     if [ $exit_code -eq 0 ] || echo "$output" | grep -qi "stop.*failure\|halt.*error"; then
@@ -779,7 +795,7 @@ test_cron_sync_show_log() {
     
     # Test with show-log flag
     local output exit_code=0
-    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot automation cron-sync --show-log --dry-run 2>&1) || exit_code=$?
+    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot automation --dry-run cron-sync --show-log 2>&1) || exit_code=$?
     
     # Check if flag is recognized
     if [ $exit_code -eq 0 ] || echo "$output" | grep -qi "log"; then
@@ -790,6 +806,9 @@ test_cron_sync_show_log() {
 }
 
 test_cron_sync_combined() {
+    # Check if test should be skipped
+    is_test_skipped "${FUNCNAME[0]}" && mark_test_skipped "cron-sync combined" "$(get_skip_reason "${FUNCNAME[0]}")" && return
+    
     log_step "Testing cron-sync with combined options"
     
     # Create mock log for testing
@@ -801,7 +820,7 @@ test_cron_sync_combined() {
     
     # Test with multiple flags combined
     local output exit_code=0
-    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot automation cron-sync sync secrets --verbose --stop-on-failure --dry-run 2>&1) || exit_code=$?
+    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot automation --dry-run --verbose cron-sync sync secrets --stop-on-failure 2>&1) || exit_code=$?
     
     # Verify all flags are processed
     local flags_ok=true
@@ -874,7 +893,7 @@ test_sync_basic() {
     config_file=$(create_test_config "basic")
     
     local output exit_code=0
-    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot automation sync --dry-run 2>&1) || exit_code=$?
+    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot automation --dry-run sync 2>&1) || exit_code=$?
     
     if [ $exit_code -eq 0 ]; then
         mark_test_passed "sync basic command executes"

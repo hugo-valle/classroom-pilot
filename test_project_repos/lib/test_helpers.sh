@@ -28,9 +28,13 @@ readonly COLOR_GRAY='\033[0;90m'
 # Test tracking variables - only initialize if unset to preserve existing values
 : "${TESTS_PASSED:=0}"
 : "${TESTS_FAILED:=0}"
-# Initialize FAILED_TESTS array only if not already declared
+: "${TESTS_SKIPPED:=0}"
+# Initialize FAILED_TESTS and SKIPPED_TESTS arrays only if not already declared
 if ! declare -p FAILED_TESTS &>/dev/null; then
     FAILED_TESTS=()
+fi
+if ! declare -p SKIPPED_TESTS &>/dev/null; then
+    SKIPPED_TESTS=()
 fi
 
 # Timer variables
@@ -100,7 +104,9 @@ log_debug() {
 init_test_tracking() {
     TESTS_PASSED=0
     TESTS_FAILED=0
+    TESTS_SKIPPED=0
     FAILED_TESTS=()
+    SKIPPED_TESTS=()
     log_debug "Test tracking counters explicitly reset to zero"
 }
 
@@ -124,17 +130,28 @@ mark_test_failed() {
     log_error "✗ Test failed: $test_name - $reason"
 }
 
+# Mark a test as skipped, add to skipped list, and log warning
+# Usage: mark_test_skipped "test_name" "skip_reason"
+mark_test_skipped() {
+    local test_name="$1"
+    local reason="${2:-Not implemented yet}"
+    # Use assignment form to avoid non-zero exit codes under 'set -e'
+    TESTS_SKIPPED=$((TESTS_SKIPPED + 1))
+    SKIPPED_TESTS+=("$test_name: $reason")
+    log_warning "⊘ Test skipped: $test_name - $reason"
+}
+
 # Get formatted test summary string
 # Usage: summary=$(get_test_summary)
 get_test_summary() {
-    local total=$((TESTS_PASSED + TESTS_FAILED))
+    local total=$((TESTS_PASSED + TESTS_FAILED + TESTS_SKIPPED))
     local success_rate=0
     
     if [ "$total" -gt 0 ]; then
         success_rate=$(awk "BEGIN {printf \"%.1f\", ($TESTS_PASSED / $total) * 100}")
     fi
     
-    echo "Total: $total | Passed: $TESTS_PASSED | Failed: $TESTS_FAILED | Success Rate: ${success_rate}%"
+    echo "Total: $total | Passed: $TESTS_PASSED | Failed: $TESTS_FAILED | Skipped: $TESTS_SKIPPED | Success Rate: ${success_rate}%"
 }
 
 # Display formatted test results summary
@@ -143,7 +160,7 @@ show_test_summary() {
     echo ""
     log_step "Test Results Summary"
     
-    local total=$((TESTS_PASSED + TESTS_FAILED))
+    local total=$((TESTS_PASSED + TESTS_FAILED + TESTS_SKIPPED))
     local success_rate=0
     
     if [ "$total" -gt 0 ]; then
@@ -151,8 +168,9 @@ show_test_summary() {
     fi
     
     echo "Total Tests:    $total"
-    echo "Tests Passed:   ${COLOR_GREEN}$TESTS_PASSED${COLOR_RESET}"
-    echo "Tests Failed:   ${COLOR_RED}$TESTS_FAILED${COLOR_RESET}"
+    echo -e "Tests Passed:   ${COLOR_GREEN}$TESTS_PASSED${COLOR_RESET}"
+    echo -e "Tests Failed:   ${COLOR_RED}$TESTS_FAILED${COLOR_RESET}"
+    echo -e "Tests Skipped:  ${COLOR_YELLOW}$TESTS_SKIPPED${COLOR_RESET}"
     echo "Success Rate:   ${success_rate}%"
     
     if [ "${#FAILED_TESTS[@]}" -gt 0 ]; then
@@ -160,6 +178,14 @@ show_test_summary() {
         log_error "Failed Tests:"
         for failed_test in "${FAILED_TESTS[@]}"; do
             echo "  - $failed_test"
+        done
+    fi
+    
+    if [ "${#SKIPPED_TESTS[@]}" -gt 0 ]; then
+        echo ""
+        log_warning "Skipped Tests (TODO - implement features):"
+        for skipped_test in "${SKIPPED_TESTS[@]}"; do
+            echo "  - $skipped_test"
         done
     fi
     

@@ -69,8 +69,7 @@ class GitHubTokenManager:
             token_data = self._verify_and_get_token_info(token)
             if token_data:
                 self._check_expiration_warning(token_data)
-                return token
-            return token_data['token']
+            return token  # Return token even if verification failed
 
         # 4. No token found - guide user through setup
         logger.error("❌ No GitHub token found")
