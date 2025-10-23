@@ -5,7 +5,6 @@ This module tests the CLI interface for the secrets add command,
 specifically the --force / -f flag for forcing secret updates.
 """
 
-import os
 import pytest
 from unittest.mock import MagicMock, patch
 from typer.testing import CliRunner
@@ -16,21 +15,8 @@ from classroom_pilot.config.global_config import SecretsConfig, GlobalConfig
 
 @pytest.fixture
 def runner():
-    """Create a CLI test runner with config loading disabled for clean help output."""
-    # Store original value if it exists
-    original_value = os.environ.get('CLASSROOM_PILOT_SKIP_CONFIG_LOAD')
-
-    # Set environment variable to skip config loading during help display
-    os.environ['CLASSROOM_PILOT_SKIP_CONFIG_LOAD'] = '1'
-
-    try:
-        yield CliRunner()
-    finally:
-        # Restore original state
-        if original_value is None:
-            os.environ.pop('CLASSROOM_PILOT_SKIP_CONFIG_LOAD', None)
-        else:
-            os.environ['CLASSROOM_PILOT_SKIP_CONFIG_LOAD'] = original_value
+    """Create a CLI test runner."""
+    return CliRunner()
 
 
 @pytest.fixture
@@ -186,7 +172,9 @@ class TestSecretsAddCLIForceFlag:
 
     def test_secrets_add_help_shows_force_option(self, runner):
         """Test that help text shows the --force option."""
-        result = runner.invoke(app, ['secrets', 'add', '--help'])
+        # Mock load_global_config to prevent configuration loading during help display
+        with patch('classroom_pilot.cli.load_global_config'):
+            result = runner.invoke(app, ['secrets', 'add', '--help'])
 
         assert result.exit_code == 0
         assert '--force' in result.output

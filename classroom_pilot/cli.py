@@ -78,12 +78,6 @@ def main(
     if ctx.resilient_parsing:
         return
 
-    # Skip config loading if CLASSROOM_PILOT_SKIP_CONFIG_LOAD env var is set
-    # This is useful for testing help output without configuration pollution
-    import os
-    if os.getenv('CLASSROOM_PILOT_SKIP_CONFIG_LOAD'):
-        return
-
     # Try to load global configuration (don't fail if not found, some commands create it)
     try:
         assignment_root_path = Path(
