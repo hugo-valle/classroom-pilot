@@ -77,7 +77,7 @@ def main(
     if '--help' in sys.argv or '-h' in sys.argv:
         return
 
-    # Check context args (works with CliRunner)
+    # Check context args (works with CliRunner for main command help)
     if '--help' in ctx.args or '-h' in ctx.args:
         return
 
@@ -90,14 +90,16 @@ def main(
         assignment_root_path = Path(
             assignment_root) if assignment_root else None
         load_global_config(config_file, assignment_root_path)
-        logger.info("✅ Global configuration loaded and ready")
+        # Only log success at DEBUG level to avoid polluting help output
+        logger.debug("✅ Global configuration loaded and ready")
     except FileNotFoundError:
         # Config file not found - this is OK for commands like 'assignments setup'
         logger.debug(
             f"Configuration file {config_file} not found - will be created by setup command")
     except Exception as e:
         logger.warning(f"Failed to load configuration: {e}")
-        logger.info("Some commands may not work properly without configuration")
+        logger.debug(
+            "Some commands may not work properly without configuration")
 
 
 # Create subcommand groups

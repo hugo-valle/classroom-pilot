@@ -170,13 +170,12 @@ class TestSecretsAddCLIForceFlag:
         assert call_kwargs.get('force_update') is True
         assert call_kwargs.get('repo_urls') is None  # Auto-discovery
 
-    @patch('classroom_pilot.cli.load_global_config')
-    def test_secrets_add_help_shows_force_option(self, mock_load_config, runner):
+    def test_secrets_add_help_shows_force_option(self, runner):
         """Test that help text shows the --force option."""
         result = runner.invoke(app, ['secrets', 'add', '--help'])
 
         assert result.exit_code == 0
-        # Check for --force option in output (may include log messages in CI)
+        # Check for --force option in output (should be clean without log pollution)
         assert '--force' in result.output, f"Expected '--force' in output, but got: {result.output[:500]}"
         assert '-f' in result.output, f"Expected '-f' in output, but got: {result.output[:500]}"
         # Check for force update description
