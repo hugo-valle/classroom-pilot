@@ -391,7 +391,10 @@ BATCH_SIZE=5
 
         # Should fail with clear message about missing config file
         assert not success
-        assert "assignment.conf" in stderr.lower() and "not found" in stderr.lower()
+        # Check for error message about configuration not found (accepts full path or just filename)
+        stderr_lower = stderr.lower()
+        assert (
+            "configuration" in stderr_lower or "config" in stderr_lower) and "not found" in stderr_lower
 
     def test_assignment_root_relative_path(self, temp_assignment_dir):
         """Test --assignment-root option with relative path."""

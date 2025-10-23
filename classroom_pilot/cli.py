@@ -70,11 +70,18 @@ def main(
     setup_logging()
 
     # Skip configuration loading if we're just showing help
-    # This prevents log output pollution when displaying help text
+    # Check multiple ways to detect help mode:
+    # 1. sys.argv for terminal usage
+    # 2. context args for CliRunner usage
+    # 3. Resilient parsing mode
     if '--help' in sys.argv or '-h' in sys.argv:
         return
 
-    # Also check if we're in a help context via Click's context
+    # Check context args (works with CliRunner)
+    if '--help' in ctx.args or '-h' in ctx.args:
+        return
+
+    # Also skip if this is resilient parsing mode
     if ctx.resilient_parsing:
         return
 
