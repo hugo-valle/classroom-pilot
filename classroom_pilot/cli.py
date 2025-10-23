@@ -40,7 +40,7 @@ app = typer.Typer(
 )
 
 
-@app.callback(invoke_without_command=True)
+@app.callback()
 def main(
     ctx: typer.Context,
     version: bool = typer.Option(
@@ -71,7 +71,6 @@ def main(
 
     # Skip configuration loading if we're just showing help
     # This prevents log output pollution when displaying help text
-    # Check both sys.argv (for direct CLI invocation) and context (for test runner)
     if '--help' in sys.argv or '-h' in sys.argv:
         return
 
