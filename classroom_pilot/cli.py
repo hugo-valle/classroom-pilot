@@ -40,8 +40,9 @@ app = typer.Typer(
 )
 
 
-@app.callback()
+@app.callback(invoke_without_command=True)
 def main(
+    ctx: typer.Context,
     version: bool = typer.Option(
         False,
         "--version",
@@ -70,7 +71,12 @@ def main(
 
     # Skip configuration loading if we're just showing help
     # This prevents log output pollution when displaying help text
+    # Check both sys.argv (for direct CLI invocation) and context (for test runner)
     if '--help' in sys.argv or '-h' in sys.argv:
+        return
+
+    # Also check if we're in a help context via Click's context
+    if ctx.resilient_parsing:
         return
 
     # Try to load global configuration (don't fail if not found, some commands create it)
