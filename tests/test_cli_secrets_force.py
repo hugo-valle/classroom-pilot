@@ -20,6 +20,16 @@ def runner():
 
 
 @pytest.fixture
+def wide_runner():
+    """Create a CLI test runner with wide terminal for full help text."""
+    # Set env with multiple variables to ensure full help text rendering:
+    # - COLUMNS: Set wide terminal width
+    # - LINES: Set tall terminal height
+    # - TERM: Set terminal type to ensure full output
+    return CliRunner(env={"COLUMNS": "200", "LINES": "100", "TERM": "xterm-256color"})
+
+
+@pytest.fixture
 def mock_global_config():
     """Create a mock global configuration."""
     config = MagicMock(spec=GlobalConfig)
@@ -170,14 +180,26 @@ class TestSecretsAddCLIForceFlag:
         assert call_kwargs.get('force_update') is True
         assert call_kwargs.get('repo_urls') is None  # Auto-discovery
 
-    def test_secrets_add_help_shows_force_option(self, runner):
-        """Test that help text shows the --force option."""
-        result = runner.invoke(app, ['secrets', 'add', '--help'])
+    def test_secrets_add_help_shows_force_option(self, wide_runner):
+        """Test that help text shows the --force option with wide terminal."""
+        import re
+
+        result = wide_runner.invoke(app, ['secrets', 'add', '--help'])
 
         assert result.exit_code == 0
-        assert '--force' in result.output
-        assert '-f' in result.output
-        assert 'Force update' in result.output or 'force update' in result.output
+
+        # Strip ANSI escape codes for reliable testing
+        ansi_escape = re.compile(r'\x1b\[[0-9;]*m')
+        clean_output = ansi_escape.sub('', result.output)
+
+        # Check for --force option in output (should be clean without log pollution)
+        # Using wide terminal (COLUMNS=200) ensures full help text renders in CI
+        assert '--force' in clean_output, f"Expected '--force' in output, but got: {clean_output[:500]}"
+        assert '-f' in clean_output, f"Expected '-f' in output, but got: {clean_output[:500]}"
+        # Check for force update description
+        output_lower = clean_output.lower()
+        assert 'force' in output_lower and 'update' in output_lower, \
+            f"Expected force update description in output, but got: {clean_output[:500]}"
 
     @patch('classroom_pilot.cli.get_global_config')
     def test_secrets_add_force_with_no_config(self, mock_get_config, runner):

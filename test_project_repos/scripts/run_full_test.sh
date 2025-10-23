@@ -398,7 +398,9 @@ run_qa_tests() {
     
     # Source helper libraries for QA tests
     if [ -f "$LIB_DIR/test_helpers.sh" ]; then
-        # Source in current shell but save our logging functions
+        # Source in current shell but preserve our logging functions and test counters
+        # Note: test_helpers.sh guards its counter initialization, so TESTS_PASSED/FAILED
+        # and FAILED_TESTS are preserved when already set (see test_helpers.sh header)
         _orchestrator_log_info="$( declare -f log_info )"
         _orchestrator_log_success="$( declare -f log_success )"
         _orchestrator_log_error="$( declare -f log_error )"
@@ -409,6 +411,7 @@ run_qa_tests() {
         log_info "Loaded test helper library"
         
         # Restore orchestrator logging functions after sourcing
+        # (Test counters are automatically preserved by guarded initialization in helpers)
         eval "$_orchestrator_log_info"
         eval "$_orchestrator_log_success"
         eval "$_orchestrator_log_error"

@@ -665,3 +665,64 @@ class RepositoryFetcher:
         summary['other_repos'] = summary['total'] - \
             summary['student_repos'] - summary['template_repos']
         return summary
+
+    def fetch_all_repositories(self, verbose: bool = False) -> bool:
+        """
+        Discover and fetch all student repositories for the configured assignment.
+
+        This is the main entry point that combines repository discovery and fetching
+        into a single operation. It uses the configuration to determine the assignment
+        prefix and organization, then discovers and fetches all matching repositories.
+
+        Args:
+            verbose (bool): Enable verbose logging output.
+
+        Returns:
+            bool: True if at least one repository was successfully fetched, False otherwise.
+
+        Example:
+            >>> fetcher = RepositoryFetcher(config_path="assignment.conf")
+            >>> success = fetcher.fetch_all_repositories(verbose=True)
+            >>> if success:
+            ...     print("Repositories fetched successfully")
+        """
+        try:
+            # Get assignment prefix and organization from config
+            assignment_prefix = self.config.get('ASSIGNMENT_NAME')
+            organization = self.config.get('GITHUB_ORGANIZATION')
+
+            if not assignment_prefix or not organization:
+                logger.error(
+                    "Missing ASSIGNMENT_NAME or GITHUB_ORGANIZATION in configuration")
+                return False
+
+            # Discover repositories
+            logger.info(
+                f"Discovering repositories for assignment: {assignment_prefix}")
+            repositories = self.discover_repositories(
+                assignment_prefix=assignment_prefix,
+                organization=organization
+            )
+
+            if not repositories:
+                logger.warning("No repositories found to fetch")
+                return False
+
+            # Fetch all discovered repositories
+            logger.info(f"Found {len(repositories)} repositories to fetch")
+            results = self.fetch_repositories(repositories)
+
+            # Check if any were successful
+            successful = [r for r in results if r.success]
+
+            if not successful:
+                logger.error("Failed to fetch any repositories")
+                return False
+
+            logger.info(
+                f"Successfully fetched {len(successful)}/{len(results)} repositories")
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to fetch repositories: {e}")
+            return False

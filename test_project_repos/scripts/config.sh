@@ -22,6 +22,14 @@ TEST_PROJECT_REPOS_DIR="$TEST_DIR"
 LIB_DIR="$TEST_DIR/lib"
 FIXTURES_DIR="$TEST_DIR/fixtures"
 
+# Report directories
+REPORTS_DIR="$TEST_DIR/reports"
+QA_REPORT_DIR="$REPORTS_DIR/qa"
+JUNIT_REPORT_DIR="$REPORTS_DIR/junit"
+
+# Create report directories
+mkdir -p "$REPORTS_DIR" "$QA_REPORT_DIR" "$JUNIT_REPORT_DIR"
+
 # Python Version Configuration
 DEFAULT_PYTHON_VERSION="3.11"
 TEST_PYTHON_VERSIONS=("3.10" "3.11" "3.12")

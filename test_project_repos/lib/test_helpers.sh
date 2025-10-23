@@ -11,6 +11,10 @@
 # - Output capture utilities
 #
 # Usage: source lib/test_helpers.sh
+#
+# IMPORTANT: Test tracking counters (TESTS_PASSED, TESTS_FAILED, FAILED_TESTS)
+# are only initialized if not already set, preserving existing values when
+# sourced multiple times. To reset counters explicitly, call init_test_tracking().
 ################################################################################
 
 # Color codes for output formatting
@@ -21,10 +25,17 @@ readonly COLOR_YELLOW='\033[0;33m'
 readonly COLOR_BLUE='\033[0;34m'
 readonly COLOR_GRAY='\033[0;90m'
 
-# Test tracking variables
-TESTS_PASSED=0
-TESTS_FAILED=0
-FAILED_TESTS=()
+# Test tracking variables - only initialize if unset to preserve existing values
+: "${TESTS_PASSED:=0}"
+: "${TESTS_FAILED:=0}"
+: "${TESTS_SKIPPED:=0}"
+# Initialize FAILED_TESTS and SKIPPED_TESTS arrays only if not already declared
+if ! declare -p FAILED_TESTS &>/dev/null; then
+    FAILED_TESTS=()
+fi
+if ! declare -p SKIPPED_TESTS &>/dev/null; then
+    SKIPPED_TESTS=()
+fi
 
 # Timer variables
 TIMER_START=0
@@ -68,6 +79,12 @@ log_step() {
     echo ""
 }
 
+# Alias for log_step - for backwards compatibility
+# Usage: log_section "Section Title"
+log_section() {
+    log_step "$@"
+}
+
 # Log debug message in gray (only shown in verbose mode)
 # Usage: log_debug "message"
 log_debug() {
@@ -80,20 +97,25 @@ log_debug() {
 # Test Result Tracking Functions
 ################################################################################
 
-# Initialize test tracking counters
+# Initialize test tracking counters to zero/empty
+# Call this function explicitly at the start of test scripts that need a fresh slate.
+# Note: Simply sourcing test_helpers.sh will NOT reset counters if already set.
 # Usage: init_test_tracking
 init_test_tracking() {
     TESTS_PASSED=0
     TESTS_FAILED=0
+    TESTS_SKIPPED=0
     FAILED_TESTS=()
-    log_debug "Test tracking initialized"
+    SKIPPED_TESTS=()
+    log_debug "Test tracking counters explicitly reset to zero"
 }
 
 # Mark a test as passed and log success
 # Usage: mark_test_passed "test_name"
 mark_test_passed() {
     local test_name="$1"
-    ((TESTS_PASSED++))
+    # Use assignment form to avoid non-zero exit codes under 'set -e'
+    TESTS_PASSED=$((TESTS_PASSED + 1))
     log_success "✓ Test passed: $test_name"
 }
 
@@ -102,22 +124,34 @@ mark_test_passed() {
 mark_test_failed() {
     local test_name="$1"
     local reason="${2:-Unknown reason}"
-    ((TESTS_FAILED++))
+    # Use assignment form to avoid non-zero exit codes under 'set -e'
+    TESTS_FAILED=$((TESTS_FAILED + 1))
     FAILED_TESTS+=("$test_name: $reason")
     log_error "✗ Test failed: $test_name - $reason"
+}
+
+# Mark a test as skipped, add to skipped list, and log warning
+# Usage: mark_test_skipped "test_name" "skip_reason"
+mark_test_skipped() {
+    local test_name="$1"
+    local reason="${2:-Not implemented yet}"
+    # Use assignment form to avoid non-zero exit codes under 'set -e'
+    TESTS_SKIPPED=$((TESTS_SKIPPED + 1))
+    SKIPPED_TESTS+=("$test_name: $reason")
+    log_warning "⊘ Test skipped: $test_name - $reason"
 }
 
 # Get formatted test summary string
 # Usage: summary=$(get_test_summary)
 get_test_summary() {
-    local total=$((TESTS_PASSED + TESTS_FAILED))
+    local total=$((TESTS_PASSED + TESTS_FAILED + TESTS_SKIPPED))
     local success_rate=0
     
     if [ "$total" -gt 0 ]; then
         success_rate=$(awk "BEGIN {printf \"%.1f\", ($TESTS_PASSED / $total) * 100}")
     fi
     
-    echo "Total: $total | Passed: $TESTS_PASSED | Failed: $TESTS_FAILED | Success Rate: ${success_rate}%"
+    echo "Total: $total | Passed: $TESTS_PASSED | Failed: $TESTS_FAILED | Skipped: $TESTS_SKIPPED | Success Rate: ${success_rate}%"
 }
 
 # Display formatted test results summary
@@ -126,7 +160,7 @@ show_test_summary() {
     echo ""
     log_step "Test Results Summary"
     
-    local total=$((TESTS_PASSED + TESTS_FAILED))
+    local total=$((TESTS_PASSED + TESTS_FAILED + TESTS_SKIPPED))
     local success_rate=0
     
     if [ "$total" -gt 0 ]; then
@@ -134,8 +168,9 @@ show_test_summary() {
     fi
     
     echo "Total Tests:    $total"
-    echo "Tests Passed:   ${COLOR_GREEN}$TESTS_PASSED${COLOR_RESET}"
-    echo "Tests Failed:   ${COLOR_RED}$TESTS_FAILED${COLOR_RESET}"
+    echo -e "Tests Passed:   ${COLOR_GREEN}$TESTS_PASSED${COLOR_RESET}"
+    echo -e "Tests Failed:   ${COLOR_RED}$TESTS_FAILED${COLOR_RESET}"
+    echo -e "Tests Skipped:  ${COLOR_YELLOW}$TESTS_SKIPPED${COLOR_RESET}"
     echo "Success Rate:   ${success_rate}%"
     
     if [ "${#FAILED_TESTS[@]}" -gt 0 ]; then
@@ -143,6 +178,14 @@ show_test_summary() {
         log_error "Failed Tests:"
         for failed_test in "${FAILED_TESTS[@]}"; do
             echo "  - $failed_test"
+        done
+    fi
+    
+    if [ "${#SKIPPED_TESTS[@]}" -gt 0 ]; then
+        echo ""
+        log_warning "Skipped Tests (TODO - implement features):"
+        for skipped_test in "${SKIPPED_TESTS[@]}"; do
+            echo "  - $skipped_test"
         done
     fi
     
@@ -492,13 +535,53 @@ capture_both() {
 }
 
 ################################################################################
+# Test Configuration Helper
+################################################################################
+
+# Create a minimal assignment.conf for testing
+# Usage: create_minimal_test_config "/path/to/project_root"
+# Creates assignment.conf in the specified directory if it doesn't exist
+create_minimal_test_config() {
+    local target_dir="${1:-.}"
+    local config_file="$target_dir/assignment.conf"
+    
+    if [ -f "$config_file" ]; then
+        log_debug "assignment.conf already exists at $config_file"
+        return 0
+    fi
+    
+    log_info "Creating minimal test assignment.conf at $config_file"
+    
+    cat > "$config_file" << 'EOF'
+# Minimal Test Configuration
+# Auto-generated for QA testing
+CLASSROOM_URL=https://classroom.github.com/classrooms/123456/assignments/test-assignment
+TEMPLATE_REPO_URL=https://github.com/test-org/test-assignment-template
+GITHUB_ORGANIZATION=test-org
+ASSIGNMENT_NAME=test-assignment
+ASSIGNMENT_FILE=assignment.ipynb
+CLASSROOM_REPO_URL=https://github.com/test-org/classroom-test-assignment
+COLLABORATOR_USERS=ta1,ta2,instructor
+EOF
+    
+    if [ -f "$config_file" ]; then
+        log_debug "Successfully created test assignment.conf"
+        return 0
+    else
+        log_error "Failed to create test assignment.conf"
+        return 1
+    fi
+}
+
+################################################################################
 # Export all functions
 ################################################################################
 
-export -f log_info log_success log_error log_warning log_step log_debug
+export -f log_info log_success log_error log_warning log_step log_section log_debug
 export -f init_test_tracking mark_test_passed mark_test_failed get_test_summary show_test_summary
 export -f assert_command_exists assert_file_exists assert_file_contains assert_exit_code
 export -f assert_output_contains assert_output_matches assert_not_empty
+export -f create_minimal_test_config
 export -f run_test_case run_command_test create_temp_test_dir cleanup_temp_test_dir setup_test_config
 export -f start_timer stop_timer assert_performance
 export -f capture_stdout capture_stderr capture_both

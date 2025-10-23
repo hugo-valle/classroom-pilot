@@ -10,6 +10,10 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/config.sh"
 
+# Reports directory
+REPORTS_DIR="$TEST_PROJECT_REPOS_DIR/reports"
+mkdir -p "$REPORTS_DIR"
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -47,6 +51,14 @@ Test Suites:
     python-api        Test Python API
     integration       Test integration scenarios
     real-repo         Test with real GitHub repository
+    qa-token          Test token management functionality
+    qa-assignments    Test assignments commands
+    qa-repos          Test repos commands
+    qa-secrets        Test secrets commands
+    qa-automation     Test automation commands
+    qa-global-options Test global CLI options
+    qa-error-scenarios Test error handling
+    qa-all            Run all QA test suites
     all               Run all test suites (default)
 
 Options:
@@ -64,6 +76,8 @@ Examples:
     $0 cli --verbose               # Run CLI tests with verbose output
     $0 integration --setup         # Set up environment and run integration tests
     $0 real-repo                    # Run real repository tests
+    $0 qa-all --report             # Run all QA tests with report
+    $0 qa-assignments --verbose    # Run assignments QA tests
     $0 all --cleanup --report      # Run all tests, clean up, and generate report
 EOF
 }
@@ -256,6 +270,166 @@ run_integration_tests() {
     fi
 }
 
+# Run QA token tests
+run_qa_token_tests() {
+    log_info "Running QA token tests..."
+    
+    local qa_runner="$SCRIPT_DIR/../qa_tests/run_qa_tests.sh"
+    if [[ -f "$qa_runner" ]]; then
+        local args=()
+        [[ "$VERBOSE" == "true" ]] && args+=(--verbose)
+        
+        if "$qa_runner" --token "${args[@]}"; then
+            track_test_result "qa-token" 0
+        else
+            track_test_result "qa-token" 1
+        fi
+    else
+        log_error "QA test runner not found: $qa_runner"
+        track_test_result "qa-token" 1
+    fi
+}
+
+# Run QA assignments tests
+run_qa_assignments_tests() {
+    log_info "Running QA assignments tests..."
+    
+    local qa_runner="$SCRIPT_DIR/../qa_tests/run_qa_tests.sh"
+    if [[ -f "$qa_runner" ]]; then
+        local args=()
+        [[ "$VERBOSE" == "true" ]] && args+=(--verbose)
+        
+        if "$qa_runner" --assignments "${args[@]}"; then
+            track_test_result "qa-assignments" 0
+        else
+            track_test_result "qa-assignments" 1
+        fi
+    else
+        log_error "QA test runner not found: $qa_runner"
+        track_test_result "qa-assignments" 1
+    fi
+}
+
+# Run QA repos tests
+run_qa_repos_tests() {
+    log_info "Running QA repos tests..."
+    
+    local qa_runner="$SCRIPT_DIR/../qa_tests/run_qa_tests.sh"
+    if [[ -f "$qa_runner" ]]; then
+        local args=()
+        [[ "$VERBOSE" == "true" ]] && args+=(--verbose)
+        
+        if "$qa_runner" --repos "${args[@]}"; then
+            track_test_result "qa-repos" 0
+        else
+            track_test_result "qa-repos" 1
+        fi
+    else
+        log_error "QA test runner not found: $qa_runner"
+        track_test_result "qa-repos" 1
+    fi
+}
+
+# Run QA secrets tests
+run_qa_secrets_tests() {
+    log_info "Running QA secrets tests..."
+    
+    local qa_runner="$SCRIPT_DIR/../qa_tests/run_qa_tests.sh"
+    if [[ -f "$qa_runner" ]]; then
+        local args=()
+        [[ "$VERBOSE" == "true" ]] && args+=(--verbose)
+        
+        if "$qa_runner" --secrets "${args[@]}"; then
+            track_test_result "qa-secrets" 0
+        else
+            track_test_result "qa-secrets" 1
+        fi
+    else
+        log_error "QA test runner not found: $qa_runner"
+        track_test_result "qa-secrets" 1
+    fi
+}
+
+# Run QA automation tests
+run_qa_automation_tests() {
+    log_info "Running QA automation tests..."
+    
+    local qa_runner="$SCRIPT_DIR/../qa_tests/run_qa_tests.sh"
+    if [[ -f "$qa_runner" ]]; then
+        local args=()
+        [[ "$VERBOSE" == "true" ]] && args+=(--verbose)
+        
+        if "$qa_runner" --automation "${args[@]}"; then
+            track_test_result "qa-automation" 0
+        else
+            track_test_result "qa-automation" 1
+        fi
+    else
+        log_error "QA test runner not found: $qa_runner"
+        track_test_result "qa-automation" 1
+    fi
+}
+
+# Run QA global options tests
+run_qa_global_options_tests() {
+    log_info "Running QA global options tests..."
+    
+    local qa_runner="$SCRIPT_DIR/../qa_tests/run_qa_tests.sh"
+    if [[ -f "$qa_runner" ]]; then
+        local args=()
+        [[ "$VERBOSE" == "true" ]] && args+=(--verbose)
+        
+        if "$qa_runner" --global-options "${args[@]}"; then
+            track_test_result "qa-global-options" 0
+        else
+            track_test_result "qa-global-options" 1
+        fi
+    else
+        log_error "QA test runner not found: $qa_runner"
+        track_test_result "qa-global-options" 1
+    fi
+}
+
+# Run QA error scenarios tests
+run_qa_error_scenarios_tests() {
+    log_info "Running QA error scenarios tests..."
+    
+    local qa_runner="$SCRIPT_DIR/../qa_tests/run_qa_tests.sh"
+    if [[ -f "$qa_runner" ]]; then
+        local args=()
+        [[ "$VERBOSE" == "true" ]] && args+=(--verbose)
+        
+        if "$qa_runner" --error-scenarios "${args[@]}"; then
+            track_test_result "qa-error-scenarios" 0
+        else
+            track_test_result "qa-error-scenarios" 1
+        fi
+    else
+        log_error "QA test runner not found: $qa_runner"
+        track_test_result "qa-error-scenarios" 1
+    fi
+}
+
+# Run all QA tests
+run_qa_all_tests() {
+    log_info "Running all QA tests..."
+    
+    local qa_runner="$SCRIPT_DIR/../qa_tests/run_qa_tests.sh"
+    if [[ -f "$qa_runner" ]]; then
+        local args=()
+        [[ "$VERBOSE" == "true" ]] && args+=(--verbose)
+        
+        if "$qa_runner" --all "${args[@]}"; then
+            track_test_result "qa-all" 0
+        else
+            track_test_result "qa-all" 1
+        fi
+    else
+        log_error "QA test runner not found: $qa_runner"
+        track_test_result "qa-all" 1
+    fi
+}
+
 # Generate test report
 generate_test_report() {
     log_info "Generating test report..."
@@ -351,6 +525,76 @@ EOF
             ;;
     esac
     
+    case "$TEST_SUITE" in
+        "qa-token"|"qa-all"|"all")
+            if [[ " ${FAILED_SUITES[@]} " =~ " qa-token " ]]; then
+                echo "            <tr class=\"status-failed\"><td>QA Token</td><td>FAILED</td><td>Token management tests failed</td></tr>" >> "$report_file"
+            else
+                echo "            <tr class=\"status-passed\"><td>QA Token</td><td>PASSED</td><td>Token management tests successful</td></tr>" >> "$report_file"
+            fi
+            ;;
+    esac
+    
+    case "$TEST_SUITE" in
+        "qa-assignments"|"qa-all"|"all")
+            if [[ " ${FAILED_SUITES[@]} " =~ " qa-assignments " ]]; then
+                echo "            <tr class=\"status-failed\"><td>QA Assignments</td><td>FAILED</td><td>Assignments tests failed</td></tr>" >> "$report_file"
+            else
+                echo "            <tr class=\"status-passed\"><td>QA Assignments</td><td>PASSED</td><td>Assignments tests successful</td></tr>" >> "$report_file"
+            fi
+            ;;
+    esac
+    
+    case "$TEST_SUITE" in
+        "qa-repos"|"qa-all"|"all")
+            if [[ " ${FAILED_SUITES[@]} " =~ " qa-repos " ]]; then
+                echo "            <tr class=\"status-failed\"><td>QA Repos</td><td>FAILED</td><td>Repos tests failed</td></tr>" >> "$report_file"
+            else
+                echo "            <tr class=\"status-passed\"><td>QA Repos</td><td>PASSED</td><td>Repos tests successful</td></tr>" >> "$report_file"
+            fi
+            ;;
+    esac
+    
+    case "$TEST_SUITE" in
+        "qa-secrets"|"qa-all"|"all")
+            if [[ " ${FAILED_SUITES[@]} " =~ " qa-secrets " ]]; then
+                echo "            <tr class=\"status-failed\"><td>QA Secrets</td><td>FAILED</td><td>Secrets tests failed</td></tr>" >> "$report_file"
+            else
+                echo "            <tr class=\"status-passed\"><td>QA Secrets</td><td>PASSED</td><td>Secrets tests successful</td></tr>" >> "$report_file"
+            fi
+            ;;
+    esac
+    
+    case "$TEST_SUITE" in
+        "qa-automation"|"qa-all"|"all")
+            if [[ " ${FAILED_SUITES[@]} " =~ " qa-automation " ]]; then
+                echo "            <tr class=\"status-failed\"><td>QA Automation</td><td>FAILED</td><td>Automation tests failed</td></tr>" >> "$report_file"
+            else
+                echo "            <tr class=\"status-passed\"><td>QA Automation</td><td>PASSED</td><td>Automation tests successful</td></tr>" >> "$report_file"
+            fi
+            ;;
+    esac
+    
+    case "$TEST_SUITE" in
+        "qa-global-options"|"qa-all"|"all")
+            if [[ " ${FAILED_SUITES[@]} " =~ " qa-global-options " ]]; then
+                echo "            <tr class=\"status-failed\"><td>QA Global Options</td><td>FAILED</td><td>Global options tests failed</td></tr>" >> "$report_file"
+            else
+                echo "            <tr class=\"status-passed\"><td>QA Global Options</td><td>PASSED</td><td>Global options tests successful</td></tr>" >> "$report_file"
+            fi
+            ;;
+    esac
+    
+    case "$TEST_SUITE" in
+        "qa-error-scenarios"|"qa-all"|"all")
+            if [[ " ${FAILED_SUITES[@]} " =~ " qa-error-scenarios " ]]; then
+                echo "            <tr class=\"status-failed\"><td>QA Error Scenarios</td><td>FAILED</td><td>Error handling tests failed</td></tr>" >> "$report_file"
+            else
+                echo "            <tr class=\"status-passed\"><td>QA Error Scenarios</td><td>PASSED</td><td>Error handling tests successful</td></tr>" >> "$report_file"
+            fi
+            ;;
+    esac
+    
     cat >> "$report_file" << EOF
         </tbody>
     </table>
@@ -439,12 +683,37 @@ main() {
         "real-repo")
             run_real_repo_tests
             ;;
+        "qa-token")
+            run_qa_token_tests
+            ;;
+        "qa-assignments")
+            run_qa_assignments_tests
+            ;;
+        "qa-repos")
+            run_qa_repos_tests
+            ;;
+        "qa-secrets")
+            run_qa_secrets_tests
+            ;;
+        "qa-automation")
+            run_qa_automation_tests
+            ;;
+        "qa-global-options")
+            run_qa_global_options_tests
+            ;;
+        "qa-error-scenarios")
+            run_qa_error_scenarios_tests
+            ;;
+        "qa-all")
+            run_qa_all_tests
+            ;;
         "all")
             run_installation_tests
             run_cli_tests
             run_python_api_tests
             run_integration_tests
             run_real_repo_tests
+            run_qa_all_tests
             ;;
         *)
             log_error "Unknown test suite: $TEST_SUITE"

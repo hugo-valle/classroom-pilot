@@ -470,3 +470,175 @@ class TestStudentUpdateHelperIntegration:
             with patch('classroom_pilot.assignments.student_helper.get_global_config', return_value=incomplete_config):
                 helper_incomplete = StudentUpdateHelper()
                 assert helper_incomplete.validate_configuration() is False
+
+
+class TestStudentUpdateHelperExecuteUpdateWorkflow:
+    """
+    TestStudentUpdateHelperExecuteUpdateWorkflow contains unit tests for the execute_update_workflow
+    method added to StudentUpdateHelper. This method is the main entry point for the update
+    workflow that validates configuration and checks classroom readiness.
+
+    Test Cases:
+    - test_execute_update_workflow_success: Tests successful workflow execution
+    - test_execute_update_workflow_with_auto_confirm: Tests auto_confirm parameter handling
+    - test_execute_update_workflow_config_validation_failure: Tests config validation failure
+    - test_execute_update_workflow_classroom_not_ready: Tests when classroom not ready
+    - test_execute_update_workflow_exception_handling: Tests exception handling
+    - test_execute_update_workflow_verbose_mode: Tests verbose logging
+    """
+
+    def test_execute_update_workflow_success(self, mock_config):
+        """
+        Test successful execute_update_workflow execution.
+
+        This test verifies that execute_update_workflow correctly:
+        - Validates configuration
+        - Checks classroom readiness
+        - Returns True with success message
+        """
+        with patch('classroom_pilot.assignments.student_helper.get_global_config', return_value=mock_config):
+            helper = StudentUpdateHelper(auto_confirm=False)
+
+            with patch.object(helper, 'validate_configuration', return_value=True), \
+                    patch.object(helper, 'check_classroom_ready', return_value=True):
+
+                success, message = helper.execute_update_workflow(
+                    auto_confirm=True, verbose=False)
+
+                assert success is True
+                assert "Update workflow validated successfully" in message
+                assert helper.auto_confirm is True
+
+    def test_execute_update_workflow_with_auto_confirm(self, mock_config):
+        """
+        Test execute_update_workflow with auto_confirm parameter.
+
+        This test verifies that the auto_confirm parameter is properly
+        applied to the helper instance.
+        """
+        with patch('classroom_pilot.assignments.student_helper.get_global_config', return_value=mock_config):
+            helper = StudentUpdateHelper(auto_confirm=False)
+
+            with patch.object(helper, 'validate_configuration', return_value=True), \
+                    patch.object(helper, 'check_classroom_ready', return_value=True):
+
+                success, message = helper.execute_update_workflow(
+                    auto_confirm=True, verbose=True)
+
+                assert success is True
+                assert helper.auto_confirm is True
+
+    def test_execute_update_workflow_config_validation_failure(self, mock_config):
+        """
+        Test execute_update_workflow when configuration validation fails.
+
+        This test verifies that execute_update_workflow returns False with
+        appropriate error message when configuration validation fails.
+        """
+        with patch('classroom_pilot.assignments.student_helper.get_global_config', return_value=mock_config):
+            helper = StudentUpdateHelper(auto_confirm=True)
+
+            with patch.object(helper, 'validate_configuration', return_value=False):
+                success, message = helper.execute_update_workflow(
+                    auto_confirm=True, verbose=False)
+
+                assert success is False
+                assert "Configuration validation failed" in message
+
+    def test_execute_update_workflow_classroom_not_ready(self, mock_config):
+        """
+        Test execute_update_workflow when classroom repository is not ready.
+
+        This test verifies that execute_update_workflow returns False with
+        appropriate error message when classroom is not ready.
+        """
+        with patch('classroom_pilot.assignments.student_helper.get_global_config', return_value=mock_config):
+            helper = StudentUpdateHelper(auto_confirm=True)
+
+            with patch.object(helper, 'validate_configuration', return_value=True), \
+                    patch.object(helper, 'check_classroom_ready', return_value=False):
+
+                success, message = helper.execute_update_workflow(
+                    auto_confirm=True, verbose=False)
+
+                assert success is False
+                assert "Classroom repository not ready" in message
+
+    def test_execute_update_workflow_exception_handling(self, mock_config):
+        """
+        Test execute_update_workflow exception handling.
+
+        This test verifies that execute_update_workflow gracefully handles
+        exceptions and returns False with error message.
+        """
+        with patch('classroom_pilot.assignments.student_helper.get_global_config', return_value=mock_config):
+            helper = StudentUpdateHelper(auto_confirm=True)
+
+            with patch.object(helper, 'validate_configuration', side_effect=Exception("Unexpected error")):
+                success, message = helper.execute_update_workflow(
+                    auto_confirm=True, verbose=False)
+
+                assert success is False
+                assert "Unexpected error" in message
+
+    def test_execute_update_workflow_verbose_mode(self, mock_config):
+        """
+        Test execute_update_workflow with verbose mode enabled.
+
+        This test verifies that the verbose parameter is accepted and
+        doesn't affect the workflow logic.
+        """
+        with patch('classroom_pilot.assignments.student_helper.get_global_config', return_value=mock_config):
+            helper = StudentUpdateHelper(auto_confirm=True)
+
+            with patch.object(helper, 'validate_configuration', return_value=True), \
+                    patch.object(helper, 'check_classroom_ready', return_value=True):
+
+                success, message = helper.execute_update_workflow(
+                    auto_confirm=True, verbose=True)
+
+                assert success is True
+                assert "Update workflow validated successfully" in message
+
+    def test_execute_update_workflow_without_auto_confirm_param(self, mock_config):
+        """
+        Test execute_update_workflow when auto_confirm=False is provided.
+
+        This test verifies that when auto_confirm=False is provided, the
+        existing helper setting is preserved (not overwritten) since the
+        implementation only updates auto_confirm when it's truthy.
+        """
+        with patch('classroom_pilot.assignments.student_helper.get_global_config', return_value=mock_config):
+            helper = StudentUpdateHelper(auto_confirm=True)
+            original_auto_confirm = helper.auto_confirm
+
+            with patch.object(helper, 'validate_configuration', return_value=True), \
+                    patch.object(helper, 'check_classroom_ready', return_value=True):
+
+                success, message = helper.execute_update_workflow(
+                    auto_confirm=False, verbose=False)
+
+                assert success is True
+                # auto_confirm should remain True since False is falsy and doesn't trigger update
+                assert helper.auto_confirm is True
+
+    def test_execute_update_workflow_return_type(self, mock_config):
+        """
+        Test execute_update_workflow return type.
+
+        This test verifies that execute_update_workflow always returns
+        a tuple of (bool, str).
+        """
+        with patch('classroom_pilot.assignments.student_helper.get_global_config', return_value=mock_config):
+            helper = StudentUpdateHelper(auto_confirm=True)
+
+            with patch.object(helper, 'validate_configuration', return_value=True), \
+                    patch.object(helper, 'check_classroom_ready', return_value=True):
+
+                result = helper.execute_update_workflow(
+                    auto_confirm=True, verbose=False)
+
+                assert isinstance(result, tuple)
+                assert len(result) == 2
+                assert isinstance(result[0], bool)
+                assert isinstance(result[1], str)

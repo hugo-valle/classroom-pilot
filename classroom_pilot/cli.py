@@ -10,6 +10,7 @@ This module provides:
   repositories, secrets, and automation workflows
 """
 
+import sys
 import typer
 from pathlib import Path
 from typing import Optional, List
@@ -41,6 +42,7 @@ app = typer.Typer(
 
 @app.callback()
 def main(
+    ctx: typer.Context,
     version: bool = typer.Option(
         False,
         "--version",
@@ -67,19 +69,37 @@ def main(
     # Set up logging first
     setup_logging()
 
+    # Skip configuration loading if we're just showing help
+    # Check multiple ways to detect help mode:
+    # 1. sys.argv for terminal usage
+    # 2. context args for CliRunner usage
+    # 3. Resilient parsing mode
+    if '--help' in sys.argv or '-h' in sys.argv:
+        return
+
+    # Check context args (works with CliRunner for main command help)
+    if '--help' in ctx.args or '-h' in ctx.args:
+        return
+
+    # Also skip if this is resilient parsing mode
+    if ctx.resilient_parsing:
+        return
+
     # Try to load global configuration (don't fail if not found, some commands create it)
     try:
         assignment_root_path = Path(
             assignment_root) if assignment_root else None
         load_global_config(config_file, assignment_root_path)
-        logger.info("✅ Global configuration loaded and ready")
+        # Only log success at DEBUG level to avoid polluting help output
+        logger.debug("✅ Global configuration loaded and ready")
     except FileNotFoundError:
         # Config file not found - this is OK for commands like 'assignments setup'
         logger.debug(
             f"Configuration file {config_file} not found - will be created by setup command")
     except Exception as e:
         logger.warning(f"Failed to load configuration: {e}")
-        logger.info("Some commands may not work properly without configuration")
+        logger.debug(
+            "Some commands may not work properly without configuration")
 
 
 # Create subcommand groups
@@ -251,6 +271,14 @@ def assignment_validate_config(
     dry_run = ctx.obj.get('dry_run', False)
 
     setup_logging(verbose)
+
+    # Get assignment_root from parent context if it was specified
+    assignment_root = ctx.parent.parent.params.get(
+        'assignment_root', None) if ctx.parent and ctx.parent.parent else None
+
+    # Resolve config file path relative to assignment_root if specified
+    if assignment_root and not Path(config_file).is_absolute():
+        config_file = str(Path(assignment_root) / config_file)
 
     if dry_run:
         logger.info(
@@ -594,7 +622,7 @@ def assignment_manage(ctx: typer.Context):
     dry_run = ctx.parent.params.get('dry_run', False)
 
     if verbose:
-        setup_logging(level="DEBUG")
+        setup_logging(verbose=True)
         logger.debug("Verbose mode enabled for assignment management")
     else:
         setup_logging()
@@ -645,7 +673,7 @@ def cycle_single_collaborator(
     dry_run = ctx.parent.params.get('dry_run', False)
 
     if verbose:
-        setup_logging(level="DEBUG")
+        setup_logging(verbose=True)
         logger.debug(
             f"Verbose mode enabled for cycling collaborator {username} on {repo_url}")
     else:
@@ -744,10 +772,12 @@ def cycle_multiple_collaborators(
         config_path = Path(config_file) if config_file else None
         manager = CycleCollaboratorManager(config_path, auto_confirm=True)
 
-        # Validate configuration
-        if not manager.validate_configuration():
-            logger.error("Configuration validation failed")
-            raise typer.Exit(code=1)
+        # Skip validation in dry-run mode
+        if not dry_run:
+            # Validate configuration
+            if not manager.validate_configuration():
+                logger.error("Configuration validation failed")
+                raise typer.Exit(code=1)
 
         batch_file_path = Path(batch_file)
         if not batch_file_path.exists():
@@ -1346,7 +1376,7 @@ def secrets_manage(ctx: typer.Context):
     dry_run = ctx.parent.params.get('dry_run', False)
 
     if verbose:
-        setup_logging(level="DEBUG")
+        setup_logging(verbose=True)
         logger.debug("Verbose mode enabled for secrets management")
     else:
         setup_logging()

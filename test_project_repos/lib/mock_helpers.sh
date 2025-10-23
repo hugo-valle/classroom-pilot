@@ -225,8 +225,9 @@ mock_environment_setup() {
     ORIGINAL_HOME="$HOME"
     ORIGINAL_PATH="$PATH"
     
-    # Set up mock GitHub token
-    setup_mock_github_token
+    # Set up mock GitHub token (capture output to prevent leaking to stdout)
+    local mock_token
+    mock_token=$(setup_mock_github_token)
     
     # Set up mock paths
     export CLASSROOM_PILOT_TEST_MODE="true"
@@ -432,6 +433,258 @@ validate_api_call() {
 }
 
 ################################################################################
+# Crontab Mocking Functions
+################################################################################
+
+MOCK_CRONTAB_FILE=""
+MOCK_CRONTAB_SCRIPT=""
+
+# Initialize mock crontab environment
+# Usage: setup_mock_crontab
+# Creates a fake crontab system for testing without modifying real crontab
+setup_mock_crontab() {
+    if [ -z "$MOCK_DATA_DIR" ]; then
+        MOCK_DATA_DIR=$(mktemp -d -t "mock_data_XXXXXX")
+    fi
+    
+    MOCK_CRONTAB_FILE="$MOCK_DATA_DIR/mock_crontab"
+    MOCK_CRONTAB_SCRIPT="$MOCK_DATA_DIR/mock_crontab_cmd"
+    
+    # Create empty mock crontab
+    touch "$MOCK_CRONTAB_FILE"
+    
+    # Create mock crontab command script
+    cat > "$MOCK_CRONTAB_SCRIPT" <<'MOCK_CRONTAB_EOF'
+#!/bin/bash
+# Mock crontab command for testing
+
+MOCK_CRONTAB_FILE="${MOCK_CRONTAB_FILE:-/tmp/mock_crontab}"
+
+case "$1" in
+    -l)
+        # List crontab
+        if [ -f "$MOCK_CRONTAB_FILE" ]; then
+            cat "$MOCK_CRONTAB_FILE"
+        fi
+        ;;
+    -r)
+        # Remove crontab
+        if [ -f "$MOCK_CRONTAB_FILE" ]; then
+            rm "$MOCK_CRONTAB_FILE"
+            touch "$MOCK_CRONTAB_FILE"
+        fi
+        ;;
+    -e)
+        # Edit crontab (not implemented in mock)
+        echo "Mock crontab: edit not supported" >&2
+        exit 1
+        ;;
+    *)
+        # Install crontab from file
+        if [ -f "$1" ]; then
+            cp "$1" "$MOCK_CRONTAB_FILE"
+        else
+            echo "crontab: $1: No such file or directory" >&2
+            exit 1
+        fi
+        ;;
+esac
+MOCK_CRONTAB_EOF
+    
+    chmod +x "$MOCK_CRONTAB_SCRIPT"
+    
+    # Export for use in mock script
+    export MOCK_CRONTAB_FILE
+    
+    echo "$MOCK_CRONTAB_FILE"
+}
+
+# Mock the crontab command
+# Usage: mock_crontab_command
+# Replaces crontab command with mock version
+mock_crontab_command() {
+    if [ -z "$MOCK_CRONTAB_SCRIPT" ]; then
+        setup_mock_crontab
+    fi
+    
+    # Add mock script directory to front of PATH
+    if [ -n "$MOCK_CRONTAB_SCRIPT" ]; then
+        local mock_dir=$(dirname "$MOCK_CRONTAB_SCRIPT")
+        
+        # Create symlink named 'crontab' pointing to our mock script
+        ln -sf "$MOCK_CRONTAB_SCRIPT" "$mock_dir/crontab"
+        
+        export PATH="$mock_dir:$PATH"
+    fi
+}
+
+# Add entry to mock crontab
+# Usage: add_mock_cron_entry "schedule" "command" "comment"
+# Example: add_mock_cron_entry "0 */4 * * *" "python script.py" "Run every 4 hours"
+add_mock_cron_entry() {
+    local schedule="$1"
+    local command="$2"
+    local comment="${3:-}"
+    
+    if [ -z "$MOCK_CRONTAB_FILE" ]; then
+        setup_mock_crontab
+    fi
+    
+    if [ -n "$comment" ]; then
+        echo "# $comment" >> "$MOCK_CRONTAB_FILE"
+    fi
+    echo "$schedule $command" >> "$MOCK_CRONTAB_FILE"
+}
+
+# Get current mock crontab content
+# Usage: content=$(get_mock_crontab_content)
+get_mock_crontab_content() {
+    if [ -z "$MOCK_CRONTAB_FILE" ]; then
+        setup_mock_crontab
+    fi
+    
+    if [ -f "$MOCK_CRONTAB_FILE" ]; then
+        cat "$MOCK_CRONTAB_FILE"
+    fi
+}
+
+# Clear all mock crontab entries
+# Usage: clear_mock_crontab
+clear_mock_crontab() {
+    if [ -n "$MOCK_CRONTAB_FILE" ] && [ -f "$MOCK_CRONTAB_FILE" ]; then
+        > "$MOCK_CRONTAB_FILE"
+    fi
+}
+
+# Restore original crontab functionality
+# Usage: restore_crontab
+restore_crontab() {
+    if [ -n "$MOCK_CRONTAB_SCRIPT" ]; then
+        local mock_dir=$(dirname "$MOCK_CRONTAB_SCRIPT")
+        
+        # Remove crontab symlink
+        if [ -L "$mock_dir/crontab" ]; then
+            rm "$mock_dir/crontab"
+        fi
+        
+        # Remove mock directory from PATH
+        export PATH=$(echo "$PATH" | tr ':' '\n' | grep -v "^$mock_dir$" | tr '\n' ':' | sed 's/:$//')
+    fi
+    
+    MOCK_CRONTAB_FILE=""
+    MOCK_CRONTAB_SCRIPT=""
+}
+
+# Verify cron entry exists in mock crontab
+# Usage: verify_cron_entry_exists "pattern"
+# Returns: 0 if entry found, 1 otherwise
+verify_cron_entry_exists() {
+    local pattern="$1"
+    
+    if [ -z "$MOCK_CRONTAB_FILE" ]; then
+        return 1
+    fi
+    
+    if [ -f "$MOCK_CRONTAB_FILE" ]; then
+        grep -q "$pattern" "$MOCK_CRONTAB_FILE"
+        return $?
+    fi
+    
+    return 1
+}
+
+# Count number of cron entries
+# Usage: count=$(count_cron_entries)
+count_cron_entries() {
+    if [ -z "$MOCK_CRONTAB_FILE" ] || [ ! -f "$MOCK_CRONTAB_FILE" ]; then
+        echo "0"
+        return
+    fi
+    
+    # Count non-comment, non-empty lines
+    grep -c -v -e '^#' -e '^$' "$MOCK_CRONTAB_FILE" || echo "0"
+}
+
+################################################################################
+# Log File Mocking Functions
+################################################################################
+
+# Create mock cron workflow log file
+# Usage: create_mock_log_file "log_path" "fixture_name"
+# Example: create_mock_log_file "/tmp/test.log" "sample_cron_log.txt"
+create_mock_log_file() {
+    local log_path="$1"
+    local fixture_name="${2:-}"
+    
+    mkdir -p "$(dirname "$log_path")"
+    
+    if [ -n "$fixture_name" ] && [ -f "$fixture_name" ]; then
+        cp "$fixture_name" "$log_path"
+    else
+        # Create empty log file
+        touch "$log_path"
+    fi
+    
+    echo "$log_path"
+}
+
+# Append entry to mock log file
+# Usage: append_mock_log_entry "log_path" "level" "message"
+# Example: append_mock_log_entry "/tmp/test.log" "INFO" "Test message"
+append_mock_log_entry() {
+    local log_path="$1"
+    local level="$2"
+    local message="$3"
+    
+    if [ ! -f "$log_path" ]; then
+        create_mock_log_file "$log_path"
+    fi
+    
+    local timestamp
+    timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    
+    echo "[$timestamp] $level: $message" >> "$log_path"
+}
+
+# Get last N lines from mock log
+# Usage: tail_output=$(get_mock_log_tail "log_path" "lines")
+get_mock_log_tail() {
+    local log_path="$1"
+    local lines="${2:-30}"
+    
+    if [ -f "$log_path" ]; then
+        tail -n "$lines" "$log_path"
+    else
+        echo "Log file not found: $log_path" >&2
+        return 1
+    fi
+}
+
+# Verify log entry exists in mock log
+# Usage: verify_log_entry_exists "log_path" "pattern"
+# Returns: 0 if entry found, 1 otherwise
+verify_log_entry_exists() {
+    local log_path="$1"
+    local pattern="$2"
+    
+    if [ ! -f "$log_path" ]; then
+        return 1
+    fi
+    
+    grep -q "$pattern" "$log_path"
+    return $?
+}
+
+# Mock tail command (if needed)
+# Usage: mock_tail_command
+# Note: Usually not needed as tail is standard, but available for completeness
+mock_tail_command() {
+    # Tail is typically available, but we can mock it if needed
+    # for hermetic testing environments
+    echo "Mock tail command not implemented - using system tail"
+}
+
+################################################################################
 # Cleanup Functions
 ################################################################################
 
@@ -440,6 +693,7 @@ validate_api_call() {
 cleanup_mocks() {
     restore_environment
     restore_commands
+    restore_crontab
     
     if [ -n "$MOCK_DATA_DIR" ] && [ -d "$MOCK_DATA_DIR" ]; then
         rm -rf "$MOCK_DATA_DIR"
@@ -471,6 +725,11 @@ export -f mock_environment_setup mock_token_config restore_environment
 export -f mock_git_command mock_gh_command restore_commands
 export -f validate_json_response validate_api_call
 export -f cleanup_mocks reset_mock_state
+export -f setup_mock_crontab mock_crontab_command add_mock_cron_entry
+export -f get_mock_crontab_content clear_mock_crontab restore_crontab
+export -f verify_cron_entry_exists count_cron_entries
+export -f create_mock_log_file append_mock_log_entry get_mock_log_tail
+export -f verify_log_entry_exists mock_tail_command
 
 # Initialize on source
 if [ -z "$MOCK_DATA_DIR" ]; then

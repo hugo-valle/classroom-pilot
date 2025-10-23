@@ -33,6 +33,23 @@ test_project_repos/
 │   │   ├── real_repo_info.conf  # Real repository configuration
 │   │   └── instructor_token.txt # GitHub token for real testing
 │   └── error_scenarios/         # Error condition examples (auto-generated)
+├── qa_tests/                    # QA functional test suite (230 tests)
+│   ├── run_qa_tests.sh          # QA test orchestrator (716 lines)
+│   ├── test_token_management.sh # Token validation tests (32 tests)
+│   ├── test_assignments_commands.sh # Assignment tests (48 tests)
+│   ├── test_repos_commands.sh   # Repository tests (42 tests)
+│   ├── test_secrets_commands.sh # Secret management tests (38 tests)
+│   ├── test_automation_commands.sh # Automation tests (25 tests)
+│   ├── test_global_options.sh   # Global option tests (15 tests)
+│   ├── test_error_scenarios.sh  # Error handling tests (30 tests)
+│   ├── lib/                     # Test utilities and helpers
+│   │   ├── test_helpers.sh      # Common test functions
+│   │   ├── mock_helpers.sh      # GitHub API mocks
+│   │   └── assertion_helpers.sh # Test assertions
+│   └── fixtures/                # Test data and configurations
+│       ├── test_classroom_urls.txt # Sample classroom URLs
+│       ├── test_assignment_config.conf # Test configurations
+│       └── test_student_lists/  # Student roster fixtures
 └── reports/                     # Generated test reports (auto-created)
     ├── html/                    # HTML test reports
     ├── junit/                   # JUnit XML reports
@@ -99,7 +116,75 @@ python scripts/test_python_api.py
 - End-to-end testing with real data
 - Automatic cleanup of test environments
 
+### ✅ QA Functional Testing
+- Comprehensive command-line interface testing
+- Token management and GitHub API integration
+- Assignment lifecycle operations (setup, orchestration, management)
+- Repository operations (cloning, collaboration, secret management)
+- Automation workflows (cron scheduling, batch processing)
+- Global CLI options and error scenario validation
+- 230 functional tests with 85.7% passing rate (197 passed, 33 skipped)
+- Multi-format reporting (Markdown, HTML, JUnit XML)
+
 ## 🎯 Usage Scenarios
+
+### QA Functional Testing (Featured!)
+
+**Quick Start:**
+```bash
+# Run all QA tests with reporting
+cd qa_tests
+./run_qa_tests.sh --all --report --junit
+
+# Run specific test suites
+./run_qa_tests.sh --token              # Token management tests
+./run_qa_tests.sh --assignments        # Assignment commands tests
+./run_qa_tests.sh --repos              # Repository operations tests
+./run_qa_tests.sh --secrets            # Secret management tests
+
+# Dry-run to preview tests
+./run_qa_tests.sh --all --dry-run
+
+# Integrated execution through test runner
+cd ../scripts
+./test_runner.sh qa-all                # Run all QA tests
+./test_runner.sh qa-token --verbose    # Run token tests with verbose output
+```
+
+**Available Test Suites:**
+| Suite | Tests | Duration | Description |
+|-------|-------|----------|-------------|
+| **token** | 32 | ~2 min | GitHub token validation and verification |
+| **assignments** | 48 | ~5 min | Assignment setup, orchestration, management |
+| **repos** | 42 | ~4 min | Repository cloning and collaboration |
+| **secrets** | 38 | ~3 min | Secret management and batch operations |
+| **automation** | 25 | ~3 min | Cron scheduling and automation workflows |
+| **global-options** | 15 | ~1 min | CLI global flags (--verbose, --dry-run, etc.) |
+| **error-scenarios** | 30 | ~2 min | Error handling and edge cases |
+
+**Advanced Usage:**
+```bash
+# Run with comprehensive reporting
+./run_qa_tests.sh --all --report --junit --verbose
+
+# Stop on first failure for quick debugging
+./run_qa_tests.sh --all --stop-on-failure
+
+# Parallel execution (experimental, faster in CI)
+./run_qa_tests.sh --all --parallel
+```
+
+**QA Test Infrastructure:**
+- **Test Suites**: `qa_tests/test_*.sh` (7 comprehensive test suites)
+- **Orchestrator**: `qa_tests/run_qa_tests.sh` (716-line orchestration script)
+- **Helpers**: `qa_tests/lib/test_helpers.sh`, `mock_helpers.sh`, `assertion_helpers.sh`
+- **Fixtures**: `qa_tests/fixtures/` (test URLs, configs, student lists)
+- **Reports**: `reports/` (Markdown, HTML, JUnit XML formats)
+
+**Documentation:**
+- **[QA_TESTING_GUIDE.md](docs/QA_TESTING_GUIDE.md)**: Manual testing guide for test development
+- **[QA_AUTOMATION_GUIDE.md](docs/QA_AUTOMATION_GUIDE.md)**: Automation guide for CI/CD integration
+- **[QA_TEST_CERTIFICATION_RESULTS.md](docs/QA_TEST_CERTIFICATION_RESULTS.md)**: Latest test results
 
 ### Real Repository Testing (New!)
 
@@ -218,6 +303,9 @@ To add new test scenarios:
 
 - [`docs/TESTING_GUIDE.md`](docs/TESTING_GUIDE.md) - Comprehensive testing documentation
 - [`docs/TEST_SCENARIOS.md`](docs/TEST_SCENARIOS.md) - Detailed test scenarios
+- [`docs/QA_TESTING_GUIDE.md`](docs/QA_TESTING_GUIDE.md) - QA functional test development guide
+- [`docs/QA_AUTOMATION_GUIDE.md`](docs/QA_AUTOMATION_GUIDE.md) - QA test automation and CI/CD integration
+- [`docs/QA_TEST_CERTIFICATION_RESULTS.md`](docs/QA_TEST_CERTIFICATION_RESULTS.md) - Latest QA test results and certification
 - [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) - Solutions for common issues
 - [`docs/REAL_REPO_QUICK_REFERENCE.md`](docs/REAL_REPO_QUICK_REFERENCE.md) - Quick reference for real repository testing
 - [`sample_projects/real_repo/README.md`](sample_projects/real_repo/README.md) - Real repository testing setup guide
