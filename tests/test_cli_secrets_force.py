@@ -20,6 +20,13 @@ def runner():
 
 
 @pytest.fixture
+def wide_runner():
+    """Create a CLI test runner with wide terminal for full help text."""
+    # Set env with COLUMNS to ensure wide terminal width for help text rendering
+    return CliRunner(env={"COLUMNS": "200"})
+
+
+@pytest.fixture
 def mock_global_config():
     """Create a mock global configuration."""
     config = MagicMock(spec=GlobalConfig)
@@ -170,17 +177,13 @@ class TestSecretsAddCLIForceFlag:
         assert call_kwargs.get('force_update') is True
         assert call_kwargs.get('repo_urls') is None  # Auto-discovery
 
-    def test_secrets_add_help_shows_force_option(self, runner):
-        """Test that help text shows the --force option."""
-        result = runner.invoke(app, ['secrets', 'add', '--help'])
+    def test_secrets_add_help_shows_force_option(self, wide_runner):
+        """Test that help text shows the --force option with wide terminal."""
+        result = wide_runner.invoke(app, ['secrets', 'add', '--help'])
 
         assert result.exit_code == 0
-
-        # Debug: Print full output to see what we're getting
-        print(
-            f"\n{'='*80}\nFull help output ({len(result.output)} chars):\n{'='*80}\n{result.output}\n{'='*80}\n")
-
         # Check for --force option in output (should be clean without log pollution)
+        # Using wide terminal (COLUMNS=200) ensures full help text renders in CI
         assert '--force' in result.output, f"Expected '--force' in output, but got: {result.output[:500]}"
         assert '-f' in result.output, f"Expected '-f' in output, but got: {result.output[:500]}"
         # Check for force update description
