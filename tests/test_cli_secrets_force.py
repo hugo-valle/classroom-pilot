@@ -175,6 +175,11 @@ class TestSecretsAddCLIForceFlag:
         result = runner.invoke(app, ['secrets', 'add', '--help'])
 
         assert result.exit_code == 0
+
+        # Debug: Print full output to see what we're getting
+        print(
+            f"\n{'='*80}\nFull help output ({len(result.output)} chars):\n{'='*80}\n{result.output}\n{'='*80}\n")
+
         # Check for --force option in output (should be clean without log pollution)
         assert '--force' in result.output, f"Expected '--force' in output, but got: {result.output[:500]}"
         assert '-f' in result.output, f"Expected '-f' in output, but got: {result.output[:500]}"
