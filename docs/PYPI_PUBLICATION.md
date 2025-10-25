@@ -147,6 +147,11 @@ If issues are found:
 - **Size**: 95 KB wheel, comprehensive CLI tool
 - **Status**: ✅ Successfully published
 
+### vrefs/heads/main (October 25, 2025)
+- **Status**: ✅ Published via GitHub Actions
+- **Features**: Automated release workflow
+- **PyPI**: https://pypi.org/project/classroom-pilot/refs/heads/main/
+
 ### Future Releases
 - `v3.0.0-alpha.2`: API improvements and additional testing
 - `v3.0.0-beta.1`: Feature complete, stability testing
