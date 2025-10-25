@@ -162,27 +162,25 @@ jobs:
     - name: 📥 Install dependencies
       run: poetry install --no-interaction
       
-    - name: 📝 Extract version from tag or pyproject.toml
+    - name: 📝 Extract version from pyproject.toml
       id: version
       run: |
         if [[ ${{ github.event_name }} == 'workflow_dispatch' && -n "${{ github.event.inputs.version }}" ]]; then
           VERSION="${{ github.event.inputs.version }}"
           echo "Using manual version: $VERSION"
-        elif [[ $GITHUB_REF == refs/tags/* ]]; then
-          # Handle both v-prefixed and non-prefixed tags
-          TAG_NAME=${GITHUB_REF#refs/tags/}
-          if [[ $TAG_NAME == v* ]]; then
-            VERSION=${TAG_NAME#v}  # Remove v prefix
-          else
-            VERSION=$TAG_NAME      # Use as-is
-          fi
-          echo "Using tag version: $VERSION (from tag: $TAG_NAME)"
         else
           VERSION=$(poetry version -s)
           echo "Using pyproject.toml version: $VERSION"
         fi
-        echo "version=$VERSION" >> $GITHUB_OUTPUT
-        echo "VERSION=$VERSION" >> $GITHUB_ENV
+        # Validate version string (must look like 1.2.3 or 1.2.3b1 etc, not 'main' or 'refs/heads/main')
+        if [[ ! $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+([a-zA-Z0-9]*)?$ ]]; then
+          echo "Invalid version string: $VERSION. Skipping release creation."
+          echo "version=SKIP" >> $GITHUB_OUTPUT
+          echo "VERSION=SKIP" >> $GITHUB_ENV
+        else
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+        fi
         
     - name: 🚑 Handle hotfix version increment
       if: needs.check-release.outputs.release-type == 'hotfix'
@@ -364,6 +362,7 @@ jobs:
         EOF
         
     - name: 🏷️ Create GitHub Release
+      if: steps.version.outputs.version != 'SKIP'
       uses: softprops/action-gh-release@v2
       with:
         tag_name: ${{ steps.version.outputs.version }}
