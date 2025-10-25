@@ -126,6 +126,9 @@ jobs:
     runs-on: ubuntu-latest
     if: needs.check-release.outputs.is-release == 'true' || github.event_name == 'workflow_dispatch'
     
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    
     # environment:
     #   name: pypi
     #   url: https://pypi.org/project/classroom-pilot/
@@ -182,14 +185,26 @@ jobs:
           echo "❌ Invalid version string: $VERSION. Skipping release creation."
           echo "version=SKIP" >> $GITHUB_OUTPUT
           echo "VERSION=SKIP" >> $GITHUB_ENV
+          echo "should-publish=false" >> $GITHUB_OUTPUT
         elif [[ ! $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+([a-zA-Z0-9]*)?$ ]]; then
           echo "❌ Invalid version string: $VERSION. Skipping release creation."
           echo "version=SKIP" >> $GITHUB_OUTPUT
           echo "VERSION=SKIP" >> $GITHUB_ENV
+          echo "should-publish=false" >> $GITHUB_OUTPUT
         else
           echo "✅ Valid version: $VERSION"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "VERSION=$VERSION" >> $GITHUB_ENV
+          
+          # Check if version already exists on PyPI
+          echo "🔍 Checking if version $VERSION already exists on PyPI..."
+          if pip index versions classroom-pilot 2>/dev/null | grep -q "classroom-pilot ($VERSION)"; then
+            echo "⚠️ Version $VERSION already exists on PyPI. Skipping publication."
+            echo "should-publish=false" >> $GITHUB_OUTPUT
+          else
+            echo "✅ Version $VERSION not found on PyPI. Proceeding with publication."
+            echo "should-publish=true" >> $GITHUB_OUTPUT
+          fi
         fi
         
     - name: 🚑 Handle hotfix version increment
@@ -251,6 +266,7 @@ jobs:
         fi
         
     - name: 🧹 Clean previous builds
+      if: steps.version.outputs.should-publish == 'true'
       run: |
         rm -rf dist/ build/ *.egg-info/ __pycache__/
         find . -name "*.pyc" -delete
@@ -258,6 +274,7 @@ jobs:
         echo "✅ Cleaned previous build artifacts and cache"
         
     - name: 🔄 Refresh Poetry environment
+      if: steps.version.outputs.should-publish == 'true'
       run: |
         poetry env remove --all || true
         poetry cache clear pypi --all
@@ -265,6 +282,7 @@ jobs:
         echo "✅ Poetry environment refreshed"
         
     - name: ✅ Validate package configuration
+      if: steps.version.outputs.should-publish == 'true'
       run: |
         echo "🔍 Checking pyproject.toml format..."
         if grep -q "\[project\]" pyproject.toml; then
@@ -279,6 +297,7 @@ jobs:
         echo "Package name: $(poetry version | cut -d' ' -f1)"
         
     - name: 🏗️ Build package
+      if: steps.version.outputs.should-publish == 'true'
       run: |
         echo "Building package with version: $(poetry version -s)"
         poetry build
@@ -289,6 +308,7 @@ jobs:
         python -m zipfile -l dist/*.whl | head -10
         
     - name: 🔍 Debug package metadata
+      if: steps.version.outputs.should-publish == 'true'
       run: |
         echo "🔍 Inspecting package metadata..."
         cd dist/
@@ -306,6 +326,7 @@ jobs:
         done
         
     - name: 🔍 Verify build contents
+      if: steps.version.outputs.should-publish == 'true'
       run: |
         echo "📦 Package contents:"
         tar -tzf dist/*.tar.gz | head -20
@@ -313,6 +334,7 @@ jobs:
         unzip -l dist/*.whl | head -20
         
     - name: ✅ Validate package metadata
+      if: steps.version.outputs.should-publish == 'true'
       run: |
         echo "🔍 Validating package metadata..."
         # Install twine for checking
@@ -336,6 +358,7 @@ jobs:
         echo "✅ Package metadata validation completed"
         
     - name: 🚀 Publish to PyPI
+      if: steps.version.outputs.should-publish == 'true'
       uses: pypa/gh-action-pypi-publish@v1.13.0
       with:
         # Use API token if available, otherwise fall back to trusted publishing
@@ -420,6 +443,10 @@ jobs:
     runs-on: ubuntu-latest
     # Always run when publish succeeds (release branch merged to main)
     
+    permissions:
+      contents: write       # For creating branches and committing
+      pull-requests: write  # For creating pull requests
+    
     steps:
     - name: 📥 Checkout Code
       uses: actions/checkout@v4
@@ -431,12 +458,15 @@ jobs:
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        TAG_NAME=${GITHUB_REF#refs/tags/}
-        if [[ $TAG_NAME == v* ]]; then
-          VERSION=${TAG_NAME#v}
-        else
-          VERSION=$TAG_NAME
+        # Get version from the publish job output
+        VERSION="${{ needs.publish.outputs.version }}"
+        
+        # If not available, extract from pyproject.toml as fallback
+        if [[ -z "$VERSION" || "$VERSION" == "SKIP" ]]; then
+          echo "⚠️ No valid version found, skipping documentation update"
+          exit 0
         fi
+        
         DATE=$(date '+%B %d, %Y')
         BRANCH=docs/update-publication-history-v$VERSION-$(date +%s)
 
