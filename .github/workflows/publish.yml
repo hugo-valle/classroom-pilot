@@ -416,25 +416,31 @@ jobs:
       uses: actions/checkout@v4
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
-        ref: main  # Checkout main branch instead of tag
-        
-    - name: 📝 Update publication history
+        ref: main
+
+    - name: 📝 Update publication history and create PR
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        # Handle both v-prefixed and non-prefixed tags
         TAG_NAME=${GITHUB_REF#refs/tags/}
         if [[ $TAG_NAME == v* ]]; then
-          VERSION=${TAG_NAME#v}  # Remove v prefix
+          VERSION=${TAG_NAME#v}
         else
-          VERSION=$TAG_NAME      # Use as-is
+          VERSION=$TAG_NAME
         fi
         DATE=$(date '+%B %d, %Y')
-        
+        BRANCH=docs/update-publication-history-v$VERSION-$(date +%s)
+
         # Update PYPI_PUBLICATION.md
         sed -i "/### Future Releases/i ### v$VERSION ($DATE)\n- **Status**: ✅ Published via GitHub Actions\n- **Features**: Automated release workflow\n- **PyPI**: https://pypi.org/project/classroom-pilot/$VERSION/\n" docs/PYPI_PUBLICATION.md
-        
-        # Commit changes
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
+
+        # Create a new branch
+        git checkout -b "$BRANCH"
+        git config user.email "action@github.com"
+        git config user.name "GitHub Action"
         git add docs/PYPI_PUBLICATION.md
         git commit -m "docs: update publication history for v$VERSION" || exit 0
-        git push origin main
+        git push origin "$BRANCH"
+
+        # Create a pull request using GitHub CLI
+        gh pr create --base main --head "$BRANCH" --title "docs: update publication history for v$VERSION" --body "Automated update of publication history for v$VERSION after release."
