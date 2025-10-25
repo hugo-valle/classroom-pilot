@@ -494,11 +494,50 @@ jobs:
             /tmp/security-audit/
           retention-days: 90
 
-      - name: 📤 Upload all SARIF results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v2
+      - name: 📤 Upload SARIF results to GitHub Security
+        if: always()
+        run: |
+          source .github/scripts/workflow_utils.sh
+          print_message "step" "Uploading SARIF results to GitHub Security"
+          
+          # Find all SARIF files and upload each one
+          sarif_count=0
+          while IFS= read -r sarif_file; do
+            if [[ -f "$sarif_file" ]] && [[ -s "$sarif_file" ]]; then
+              echo "Uploading: $sarif_file"
+              sarif_count=$((sarif_count + 1))
+            fi
+          done < <(find /tmp/security-audit/sarif -name "*.sarif" -type f)
+          
+          if [[ $sarif_count -eq 0 ]]; then
+            print_message "warning" "No SARIF files found to upload"
+          else
+            print_message "success" "Found $sarif_count SARIF files to upload"
+          fi
+        continue-on-error: true
+
+      - name: 📤 Upload Trivy SARIF to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
-          sarif_file: /tmp/security-audit/sarif/**/*.sarif
+          sarif_file: /tmp/security-audit/sarif/trivy/trivy-fs-comprehensive.sarif
+          category: trivy-filesystem
+        continue-on-error: true
+
+      - name: 📤 Upload Grype SARIF to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: /tmp/security-audit/sarif/trivy/grype-scan.sarif
+          category: grype-vulnerability
+        continue-on-error: true
+
+      - name: 📤 Upload OSV Scanner SARIF to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: /tmp/security-audit/sarif/trivy/osv-scanner.sarif
+          category: osv-scanner
         continue-on-error: true
 
       - name: 📊 Generate comprehensive security report

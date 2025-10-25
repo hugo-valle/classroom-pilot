@@ -1,0 +1,21 @@
+{
+    "github_token": {
+        "token": "github_pat_11AAAAAAAAAAAAAAAAAAAAAAAA_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
+        "verified_at": "2025-10-19T12:00:00Z",
+        "username": "test-user",
+        "user_type": "User",
+        "user_id": "12345678",
+        "scopes": [
+            "repo",
+            "read:org",
+            "workflow"
+        ],
+        "expires_at": "2026-10-19T12:00:00Z",
+        "expires_at_source": "github_api",
+        "token_type": "fine-grained",
+        "rate_limit_remaining": "5000",
+        "rate_limit_limit": "5000"
+    },
+    "stored_at": "2025-10-19T12:00:00Z",
+    "storage_type": "config_file"
+}

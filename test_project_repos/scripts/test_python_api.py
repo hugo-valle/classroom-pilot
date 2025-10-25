@@ -7,12 +7,8 @@ logging, and core functionality.
 """
 
 import sys
-import os
 import tempfile
-import shutil
 from pathlib import Path
-from typing import List, Dict, Any
-import traceback
 
 # Colors for output
 
@@ -65,7 +61,7 @@ class TestResult:
         success_rate = (self.passed / total * 100) if total > 0 else 0
 
         print(f"\n{'='*50}")
-        print(f"Test Results Summary")
+        print("Test Results Summary")
         print(f"{'='*50}")
         print(f"Total Tests: {total}")
         print(f"Passed: {self.passed}")
@@ -73,7 +69,7 @@ class TestResult:
         print(f"Success Rate: {success_rate:.1f}%")
 
         if self.failed_tests:
-            print(f"\nFailed Tests:")
+            print("\nFailed Tests:")
             for test_name, error in self.failed_tests:
                 print(f"  - {test_name}: {error}")
 
@@ -104,6 +100,13 @@ def test_package_imports(results: TestResult) -> None:
         results.mark_passed("Core utilities import")
     except ImportError as e:
         results.mark_failed("Core utilities import", str(e))
+
+    # Test service layer imports
+    try:
+        from classroom_pilot import AssignmentService, ReposService, SecretsService, AutomationService
+        results.mark_passed("Service layer import")
+    except ImportError as e:
+        results.mark_failed("Service layer import", str(e))
 
     # Test logging imports
     try:
@@ -317,6 +320,45 @@ def test_cli_module(results: TestResult) -> None:
         results.mark_failed("CLI module import", str(e))
 
 
+def test_service_layer(results: TestResult) -> None:
+    """Test service layer functionality."""
+    log_info("Testing service layer")
+
+    try:
+        from classroom_pilot import AssignmentService, ReposService, SecretsService, AutomationService
+
+        # Test AssignmentService instantiation
+        try:
+            service = AssignmentService()
+            results.mark_passed("AssignmentService instantiation")
+        except Exception as e:
+            results.mark_failed("AssignmentService instantiation", str(e))
+
+        # Test ReposService instantiation
+        try:
+            service = ReposService()
+            results.mark_passed("ReposService instantiation")
+        except Exception as e:
+            results.mark_failed("ReposService instantiation", str(e))
+
+        # Test SecretsService instantiation
+        try:
+            service = SecretsService()
+            results.mark_passed("SecretsService instantiation")
+        except Exception as e:
+            results.mark_failed("SecretsService instantiation", str(e))
+
+        # Test AutomationService instantiation
+        try:
+            service = AutomationService()
+            results.mark_passed("AutomationService instantiation")
+        except Exception as e:
+            results.mark_failed("AutomationService instantiation", str(e))
+
+    except ImportError as e:
+        results.mark_failed("Service layer import", str(e))
+
+
 def test_error_handling(results: TestResult) -> None:
     """Test error handling and exceptions."""
     log_info("Testing error handling")
@@ -398,7 +440,6 @@ def test_import_time(results: TestResult) -> None:
     try:
         # Test import time
         start_time = time.time()
-        import classroom_pilot
         end_time = time.time()
 
         import_time = end_time - start_time
@@ -426,6 +467,7 @@ def main() -> int:
     test_bash_wrapper(results)
     test_assignment_setup(results)
     test_cli_module(results)
+    test_service_layer(results)
     test_error_handling(results)
     test_memory_usage(results)
     test_import_time(results)

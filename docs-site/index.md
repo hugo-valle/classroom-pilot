@@ -67,9 +67,9 @@ classroom-pilot secrets add --config assignment.conf
 
 ## 📊 Project Status
 
-- **Current Version**: 3.1.0a1
+- **Current Version**: 3.1.1b0
 - **Python Support**: 3.10, 3.11, 3.12
-- **Tests**: 153+ comprehensive tests with 100% pass rate
+- **Tests**: 752+ comprehensive tests with 100% pass rate
 - **Package**: Available on [PyPI](https://pypi.org/project/classroom-pilot/)
 - **CI/CD**: Automated testing and publishing
 

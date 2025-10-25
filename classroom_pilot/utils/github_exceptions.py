@@ -30,9 +30,9 @@ import time
 import logging
 import random
 from functools import wraps
-from typing import Optional, Callable, Any, Type, Dict, List
+from typing import Optional, Callable, Any, Dict, List
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime
 
 # Try to import GitHub-specific exceptions
 try:

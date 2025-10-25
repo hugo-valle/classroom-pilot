@@ -229,7 +229,8 @@ ASSIGNMENT_FILE="homework.py"
 GITHUB_HOSTS="github.enterprise.com,git.company.internal"
 
 # Optional: Authentication
-GITHUB_TOKEN_FILE="github_token.txt"
+# Prefer centralized token manager (~/.config/classroom-pilot/token_config.json) or set GITHUB_TOKEN
+# Example (CI): export GITHUB_TOKEN="ghp_your_token_here"
 
 # Optional: Secrets management
 SECRETS_LIST="API_KEY,DATABASE_URL,SECRET_TOKEN"
@@ -269,7 +270,7 @@ classroom-pilot assignments orchestrate
 
 ### Security Guidelines
 
-- **Store GitHub tokens securely** using `GITHUB_TOKEN_FILE`
+- **Store GitHub tokens securely** using the centralized token manager or OS keychain; avoid placing token files in the repository root.
 - **Use environment variables** for sensitive configuration
 - **Review `--dry-run` output** before executing changes
 - **Limit repository access** with proper filtering
@@ -400,13 +401,13 @@ poetry run pytest tests/test_github_exceptions.py -v --tb=short
 
 ### Version Information
 
-- **Current Version**: 3.1.0b1 (Beta release with advanced features ready for broader testing)
+- **Current Version**: 3.1.1b0 (Beta release with GitHub API integration and comprehensive testing)
 - **Python Support**: 3.10, 3.11, 3.12
 - **Package Distribution**: PyPI with automated CI/CD
 - **Release Cycle**: Semantic versioning with [PEP 440](https://peps.python.org/pep-0440/) compliant identifiers
 - **Versioning Strategy**: [Development Documentation](docs-site/development/versioning.md)
 
-#### Recent Improvements (v3.1.0b1)
+#### Recent Improvements (v3.1.1b0)
 
 - **🎯 Universal CLI Options** - All commands support `--help`, `--verbose`, `--dry-run`
 - **🏗️ CLI Modernization** - Complete Typer-based architecture with consistent UX

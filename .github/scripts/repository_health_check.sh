@@ -14,9 +14,9 @@ required_files=(
   "README.md"
   "LICENSE" 
   "pyproject.toml"
-  "scripts/setup-assignment.sh"
-  "scripts/assignment-orchestrator.sh"
-  "scripts/fetch-student-repos.sh"
+  "classroom_pilot/scripts_legacy/setup-assignment.sh"
+  "classroom_pilot/scripts_legacy/assignment-orchestrator.sh"
+  "classroom_pilot/scripts_legacy/fetch-student-repos.sh"
   "docs/CHANGELOG.md"
 )
 
@@ -32,7 +32,7 @@ done
 
 # Check for basic project structure
 print_message "info" "Checking directory structure..."
-required_dirs=(".github" "tests" "docs" "scripts")
+required_dirs=(".github" "tests" "docs" "classroom_pilot/scripts_legacy")
 missing_dirs=()
 
 for dir in "${required_dirs[@]}"; do
@@ -46,7 +46,7 @@ done
 
 # Repository statistics
 print_message "info" "Repository statistics:"
-script_total=$(find scripts/ -name "*.sh" 2>/dev/null | wc -l || echo "0")
+script_total=$(find classroom_pilot/scripts_legacy/ -name "*.sh" 2>/dev/null | wc -l || echo "0")
 docs_total=$(find docs/ -name "*.md" 2>/dev/null | wc -l || echo "0")
 workflow_total=$(find .github/workflows/ -name "*.yml" 2>/dev/null | wc -l || echo "0")
 

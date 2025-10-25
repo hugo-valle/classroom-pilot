@@ -4,9 +4,7 @@ Test suite for the utilities package.
 Tests logging, git operations, path management, and UI components.
 """
 
-import pytest
 from pathlib import Path
-import tempfile
 import os
 import subprocess
 from unittest.mock import patch, MagicMock

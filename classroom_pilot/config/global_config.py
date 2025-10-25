@@ -5,10 +5,8 @@ This module provides centralized configuration management by parsing assignment.
 once and making all configuration variables globally available to all commands.
 """
 
-import os
-import re
 from pathlib import Path
-from typing import Dict, Any, Optional, List
+from typing import Dict, Optional, List
 from dataclasses import dataclass
 
 from ..utils import logger
@@ -19,9 +17,14 @@ class SecretsConfig:
     """Configuration for a single secret."""
     name: str
     description: str
-    token_file: str
-    max_age_days: int
-    validate_format: bool
+    # Optional - if None, uses centralized token
+    token_file: Optional[str] = None
+    max_age_days: int = 90
+    validate_format: bool = True
+
+    def uses_centralized_token(self) -> bool:
+        """Check if this secret should use the centralized token system."""
+        return self.token_file is None or self.token_file.strip() == ""
 
 
 @dataclass
@@ -34,7 +37,9 @@ class GlobalConfig:
     template_repo_url: Optional[str] = None
     github_organization: Optional[str] = None
     assignment_name: Optional[str] = None
-    assignment_file: Optional[str] = None
+    assignment_file: Optional[str] = None  # For backward compatibility
+    # New: supports files, patterns, and folders
+    student_files: List[str] = None
 
     # Secret Management
     secrets_config: List[SecretsConfig] = None
@@ -62,6 +67,32 @@ class GlobalConfig:
             self.secrets_config = []
         if self.raw_config is None:
             self.raw_config = {}
+        if self.student_files is None:
+            self.student_files = []
+
+    def get_student_files(self) -> List[str]:
+        """
+        Get all student files to protect during template updates.
+
+        Returns:
+            List of file patterns, file paths, and folder paths to protect.
+            Supports backward compatibility with assignment_file.
+        """
+        files = []
+
+        # Add files from new student_files configuration
+        if self.student_files:
+            files.extend(self.student_files)
+
+        # Add legacy assignment_file for backward compatibility
+        elif self.assignment_file and self.assignment_file not in files:
+            files.append(self.assignment_file)
+
+        # Default fallback
+        if not files:
+            files = ["assignment.ipynb"]
+
+        return files
 
 
 class ConfigurationManager:
@@ -115,7 +146,6 @@ class ConfigurationManager:
             content = f.read()
 
         # Remove comments and empty lines
-        lines = []
         in_multiline = False
         multiline_content = []
         multiline_key = None
@@ -187,6 +217,22 @@ class ConfigurationManager:
         logger.debug(
             f"STEP_MANAGE_SECRETS: raw='{step_manage_secrets_raw}' -> parsed={step_manage_secrets_parsed}")
 
+        # Parse student files configuration (supports multiple formats)
+        student_files = []
+
+        # Check for new STUDENT_FILES configuration (comma-separated)
+        if raw_config.get("STUDENT_FILES"):
+            student_files = [
+                f.strip() for f in raw_config["STUDENT_FILES"].split(",") if f.strip()]
+
+        # Check for legacy ASSIGNMENT_FILE (for backward compatibility)
+        elif raw_config.get("ASSIGNMENT_FILE"):
+            student_files = [raw_config["ASSIGNMENT_FILE"]]
+
+        # Default fallback
+        if not student_files:
+            student_files = ["assignment.ipynb"]
+
         config = GlobalConfig(
             # Assignment Information
             classroom_url=raw_config.get("CLASSROOM_URL"),
@@ -195,6 +241,7 @@ class ConfigurationManager:
             github_organization=raw_config.get("GITHUB_ORGANIZATION"),
             assignment_name=raw_config.get("ASSIGNMENT_NAME"),
             assignment_file=raw_config.get("ASSIGNMENT_FILE"),
+            student_files=student_files,
 
             # Secret Management
             secrets_config=secrets_config,
@@ -229,8 +276,20 @@ class ConfigurationManager:
         return config
 
     def _parse_secrets_config(self, secrets_config_str: str) -> List[SecretsConfig]:
-        """Parse SECRETS_CONFIG string into SecretsConfig objects."""
-        secrets = []
+        """Parse SECRETS_CONFIG string into SecretsConfig objects.
+
+        See ConfigurationManager._parse_secrets_config in project docs for supported
+        formats. The parser accepts the new simplified 3-field format as well
+        as legacy file-backed formats for backward compatibility.
+
+        Args:
+            secrets_config_str: Multiline string from the SECRETS_CONFIG value.
+
+        Returns:
+            List[SecretsConfig]: Parsed secrets configuration objects.
+        """
+
+        secrets: List[SecretsConfig] = []
 
         if not secrets_config_str.strip():
             return secrets
@@ -243,19 +302,79 @@ class ConfigurationManager:
             if ':' not in line:
                 continue
 
-            # Format: SECRET_NAME:description:token_file_path:max_age_days:validate_format
             parts = line.split(':')
-            if len(parts) >= 3:
-                secret = SecretsConfig(
-                    name=parts[0].strip(),
-                    description=parts[1].strip() if len(parts) > 1 else "",
-                    token_file=parts[2].strip() if len(
-                        parts) > 2 else "instructor_token.txt",
-                    max_age_days=int(parts[3]) if len(
-                        parts) > 3 and parts[3].strip().isdigit() else 90,
-                    validate_format=parts[4].strip().lower(
-                    ) == "true" if len(parts) > 4 else True
-                )
+            if len(parts) >= 2:
+                name = parts[0].strip()
+                description = parts[1].strip() if len(parts) > 1 else ""
+
+                # Determine format based on number of parts and content
+                if len(parts) == 3:
+                    third_part = parts[2].strip()
+                    if third_part.lower() in ('true', 'false'):
+                        # New simplified format: name:description:validate_format
+                        secret = SecretsConfig(
+                            name=name,
+                            description=description,
+                            token_file=None,
+                            max_age_days=90,
+                            validate_format=third_part.lower() == 'true'
+                        )
+                    else:
+                        # Legacy: name:description:token_file
+                        secret = SecretsConfig(
+                            name=name,
+                            description=description,
+                            token_file=third_part,
+                            max_age_days=90,
+                            validate_format=True
+                        )
+                elif len(parts) == 4:
+                    third_part = parts[2].strip()
+                    fourth_part = parts[3].strip()
+
+                    if fourth_part.lower() in ('true', 'false') and third_part.isdigit():
+                        # New: name:description:max_age_days:validate_format
+                        secret = SecretsConfig(
+                            name=name,
+                            description=description,
+                            token_file=None,
+                            max_age_days=int(third_part),
+                            validate_format=fourth_part.lower() == 'true'
+                        )
+                    else:
+                        # Legacy: name:description:token_file:max_age_days
+                        secret = SecretsConfig(
+                            name=name,
+                            description=description,
+                            token_file=third_part,
+                            max_age_days=int(
+                                fourth_part) if fourth_part.isdigit() else 90,
+                            validate_format=True
+                        )
+                elif len(parts) >= 5:
+                    # Full legacy format: name:description:token_file:max_age_days:validate_format
+                    token_file = parts[2].strip() if parts[2].strip() else None
+                    max_age = int(parts[3]) if len(
+                        parts) > 3 and parts[3].strip().isdigit() else 90
+                    validate_flag = parts[4].strip().lower(
+                    ) == 'true' if len(parts) > 4 else True
+                    secret = SecretsConfig(
+                        name=name,
+                        description=description,
+                        token_file=token_file,
+                        max_age_days=max_age,
+                        validate_format=validate_flag
+                    )
+                else:
+                    # Minimal: name:description
+                    secret = SecretsConfig(
+                        name=name,
+                        description=description,
+                        token_file=None,
+                        max_age_days=90,
+                        validate_format=True
+                    )
+
                 secrets.append(secret)
 
         return secrets

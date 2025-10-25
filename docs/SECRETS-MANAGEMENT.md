@@ -24,24 +24,58 @@ classroom-pilot --help
 
 ## 🚀 Quick Setup
 
-### 1. Create Token File
+### 1. Provide a GitHub Token (centralized)
+
+Classroom Pilot now prefers a centralized token manager instead of keeping token files in the
+current working directory. Tokens may be supplied in one of these ways (priority order):
+
+1. Centralized config file (~/.config/classroom-pilot/token_config.json) — recommended
+2. System keychain (macOS Keychain) — secure and recommended for interactive users
+3. Environment variable `GITHUB_TOKEN` — useful for CI
+
+Example: store token in the centralized config file (JSON format):
 
 ```bash
-# Create secure token file
-echo "ghp_your_github_token_here" > github_token.txt
-chmod 600 github_token.txt
+mkdir -p ~/.config/classroom-pilot
+cat > ~/.config/classroom-pilot/token_config.json << 'EOF'
+{
+    "github_token": "ghp_your_github_token_here",
+    "username": "instructor",
+    "scopes": ["repo", "read:org", "workflow"],
+    "expires_at": null
+}
+EOF
+chmod 600 ~/.config/classroom-pilot/token_config.json
 ```
+
+Or export the token for short-lived use (CI):
+
+```bash
+export GITHUB_TOKEN="ghp_your_github_token_here"
+```
+
+The built-in token manager (`classroom_pilot.utils.token_manager.GitHubTokenManager`)
+will automatically detect and use the config file or keychain when available.
 
 ### 2. Configure Assignment
 
+Use the new `SECRETS_CONFIG` format to declare secrets. The canonical, simplified
+form is a three-field entry per line:
+
+```
+SECRET_NAME:description:validate_format
+```
+
+Example `assignment.conf` snippet:
+
 ```bash
-# Create assignment configuration
-cat > assignment.conf << 'EOF'
 CLASSROOM_URL="https://classroom.github.com/classrooms/123/assignments/homework1"
 TEMPLATE_REPO_URL="https://github.com/instructor/homework1-template"
-GITHUB_TOKEN_FILE="github_token.txt"
-SECRETS_LIST="API_KEY,GRADING_TOKEN,DATABASE_URL"
-EOF
+# Use centralized token manager (no GITHUB_TOKEN_FILE required)
+SECRETS_CONFIG="
+INSTRUCTOR_TESTS_TOKEN:Token for accessing instructor test repository:true
+API_KEY:API key for external service:false
+"
 ```
 
 ### 3. Distribute Secrets
@@ -96,53 +130,35 @@ classroom-pilot --verbose secrets list --config assignment.conf
 
 ### Secret Configuration Format
 
-Define secrets in your `assignment.conf` file:
+The recommended and supported way to declare secrets is the new `SECRETS_CONFIG`
+multiline variable in `assignment.conf`. Each line represents one secret and uses
+the 3-field simplified format (or a compatible legacy format):
 
-```bash
-# Basic secret list
-SECRETS_LIST="API_KEY,DATABASE_URL,GRADING_TOKEN"
-
-# Secret files (for complex secrets)
-SECRET_API_KEY_FILE="api_key.txt"
-SECRET_DATABASE_URL_FILE="database_url.txt"
-
-# Secret descriptions (for documentation)
-SECRET_API_KEY_DESCRIPTION="API key for external service"
-SECRET_DATABASE_URL_DESCRIPTION="Database connection string"
+```
+SECRET_NAME:description:validate_format
 ```
 
-### Environment Variable Secrets
+- `SECRET_NAME`: The environment variable name that will be added to student repos.
+- `description`: A short human-readable description used for generated configs.
+- `validate_format`: `true` if the value should be validated as a GitHub token (e.g. starts with `ghp_`), otherwise `false`.
 
-Use environment variables for sensitive values:
-
-```bash
-# Set secrets via environment variables
-export API_KEY="your_api_key_here"
-export DATABASE_URL="postgresql://user:pass@host:5432/db"
-export GRADING_TOKEN="grading_token_value"
-
-# Run secret management
-classroom-pilot secrets add --config assignment.conf
-```
-
-### Secret File Management
-
-Store secrets in separate files for security:
+Example:
 
 ```bash
-# Create secret files
-echo "your_api_key" > api_key.txt
-echo "postgresql://..." > database_url.txt
-echo "grading_token" > grading_token.txt
-
-# Set secure permissions
-chmod 600 *.txt
-
-# Configure in assignment.conf
-SECRET_API_KEY_FILE="api_key.txt"
-SECRET_DATABASE_URL_FILE="database_url.txt"
-SECRET_GRADING_TOKEN_FILE="grading_token.txt"
+SECRETS_CONFIG="
+INSTRUCTOR_TESTS_TOKEN:Token for accessing instructor test repository:true
+API_KEY:API key for external service:false
+"
 ```
+
+Backward compatibility: legacy file-backed entries are still supported in the format:
+
+```
+SECRET_NAME:description:token_file_path:max_age_days:validate_format
+```
+
+When a `token_file_path` is provided the system will read the token from disk. If
+it is omitted (or set to an empty value) the centralized token manager will be used.
 
 ## 🎯 Advanced Secret Management
 
@@ -217,12 +233,20 @@ done
 # - admin:org (for organization secrets)
 # - secrets (for repository secrets)
 
-# Store tokens securely
-echo "ghp_token" > secure_token.txt
-chmod 600 secure_token.txt
+# Store tokens securely using centralized token manager
+mkdir -p ~/.config/classroom-pilot
+cat > ~/.config/classroom-pilot/token_config.json << 'EOF'
+{
+    "github_token": "ghp_your_token_here",
+    "username": "instructor",
+    "scopes": ["repo", "admin:org", "secrets"],
+    "expires_at": null
+}
+EOF
+chmod 600 ~/.config/classroom-pilot/token_config.json
 
-# Use token files instead of environment variables
-GITHUB_TOKEN_FILE="secure_token.txt"
+# Or use environment variable for CI/automation
+export GITHUB_TOKEN="ghp_your_token_here"
 ```
 
 ### Secret Validation
@@ -244,9 +268,9 @@ classroom-pilot secrets list --config assignment.conf
 # Limit secret access to specific repositories
 EXCLUDE_REPOS="public-template,instructor-repo" classroom-pilot secrets add --config assignment.conf
 
-# Use different tokens for different secret types
-GITHUB_TOKEN_FILE="grading_token.txt" classroom-pilot secrets add --config assignment.conf --secrets "GRADING_TOKEN"
-GITHUB_TOKEN_FILE="api_token.txt" classroom-pilot secrets add --config assignment.conf --secrets "API_KEY"
+# Use different tokens for different secret types via environment
+GITHUB_TOKEN="ghp_grading_token_here" classroom-pilot secrets add --config assignment.conf --secrets "GRADING_TOKEN"
+GITHUB_TOKEN="ghp_api_token_here" classroom-pilot secrets add --config assignment.conf --secrets "API_KEY"
 ```
 
 ## 📊 Monitoring & Auditing
@@ -285,7 +309,6 @@ classroom-pilot secrets list --config assignment.conf | grep -c "API_KEY"
 # Setup automated secret rotation
 cat > secret-rotation.conf << 'EOF'
 CLASSROOM_URL="https://classroom.github.com/classrooms/123/assignments/homework1"
-GITHUB_TOKEN_FILE="automation_token.txt"
 SECRETS_LIST="API_KEY,DATABASE_URL"
 
 # Automation schedules
@@ -293,6 +316,8 @@ AUTOMATION_SCHEDULE_SECRETS="0 3 * * 1"  # Monday at 3 AM
 AUTOMATION_SCHEDULE_ROTATION="0 2 1 * *" # First day of month at 2 AM
 EOF
 
+# Set token via environment for automation
+export GITHUB_TOKEN="ghp_automation_token_here"
 classroom-pilot automation scheduler setup --config secret-rotation.conf
 ```
 
@@ -356,12 +381,12 @@ classroom-pilot --dry-run --verbose secrets add --config assignment.conf
 # Setup secure exam environment
 cat > exam-secrets.conf << 'EOF'
 CLASSROOM_URL="https://classroom.github.com/classrooms/123/assignments/midterm"
-GITHUB_TOKEN_FILE="exam_token.txt"
 SECRETS_LIST="EXAM_API_KEY,GRADING_DATABASE,SECURE_TOKEN"
 EXCLUDE_REPOS="template,instructor-solution"
 EOF
 
-# Distribute exam secrets
+# Set exam token and distribute secrets
+export GITHUB_TOKEN="ghp_exam_token_here"
 classroom-pilot secrets add --config exam-secrets.conf
 
 # Verify distribution

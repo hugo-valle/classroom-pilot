@@ -61,7 +61,8 @@ TEMPLATE_REPO_URL="https://github.com/instructor/assignment-template"
 ASSIGNMENT_FILE="homework.py"
 
 # Authentication
-GITHUB_TOKEN_FILE="github_token.txt"
+# Prefer centralized token manager (see SECRETS-MANAGEMENT.md) or set GITHUB_TOKEN
+# Example (CI): export GITHUB_TOKEN="ghp_your_token_here"
 
 # Secret Management
 SECRETS_LIST="API_KEY,DATABASE_URL,SECRET_TOKEN"
@@ -195,8 +196,8 @@ classroom-pilot assignments orchestrate
 
 ### Token Management
 
-- Store tokens securely using `GITHUB_TOKEN_FILE`
-- Use environment variables for sensitive information
+- Use centralized token manager for secure storage
+- Set tokens via environment variables or config files
 - Regularly rotate API tokens
 - Limit token permissions to required scopes
 
@@ -213,8 +214,13 @@ classroom-pilot assignments orchestrate
 # Secure configuration file permissions
 chmod 600 assignment.conf
 
-# Use environment variables for sensitive data
-export GITHUB_TOKEN="$(cat secure_token.txt)"
+# Use centralized token config (recommended)
+mkdir -p ~/.config/classroom-pilot
+echo '{"github_token":"ghp_token_here","username":"instructor"}' > ~/.config/classroom-pilot/token_config.json
+chmod 600 ~/.config/classroom-pilot/token_config.json
+
+# Or use environment variable for automation
+export GITHUB_TOKEN="ghp_your_token_here"
 classroom-pilot assignments orchestrate --config assignment.conf
 ```
 

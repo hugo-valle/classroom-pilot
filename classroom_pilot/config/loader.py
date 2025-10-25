@@ -8,7 +8,6 @@ and integrates with PathManager for automatic file discovery.
 
 from pathlib import Path
 from typing import Dict, Any, Optional
-import configparser
 from ..utils import get_logger, PathManager
 
 logger = get_logger("config.loader")
@@ -203,7 +202,7 @@ class ConfigLoader:
             # Write back to file
             with open(self.config_path, 'w') as f:
                 f.write("# GitHub Classroom Assignment Configuration\n")
-                f.write(f"# Updated by ConfigLoader\n\n")
+                f.write("# Updated by ConfigLoader\n\n")
 
                 for key, value in existing_config.items():
                     f.write(f'{key}="{value}"\n')

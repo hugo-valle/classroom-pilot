@@ -5,9 +5,8 @@ Tests the actual AutomationScheduler implementation methods.
 """
 
 import pytest
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 from pathlib import Path
-from datetime import datetime
 
 from classroom_pilot.automation.scheduler import AutomationScheduler
 

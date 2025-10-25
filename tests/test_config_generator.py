@@ -30,8 +30,7 @@ and error conditions to ensure robust production behavior.
 import pytest
 from pathlib import Path
 from datetime import datetime
-from unittest.mock import Mock, patch, mock_open
-from io import StringIO
+from unittest.mock import patch, mock_open
 
 from classroom_pilot.config.generator import ConfigGenerator
 
@@ -311,11 +310,11 @@ class TestConfigGeneratorSecretsSection:
         assert 'SECRET MANAGEMENT' in section
         assert 'SECRETS_CONFIG=' in section
 
-        # Check instructor token configuration
-        assert 'INSTRUCTOR_TESTS_TOKEN:Token for accessing instructor test repository:instructor_token.txt:90:true' in section
+        # Check instructor token configuration (new 3-field format)
+        assert 'INSTRUCTOR_TESTS_TOKEN:Token for accessing instructor test repository:true' in section
 
-        # Check additional secret configuration
-        assert 'API_KEY:API_KEY for assignment functionality:api_key.txt:90:false' in section
+        # Check additional secret configuration (new 3-field format)
+        assert 'API_KEY:API_KEY for assignment functionality:false' in section
 
     def test_generate_secrets_section_without_secrets(self):
         """
@@ -367,8 +366,8 @@ class TestConfigGeneratorSecretsSection:
         section = generator._generate_secrets_section(
             config_values, token_files, token_validation)
 
-        # Check custom description is used
-        assert 'DATABASE_TOKEN:Database access token for student queries:db_token.txt:90:false' in section
+        # Check custom description is used (new 3-field format)
+        assert 'DATABASE_TOKEN:Database access token for student queries:false' in section
 
     def test_generate_secrets_section_missing_use_secrets(self):
         """
@@ -857,10 +856,7 @@ class TestConfigGeneratorIntegration:
             assert 'ASSIGNMENT_NAME="data-analysis"' in full_content
             assert 'ASSIGNMENT_FILE="analysis.ipynb"' in full_content
 
-            # Verify secrets configuration
-            assert 'STEP_MANAGE_SECRETS=true' in full_content
-            assert 'INSTRUCTOR_TESTS_TOKEN:Token for accessing instructor test repository:instructor_token.txt:90:true' in full_content
-            assert 'DATABASE_ACCESS_TOKEN:DATABASE_ACCESS_TOKEN for assignment functionality:db_token.txt:90:false' in full_content
+            # Verify secrets configuration\n            assert 'STEP_MANAGE_SECRETS=true' in full_content\n            assert 'INSTRUCTOR_TESTS_TOKEN:Token for accessing instructor test repository:true' in full_content\n            assert 'DATABASE_ACCESS_TOKEN:DATABASE_ACCESS_TOKEN for assignment functionality:false' in full_content
 
     @patch('classroom_pilot.config.generator.print_header')
     @patch('classroom_pilot.config.generator.print_success')

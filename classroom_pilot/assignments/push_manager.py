@@ -6,12 +6,10 @@ handling with GitHub Classroom repositories.
 """
 
 import subprocess
-import sys
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
-import re
+from typing import List, Optional, Tuple
 
 from ..config import GlobalConfig
 from ..utils import get_logger
@@ -153,7 +151,7 @@ class ClassroomPushManager:
 
         if assignment_file and not (self.assignment_root / assignment_file).exists():
             errors.append(f"Assignment file not found: {assignment_file}")
-            errors.append(f"This doesn't appear to be the template repository")
+            errors.append("This doesn't appear to be the template repository")
         elif not assignment_file:
             warnings.append("No assignment file specified in configuration")
 

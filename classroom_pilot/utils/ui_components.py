@@ -7,7 +7,6 @@ colors, progress indicators, and display screens.
 
 import os
 import sys
-from typing import Optional
 
 
 class Colors:
@@ -133,16 +132,16 @@ def show_completion(config_values: dict, token_files: dict) -> None:
 {Colors.GREEN}║{Colors.NC}     • assignment.conf - Complete assignment configuration
 """
 
-    # Add token files if secrets are enabled
+    # Token information - now using centralized token system
     if config_values.get('USE_SECRETS') == 'true':
-        completion_text += f"{Colors.GREEN}║{Colors.NC}     • instructor_token.txt - Secure GitHub API token\n"
-
-        for secret_name, token_file in token_files.items():
-            if secret_name != 'INSTRUCTOR_TESTS_TOKEN':
-                completion_text += f"{Colors.GREEN}║{Colors.NC}     • {token_file} - Additional token file\n"
+        completion_text += f"{Colors.GREEN}║{Colors.NC}     • Secrets configured (using centralized GitHub token)\n"
 
     completion_text += f"""
 {Colors.GREEN}║{Colors.NC}     • .gitignore - Updated to protect sensitive files
+{Colors.GREEN}║                                                                              ║{Colors.NC}
+{Colors.GREEN}║{Colors.NC}  {Colors.CYAN}🔑 Token Management:{Colors.NC}
+{Colors.GREEN}║{Colors.NC}     • Centralized token: ~/.config/classroom-pilot/token_config.json
+{Colors.GREEN}║{Colors.NC}     • No token files needed in repository
 {Colors.GREEN}║                                                                              ║{Colors.NC}
 {Colors.GREEN}║{Colors.NC}  {Colors.YELLOW}🚀 Next Steps:{Colors.NC}
 {Colors.GREEN}║{Colors.NC}     1. Run the complete workflow:
@@ -182,22 +181,25 @@ OPTIONS:
 
 FEATURES:
     • Interactive prompts with intelligent defaults
-    • Secure token file creation with proper permissions
+    • Centralized token management (no token files in repo)
     • Automatic .gitignore configuration
     • Configuration validation and GitHub access testing
     • Support for multiple custom secrets/tokens
     • Modern, elegant interface with progress indicators
 
 REQUIREMENTS:
-    • GitHub CLI (gh) installed and authenticated
+    • GitHub token configured (via ~/.config/classroom-pilot/ or environment)
     • Write access to repository root directory
     • GitHub organization access permissions
 
 GENERATED FILES:
     • assignment.conf - Complete assignment configuration
-    • instructor_token.txt - Secure GitHub API token
-    • [custom]_token.txt - Additional token files as configured
     • .gitignore - Updated to protect sensitive files
+
+TOKEN MANAGEMENT:
+    • Centralized: ~/.config/classroom-pilot/token_config.json
+    • Environment: GITHUB_TOKEN variable
+    • No token files stored in repository
 
 NEXT STEPS:
     After running this setup wizard, use:

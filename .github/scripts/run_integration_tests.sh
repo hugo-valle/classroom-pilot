@@ -6,7 +6,7 @@ set -euo pipefail
 
 source "$(dirname "$0")/workflow_utils.sh"
 
-TEST_CONFIG_DIR="${1:-integration_test_data}"
+TEST_CONFIG_DIR="${1:-tests/fixtures}"
 CLASSROOM_PILOT_CMD="${2:-poetry run classroom-pilot}"
 
 print_message "step" "Running integration tests with configuration directory: $TEST_CONFIG_DIR"
