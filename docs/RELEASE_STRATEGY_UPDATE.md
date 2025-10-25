@@ -103,6 +103,11 @@ on:
 - ✅ Only runs when `release/*` → `main` merge occurs
 - ✅ Uses latest PyPI publish action (v1.13.0)
 - ✅ Enhanced metadata validation and debugging
+- ✅ **Documentation updates are now proposed via Pull Request:**
+    - After a successful release, the workflow creates a new branch for documentation changes (e.g., updating `docs/PYPI_PUBLICATION.md`).
+    - The workflow commits and pushes the changes to this branch.
+    - A pull request is automatically opened from the doc update branch to `main` using the GitHub CLI (`gh pr create`).
+    - This ensures all doc updates respect branch protection rules and are reviewed before merging into `main`.
 
 ### **2. `auto-release.yml` - Hotfix Automation**
 ```yaml
