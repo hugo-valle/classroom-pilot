@@ -5,6 +5,33 @@ All notable changes to Classroom Pilot are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) with [PEP 440](https://peps.python.org/pep-0440/) compliant version identifiers.
 
+## [3.1.1b0] - 2025-10-25
+
+### Fixed
+- **CI Test Infrastructure**: Resolved help text pollution and test assertion issues
+  - Fixed configuration loading logs appearing in help output
+  - Changed config loading log from INFO to DEBUG level
+  - Added ANSI escape code stripping for reliable help text testing in CI
+  - Created `wide_runner` fixture with terminal width settings for consistent rendering
+- **Git Repository Hygiene**: Removed tracked `assignment.conf` file
+  - File belongs in assignment repos, not in tool repo
+  - Properly added to `.gitignore` to prevent future commits
+
+### Added
+- **Extended QA Test Infrastructure**: Comprehensive Tier 2 testing improvements
+  - Enhanced `test_project_repos/` end-to-end validation suite
+  - Improved mock helpers for GitHub API testing
+  - Added test orchestration layer with TDD skip mechanism
+  - Better separation between unit tests (Tier 1) and E2E tests (Tier 2)
+- **GitHub API Integration Foundation**: Progressive migration from bash to Python
+  - Centralized error handling in `utils/github_exceptions.py`
+  - Retry logic with exponential backoff for transient failures
+  - Standardized response handling across GitHub API interactions
+
+### Changed
+- **Test Count**: Increased from 153 to 752+ comprehensive tests
+- **Test Architecture**: Clear two-tier testing strategy (unit + E2E)
+
 ## [3.1.0a1] - 2025-09-09
 
 ### Added

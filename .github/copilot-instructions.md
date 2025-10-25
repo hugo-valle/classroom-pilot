@@ -12,7 +12,7 @@ This document provides comprehensive instructions for AI assistants working on t
 - **Package Manager**: Poetry
 - **Testing**: pytest (153+ comprehensive tests)
 - **Architecture**: Modular package structure
-- **Current Version**: 3.0.1-alpha.2
+- **Current Version**: 3.1.1b0
 
 ## 📁 Project Structure
 

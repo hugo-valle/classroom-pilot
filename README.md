@@ -401,13 +401,13 @@ poetry run pytest tests/test_github_exceptions.py -v --tb=short
 
 ### Version Information
 
-- **Current Version**: 3.1.0b1 (Beta release with advanced features ready for broader testing)
+- **Current Version**: 3.1.1b0 (Beta release with GitHub API integration and comprehensive testing)
 - **Python Support**: 3.10, 3.11, 3.12
 - **Package Distribution**: PyPI with automated CI/CD
 - **Release Cycle**: Semantic versioning with [PEP 440](https://peps.python.org/pep-0440/) compliant identifiers
 - **Versioning Strategy**: [Development Documentation](docs-site/development/versioning.md)
 
-#### Recent Improvements (v3.1.0b1)
+#### Recent Improvements (v3.1.1b0)
 
 - **🎯 Universal CLI Options** - All commands support `--help`, `--verbose`, `--dry-run`
 - **🏗️ CLI Modernization** - Complete Typer-based architecture with consistent UX
