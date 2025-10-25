@@ -172,12 +172,22 @@ jobs:
           VERSION=$(poetry version -s)
           echo "Using pyproject.toml version: $VERSION"
         fi
+        
+        # Debug output
+        echo "Extracted version: $VERSION"
+        echo "GITHUB_REF: $GITHUB_REF"
+        
         # Validate version string (must look like 1.2.3 or 1.2.3b1 etc, not 'main' or 'refs/heads/main')
-        if [[ ! $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+([a-zA-Z0-9]*)?$ ]]; then
-          echo "Invalid version string: $VERSION. Skipping release creation."
+        if [[ "$VERSION" == "main" || "$VERSION" == "refs/heads/main" || "$VERSION" == refs/heads/* || "$VERSION" == "" ]]; then
+          echo "❌ Invalid version string: $VERSION. Skipping release creation."
+          echo "version=SKIP" >> $GITHUB_OUTPUT
+          echo "VERSION=SKIP" >> $GITHUB_ENV
+        elif [[ ! $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+([a-zA-Z0-9]*)?$ ]]; then
+          echo "❌ Invalid version string: $VERSION. Skipping release creation."
           echo "version=SKIP" >> $GITHUB_OUTPUT
           echo "VERSION=SKIP" >> $GITHUB_ENV
         else
+          echo "✅ Valid version: $VERSION"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "VERSION=$VERSION" >> $GITHUB_ENV
         fi
