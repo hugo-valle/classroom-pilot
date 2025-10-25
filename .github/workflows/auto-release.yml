@@ -35,7 +35,7 @@ jobs:
           echo "Commit message: $COMMIT_MSG"
           
           # Check if this is a merge commit from a hotfix branch
-          if [[ $COMMIT_MSG =~ "Merge pull request".+"hotfix/" ]] || [[ $COMMIT_MSG =~ "Merge branch 'hotfix/" ]]; then
+          if [[ $COMMIT_MSG =~ (from .*/hotfix/) ]] || [[ $COMMIT_MSG =~ "Merge branch 'hotfix/" ]]; then
             echo "is-hotfix=true" >> $GITHUB_OUTPUT
             # Extract branch name from commit message
             BRANCH_NAME=$(echo "$COMMIT_MSG" | grep -oE "hotfix/[^'\"]*" | head -1)

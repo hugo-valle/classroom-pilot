@@ -44,12 +44,11 @@ jobs:
         echo "Commit message: $COMMIT_MSG"
         
         # Check if this is a merge commit from a release or hotfix branch
-        if [[ $COMMIT_MSG =~ "Merge pull request".+"(release|hotfix)/" ]] || [[ $COMMIT_MSG =~ "Merge branch '(release|hotfix)/" ]]; then
+        if [[ $COMMIT_MSG =~ (from .*/(release|hotfix)/) ]] || [[ $COMMIT_MSG =~ "Merge branch '(release|hotfix)/" ]]; then
           echo "is-release=true" >> $GITHUB_OUTPUT
           # Extract branch name from commit message
           BRANCH_NAME=$(echo "$COMMIT_MSG" | grep -oE "(release|hotfix)/[^'\"]*" | head -1)
           echo "branch-name=$BRANCH_NAME" >> $GITHUB_OUTPUT
-          
           # Determine release type
           if [[ $BRANCH_NAME == release/* ]]; then
             echo "release-type=release" >> $GITHUB_OUTPUT
