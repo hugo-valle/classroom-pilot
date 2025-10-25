@@ -1,11 +1,14 @@
 name: 🚀 Build and Publish to PyPI
 
+
 on:
-  # Trigger ONLY when release/* branches are merged to main
+  # Trigger on push to main branch
   push:
     branches:
       - main
-  
+    tags:
+      - '*'  # Trigger on any tag push
+
   # Allow manual triggering for emergency releases
   workflow_dispatch:
     inputs:
