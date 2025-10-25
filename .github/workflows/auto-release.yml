@@ -7,7 +7,8 @@ on:
   push:
     branches:
       - main
-    # Only trigger if merged from hotfix/* branches
+    tags:
+      - '*'  # Trigger on any tag push
 
 permissions:
   contents: write      # Required to create releases and tags
