@@ -2,15 +2,15 @@ name: 🔄 CI
 
 on:
   push:
-    branches: [ main, develop, feature/* ]
+    branches: [main, develop, feature/*]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
 
 # Permissions for GITHUB_TOKEN
 permissions:
-  contents: read       # Required to checkout code
-  issues: read         # Required for security scanning
-  pull-requests: read  # Required for PR context
+  contents: read # Required to checkout code
+  issues: read # Required for security scanning
+  pull-requests: read # Required for PR context
 
 env:
   # Performance monitoring
@@ -27,7 +27,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.10', '3.11', '3.12']
+        python-version: ["3.10", "3.11", "3.12"]
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
@@ -36,6 +36,15 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
+          cache: "pip" # Cache pip dependencies
+
+      - name: 📦 Cache Poetry installation
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.local/share/pypoetry
+            ~/.local/bin/poetry
+          key: poetry-${{ runner.os }}-${{ hashFiles('.github/workflows/ci.yml') }}
 
       - name: 📦 Load workflow utilities
         run: |
@@ -50,7 +59,16 @@ jobs:
           virtualenvs-create: true
           virtualenvs-in-project: true
 
-      - name: 📚 Install dependencies
+      - name: � Cache Poetry dependencies
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: venv-test-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('**/poetry.lock') }}-${{ env.CACHE_VERSION }}
+          restore-keys: |
+            venv-test-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('**/poetry.lock') }}-
+            venv-test-${{ runner.os }}-${{ matrix.python-version }}-
+
+      - name: �📚 Install dependencies
         run: |
           source .github/scripts/workflow_utils.sh
           poetry install
@@ -64,29 +82,29 @@ jobs:
         run: |
           source .github/scripts/workflow_utils.sh
           print_message "step" "Validating Python CLI syntax"
-          
+
           # Test Python syntax and imports
           poetry run python -m py_compile classroom_pilot/__main__.py
           poetry run python -m py_compile classroom_pilot/cli.py
-          
+
           # Test CLI help commands
           poetry run python -m classroom_pilot --help
           poetry run python -m classroom_pilot assignments --help
           poetry run python -m classroom_pilot repos --help
           poetry run python -m classroom_pilot secrets --help
           poetry run python -m classroom_pilot automation --help
-          
+
           print_message "success" "Python CLI validation completed"
 
       - name: 🧪 Test CLI functionality
         run: |
           source .github/scripts/workflow_utils.sh
-          
+
           # Create comprehensive test files
           echo '{"assignment":"test","version":"1.0"}' > assignment.json
           echo '{"cells":[],"metadata":{},"nbformat":4,"nbformat_minor":4}' > test.ipynb
           echo '{"test_secret": "test_value"}' > test-secrets.json
-          
+
           # Test Python CLI help commands
           print_message "info" "Testing Python CLI help commands"
           poetry run python -m classroom_pilot --help > /dev/null
@@ -94,17 +112,17 @@ jobs:
           poetry run python -m classroom_pilot repos --help > /dev/null
           poetry run python -m classroom_pilot secrets --help > /dev/null
           poetry run python -m classroom_pilot automation --help > /dev/null
-          
+
           print_message "success" "All Python CLI help commands working"
 
       - name: 🧪 Run comprehensive test suite
         run: |
           source .github/scripts/workflow_utils.sh
           print_message "info" "Running comprehensive pytest test suite"
-          
+
           # Create test results directory
           mkdir -p test-results/python${{ matrix.python-version }}
-          
+
           # Run pytest with comprehensive coverage
           poetry run pytest tests/ \
             -v \
@@ -117,7 +135,7 @@ jobs:
             --cov-report=xml:test-results/python${{ matrix.python-version }}/coverage.xml \
             --cov-report=html:test-results/python${{ matrix.python-version }}/htmlcov \
             --junitxml=test-results/python${{ matrix.python-version }}/pytest-results.xml
-          
+
           print_message "success" "All tests passed for Python ${{ matrix.python-version }}"
 
       - name: 📊 Upload test results and coverage
@@ -133,13 +151,13 @@ jobs:
         if: always()
         run: |
           source .github/scripts/workflow_utils.sh
-          
+
           # Calculate step timing
           step_duration=$(report_step_timing "Test Python CLI (Python ${{ matrix.python-version }})" "$STEP_START_TIME")
-          
+
           # Export performance metrics for aggregation
           export_performance_metrics "test_python_cli_${{ matrix.python-version }}" "/tmp/workflow_metrics.json"
-          
+
           # Create comprehensive summary
           if [ "${{ job.status }}" = "success" ]; then
             create_step_summary "Test Python CLI (Python ${{ matrix.python-version }})" "success" "| Python Version | ${{ matrix.python-version }} |\n| Duration | ${step_duration}s |"
@@ -159,7 +177,16 @@ jobs:
       - name: 🐍 Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: 📦 Cache Poetry installation
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.local/share/pypoetry
+            ~/.local/bin/poetry
+          key: poetry-${{ runner.os }}-${{ hashFiles('.github/workflows/ci.yml') }}
 
       - name: 📦 Load workflow utilities
         run: |
@@ -174,6 +201,15 @@ jobs:
           virtualenvs-create: true
           virtualenvs-in-project: true
 
+      - name: 📦 Cache Poetry dependencies
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: venv-lint-${{ runner.os }}-3.11-${{ hashFiles('**/poetry.lock') }}-${{ env.CACHE_VERSION }}
+          restore-keys: |
+            venv-lint-${{ runner.os }}-3.11-${{ hashFiles('**/poetry.lock') }}-
+            venv-lint-${{ runner.os }}-3.11-
+
       - name: 📚 Install dependencies
         run: |
           source .github/scripts/workflow_utils.sh
@@ -183,19 +219,19 @@ jobs:
         run: |
           source .github/scripts/workflow_utils.sh
           print_message "step" "Running Python code quality analysis"
-          
+
           # Check Python syntax
           log_info "Checking Python syntax..."
           poetry run python -m py_compile classroom_pilot/*.py
-          
+
           # Test imports
           log_info "Testing module imports..."
           poetry run python -c "import classroom_pilot; print('✅ Package imports successfully')"
-          
+
           # Test CLI functionality
           log_info "Testing CLI functionality..."
           poetry run python -m classroom_pilot --help > /dev/null
-          
+
           print_message "success" "Python code quality checks passed"
 
       - name: 📊 Generate lint summary
@@ -203,10 +239,10 @@ jobs:
         run: |
           source .github/scripts/workflow_utils.sh
           step_duration=$(report_step_timing "Python Code Quality" "$STEP_START_TIME")
-          
+
           # Export performance metrics for aggregation
           export_performance_metrics "python_code_quality" "/tmp/workflow_metrics.json"
-          
+
           if [ "${{ job.status }}" = "success" ]; then
             create_step_summary "Python Code Quality" "success" "| Tool | Python syntax + imports |\n| Duration | ${step_duration}s |"
           else
@@ -218,18 +254,18 @@ jobs:
     runs-on: ubuntu-latest
     needs: [test]
     if: always()
-    
+
     steps:
-    - name: 📥 Checkout code (for utilities)
-      uses: actions/checkout@v4
-    
-    - name: 📦 Load workflow utilities
-      run: |
-        chmod +x .github/scripts/workflow_utils.sh
-        source .github/scripts/workflow_utils.sh
-    
-    - name: 📊 Generate test matrix summary
-      run: ./.github/scripts/generate_test_matrix_summary.sh "${{ needs.test.result }}"
+      - name: 📥 Checkout code (for utilities)
+        uses: actions/checkout@v4
+
+      - name: 📦 Load workflow utilities
+        run: |
+          chmod +x .github/scripts/workflow_utils.sh
+          source .github/scripts/workflow_utils.sh
+
+      - name: 📊 Generate test matrix summary
+        run: ./.github/scripts/generate_test_matrix_summary.sh "${{ needs.test.result }}"
 
   security:
     name: 🛡️ Security Scan
@@ -244,7 +280,20 @@ jobs:
       - name: 🐍 Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: 📦 Cache security tools
+        uses: actions/cache@v4
+        with:
+          path: |
+            /tmp/security-scan-cache
+            ~/.cache/trivy
+            ~/.cache/pip
+          key: security-tools-${{ runner.os }}-${{ hashFiles('.github/scripts/security_utils.sh') }}-${{ env.CACHE_VERSION }}
+          restore-keys: |
+            security-tools-${{ runner.os }}-${{ hashFiles('.github/scripts/security_utils.sh') }}-
+            security-tools-${{ runner.os }}-
 
       - name: 📦 Load workflow utilities
         run: |
