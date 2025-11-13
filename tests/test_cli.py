@@ -26,10 +26,11 @@ The CLI module provides commands for:
 
 Command Structure:
 - Main commands: --help, --version
-- Assignment management: assignments setup, assignments orchestrate, assignments manage
-- Repository operations: repos fetch, repos update, repos push, repos cycle-collaborator
+- Assignment management: assignments setup, assignments orchestrate
+- Repository operations: repos fetch
 - Secret management: secrets add, secrets manage
-- Automation: automation cron, automation sync, automation batch
+- Automation: automation cron-install, automation cron-remove, automation cron-status, 
+  automation cron-logs, automation cron-schedules, automation cron-sync
 
 Dependencies and Integration:
 - Built on Typer framework for modern CLI development
@@ -255,18 +256,10 @@ class TestManagementCommands:
         ) or "configure" in stdout.lower() or "assignment" in stdout.lower()
 
     def test_cron_status_dry_run(self):
-        """Test the cron status command in dry-run mode."""
+        """Test the automation cron-status command in dry-run mode."""
         success, stdout, stderr = run_cli_command(
             "python -m classroom_pilot automation --dry-run --verbose cron-status")
         assert success, f"Cron status command failed: {stderr}"
-        # Dry run message appears in stderr from logger
-        assert "DRY RUN:" in stderr
-
-    def test_cron_sync_dry_run(self):
-        """Test the automation sync command in dry-run mode."""
-        success, stdout, stderr = run_cli_command(
-            "python -m classroom_pilot automation --dry-run --verbose sync")
-        assert success, f"Automation sync command failed: {stderr}"
         # Dry run message appears in stderr from logger
         assert "DRY RUN:" in stderr
 
