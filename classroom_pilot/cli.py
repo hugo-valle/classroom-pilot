@@ -786,12 +786,15 @@ def check_classroom(
 @assignments_app.command("cycle-collaborator")
 def cycle_single_collaborator(
     ctx: typer.Context,
-    repo_url: str = typer.Argument(
-        ..., help="Repository URL to cycle collaborator permissions for"),
-    username: str = typer.Argument(...,
-                                   help="Username to cycle permissions for"),
+    repo_url: Optional[str] = typer.Argument(
+        None, help="Repository URL to cycle collaborator permissions for (or leave empty to select from student-repos.txt)"),
+    username: Optional[str] = typer.Argument(
+        None, help="Username to cycle permissions for (auto-extracted from URL if not provided)"),
     force: bool = typer.Option(
-        False, "--force", "-f", help="Force cycling even when access appears correct"),
+        False, "--force", help="Force cycling even when access appears correct"),
+    repo_file: str = typer.Option(
+        "student-repos.txt", "--file", "-f",
+        help="File containing student repository URLs for interactive selection"),
     config_file: str = typer.Option(
         "assignment.conf", "--config", "-c", help="Configuration file path")
 ):
@@ -802,17 +805,22 @@ def cycle_single_collaborator(
     It intelligently detects when cycling is needed and only performs the operation
     when necessary, unless force mode is enabled.
 
+    If no repository URL is provided, you'll be prompted to select from student-repos.txt.
+    The username is automatically extracted from the repository URL if not explicitly provided.
+
     Args:
-        repo_url: URL of the repository to cycle permissions for
-        username: Username to cycle permissions for
+        repo_url: URL of the repository to cycle permissions for (auto-selected if omitted)
+        username: Username to cycle permissions for (auto-extracted if not provided)
         force: Force cycling even when access appears correct
+        repo_file: File containing student repository URLs for interactive selection
         config_file: Path to configuration file
 
     Supports universal options: --verbose, --dry-run
 
     Example:
-        $ classroom-pilot assignments cycle-collaborator https://github.com/org/repo student123
-        $ classroom-pilot assignments cycle-collaborator --force https://github.com/org/repo student123 --verbose --dry-run
+        $ classroom-pilot assignments cycle-collaborator
+        $ classroom-pilot assignments cycle-collaborator https://github.com/org/repo-student123
+        $ classroom-pilot assignments cycle-collaborator https://github.com/org/repo student123 --force
     """
     # Access universal options from parent context
     verbose = ctx.parent.params.get('verbose', False)
@@ -820,12 +828,53 @@ def cycle_single_collaborator(
 
     if verbose:
         setup_logging(verbose=True)
-        logger.debug(
-            f"Verbose mode enabled for cycling collaborator {username} on {repo_url}")
     else:
         setup_logging()
 
     logger.info("Cycling single repository collaborator permissions")
+
+    # If no repo_url provided, load from file and allow selection
+    if not repo_url:
+        try:
+            repos = load_student_repos(repo_file)
+            if not repos:
+                logger.error(f"No repositories found in {repo_file}")
+                logger.info("💡 To generate a student repository list, run:")
+                logger.info("   $ classroom-pilot repos fetch")
+                raise typer.Exit(code=1)
+
+            repo_url = select_student_repo_interactive(repos)
+            if not repo_url:
+                raise typer.Exit(code=0)  # User cancelled
+
+        except FileNotFoundError:
+            logger.error(f"Repository file not found: {repo_file}")
+            logger.info("💡 To generate a student repository list, run:")
+            logger.info("   $ classroom-pilot repos fetch")
+            raise typer.Exit(code=1)
+
+    # Extract username from URL if not provided
+    if not username:
+        try:
+            # Extract username from URL (e.g., https://github.com/org/assignment-username -> username)
+            url_parts = repo_url.rstrip('/').split('/')
+            repo_name = url_parts[-1]
+            # Try to extract username after last dash
+            if '-' in repo_name:
+                username = repo_name.split('-')[-1]
+                logger.info(f"Extracted username from URL: {username}")
+            else:
+                logger.error("Could not extract username from repository URL")
+                logger.error(
+                    "Please provide username explicitly: cycle-collaborator <repo_url> <username>")
+                raise typer.Exit(code=1)
+        except (IndexError, AttributeError) as e:
+            logger.error(f"Failed to parse repository URL: {e}")
+            raise typer.Exit(code=1)
+
+    if verbose:
+        logger.debug(
+            f"Verbose mode enabled for cycling collaborator {username} on {repo_url}")
 
     if dry_run:
         logger.info(
@@ -872,8 +921,9 @@ def cycle_single_collaborator(
 @assignments_app.command("cycle-collaborators")
 def cycle_multiple_collaborators(
     ctx: typer.Context,
-    batch_file: str = typer.Argument(...,
-                                     help="File containing repository URLs or usernames"),
+    batch_file: str = typer.Argument(
+        "student-repos.txt",
+        help="File containing repository URLs or usernames (default: student-repos.txt)"),
     repo_url_mode: bool = typer.Option(
         False, "--repo-urls", help="Treat batch file as repository URLs (extract usernames)"),
     force: bool = typer.Option(
@@ -888,12 +938,15 @@ def cycle_multiple_collaborators(
     and cycles collaborator permissions for each entry. It provides intelligent
     detection of access issues and only cycles when necessary.
 
+    By default, uses student-repos.txt which is generated by 'repos fetch'.
+    You can specify a different file as an argument.
+
     The batch file format depends on the mode:
     - Username mode (default): One username per line
     - Repository URL mode (--repo-urls): One repository URL per line
 
     Args:
-        batch_file: Path to file containing repository URLs or usernames
+        batch_file: Path to file containing repository URLs or usernames (default: student-repos.txt)
         repo_url_mode: Treat file as repository URLs instead of usernames
         force: Force cycling even when access appears correct
         dry_run: Preview actions without making changes
@@ -901,8 +954,9 @@ def cycle_multiple_collaborators(
         Supports universal options: --verbose, --dry-run
 
     Example:
-        $ classroom-pilot assignments cycle-collaborators student-repos.txt --repo-urls
-        $ classroom-pilot assignments cycle-collaborators usernames.txt --force
+        $ classroom-pilot assignments cycle-collaborators
+        $ classroom-pilot assignments cycle-collaborators --repo-urls
+        $ classroom-pilot assignments cycle-collaborators custom-repos.txt --repo-urls --force
     """
     # Access universal options from context
     verbose = ctx.obj.get('verbose', False)
