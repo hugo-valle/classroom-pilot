@@ -966,11 +966,15 @@ def cycle_multiple_collaborators(
 
 @assignments_app.command("check-repository-access")
 def check_repository_access(
-    repo_url: str = typer.Argument(...,
-                                   help="Repository URL to check access for"),
-    username: str = typer.Argument(..., help="Username to check access for"),
+    repo_url: Optional[str] = typer.Argument(
+        None, help="Repository URL to check access for (or leave empty to select from student-repos.txt)"),
+    username: Optional[str] = typer.Argument(
+        None, help="Username to check access for (auto-extracted from URL if not provided)"),
     verbose: bool = typer.Option(
         False, "--verbose", "-v", help="Enable verbose output"),
+    repo_file: str = typer.Option(
+        "student-repos.txt", "--file", "-f",
+        help="File containing student repository URLs for interactive selection"),
     config_file: str = typer.Option(
         "assignment.conf", "--config", "-c", help="Configuration file path")
 ):
@@ -981,17 +985,62 @@ def check_repository_access(
     including collaborator status and pending invitations. It provides
     detailed status information to help diagnose access issues.
 
+    If no repository URL is provided, you'll be prompted to select from student-repos.txt.
+    The username is automatically extracted from the repository URL if not explicitly provided.
+
     Args:
         repo_url: URL of the repository to check
-        username: Username to check access for
+        username: Username to check access for (auto-extracted if not provided)
         verbose: Enable detailed logging
+        repo_file: File containing student repository URLs for interactive selection
         config_file: Path to configuration file
 
     Example:
-        $ classroom-pilot assignments check-repository-access https://github.com/org/repo student123
+        $ classroom-pilot assignments check-repository-access
+        $ classroom-pilot assignments check-repository-access https://github.com/org/assignment-student123
+        $ classroom-pilot assignments check-repository-access https://github.com/org/assignment-student123 student123
     """
     setup_logging(verbose)
     logger.info("Checking repository access status")
+
+    # If no repo_url provided, load from file and allow selection
+    if not repo_url:
+        try:
+            repos = load_student_repos(repo_file)
+            if not repos:
+                logger.error(f"No repositories found in {repo_file}")
+                logger.info("💡 To generate a student repository list, run:")
+                logger.info("   $ classroom-pilot repos fetch")
+                raise typer.Exit(code=1)
+
+            repo_url = select_student_repo_interactive(repos)
+            if not repo_url:
+                raise typer.Exit(code=0)  # User cancelled
+
+        except FileNotFoundError:
+            logger.error(f"Repository file not found: {repo_file}")
+            logger.info("💡 To generate a student repository list, run:")
+            logger.info("   $ classroom-pilot repos fetch")
+            raise typer.Exit(code=1)
+
+    # Extract username from URL if not provided
+    if not username:
+        try:
+            # Extract username from URL (e.g., https://github.com/org/assignment-username -> username)
+            url_parts = repo_url.rstrip('/').split('/')
+            repo_name = url_parts[-1]
+            # Try to extract username after last dash
+            if '-' in repo_name:
+                username = repo_name.split('-')[-1]
+                logger.info(f"Extracted username from URL: {username}")
+            else:
+                logger.error("Could not extract username from repository URL")
+                logger.error(
+                    "Please provide username explicitly: check-repository-access <repo_url> <username>")
+                raise typer.Exit(code=1)
+        except (IndexError, AttributeError) as e:
+            logger.error(f"Failed to parse repository URL: {e}")
+            raise typer.Exit(code=1)
 
     try:
         from .assignments.cycle_collaborator import CycleCollaboratorManager
