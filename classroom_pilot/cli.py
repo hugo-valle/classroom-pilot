@@ -23,6 +23,84 @@ from .config.global_config import load_global_config, get_global_config
 logger = get_logger("cli")
 
 
+def load_student_repos(file_path: str = "student-repos.txt") -> List[str]:
+    """
+    Load student repository URLs from file.
+
+    Args:
+        file_path: Path to file containing repository URLs
+
+    Returns:
+        List of repository URLs
+
+    Raises:
+        FileNotFoundError: If file doesn't exist
+    """
+    from pathlib import Path
+
+    repo_file = Path(file_path)
+    if not repo_file.exists():
+        raise FileNotFoundError(f"Repository file not found: {file_path}")
+
+    repos = []
+    with open(repo_file, 'r') as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith('#'):
+                repos.append(line)
+
+    return repos
+
+
+def select_student_repo_interactive(repos: List[str]) -> Optional[str]:
+    """
+    Allow user to interactively select a repository from a list.
+
+    Args:
+        repos: List of repository URLs
+
+    Returns:
+        Selected repository URL or None if cancelled
+    """
+    if not repos:
+        return None
+
+    print("\n📚 Available student repositories:\n")
+    for i, repo in enumerate(repos, 1):
+        # Extract student name from URL
+        student_name = repo.split('/')[-1]
+        print(f"  {i}. {student_name}")
+        print(f"     {repo}")
+
+    print(f"\n  0. Cancel")
+
+    while True:
+        try:
+            choice = input("\n👉 Select a repository (enter number): ").strip()
+            if not choice:
+                continue
+
+            choice_num = int(choice)
+
+            if choice_num == 0:
+                print("❌ Cancelled")
+                return None
+
+            if 1 <= choice_num <= len(repos):
+                selected = repos[choice_num - 1]
+                student_name = selected.split('/')[-1]
+                print(f"✅ Selected: {student_name}")
+                return selected
+            else:
+                print(f"⚠️  Please enter a number between 0 and {len(repos)}")
+
+        except ValueError:
+            print("⚠️  Please enter a valid number")
+        except KeyboardInterrupt:
+            print("\n❌ Cancelled")
+            return None
+
+
 def version_callback(value: bool):
     """Callback to handle --version flag."""
     if value:
@@ -360,21 +438,27 @@ def assignment_orchestrate(
 
 
 @assignments_app.command("help-student")
-@assignments_app.command("help-student")
 def help_student(
     ctx: typer.Context,
-    repo_url: str = typer.Argument(..., help="Student repository URL to help"),
+    repo_url: Optional[str] = typer.Argument(
+        None, help="Student repository URL (or leave empty to select from student-repos.txt)"),
     one_student: bool = typer.Option(
         False, "--one-student", help="Use template directly (bypass classroom repository)"),
     auto_confirm: bool = typer.Option(
         False, "--yes", "-y", help="Automatically confirm all prompts"),
+    repo_file: str = typer.Option(
+        "student-repos.txt", "--file", "-f",
+        help="File containing student repository URLs for interactive selection"),
     config_file: str = typer.Option(
         "assignment.conf", "--config", "-c", help="Configuration file path")
 ):
     """
     Help a specific student with repository updates.
 
+    If no repository URL is provided, you'll be prompted to select from student-repos.txt.
+
     Example:
+        $ classroom-pilot assignments help-student
         $ classroom-pilot assignments help-student https://github.com/org/assignment-student123
         $ classroom-pilot assignments help-student --one-student https://github.com/org/assignment-student123
     """
@@ -383,6 +467,26 @@ def help_student(
     dry_run = ctx.obj.get('dry_run', False)
 
     setup_logging(verbose)
+
+    # If no repo_url provided, load from file and allow selection
+    if not repo_url:
+        try:
+            repos = load_student_repos(repo_file)
+            if not repos:
+                logger.error(f"No repositories found in {repo_file}")
+                logger.info("💡 To generate a student repository list, run:")
+                logger.info("   $ classroom-pilot repos fetch")
+                raise typer.Exit(code=1)
+
+            repo_url = select_student_repo_interactive(repos)
+            if not repo_url:
+                raise typer.Exit(code=0)  # User cancelled
+
+        except FileNotFoundError:
+            logger.error(f"Repository file not found: {repo_file}")
+            logger.info("💡 To generate a student repository list, run:")
+            logger.info("   $ classroom-pilot repos fetch")
+            raise typer.Exit(code=1)
 
     # Delegate to AssignmentService
     try:
@@ -476,15 +580,21 @@ def help_students(
 @assignments_app.command("check-student")
 def check_student(
     ctx: typer.Context,
-    repo_url: str = typer.Argument(...,
-                                   help="Student repository URL to check"),
+    repo_url: Optional[str] = typer.Argument(
+        None, help="Student repository URL (or leave empty to select from student-repos.txt)"),
+    repo_file: str = typer.Option(
+        "student-repos.txt", "--file", "-f",
+        help="File containing student repository URLs for interactive selection"),
     config_file: str = typer.Option(
         "assignment.conf", "--config", "-c", help="Configuration file path")
 ):
     """
     Check the status of a student repository.
 
+    If no repository URL is provided, you'll be prompted to select from student-repos.txt.
+
     Example:
+        $ classroom-pilot assignments check-student
         $ classroom-pilot assignments check-student https://github.com/org/assignment-student123
     """
     # Access universal options from context
@@ -492,6 +602,26 @@ def check_student(
     dry_run = ctx.obj.get('dry_run', False)
 
     setup_logging(verbose)
+
+    # If no repo_url provided, load from file and allow selection
+    if not repo_url:
+        try:
+            repos = load_student_repos(repo_file)
+            if not repos:
+                logger.error(f"No repositories found in {repo_file}")
+                logger.info("💡 To generate a student repository list, run:")
+                logger.info("   $ classroom-pilot repos fetch")
+                raise typer.Exit(code=1)
+
+            repo_url = select_student_repo_interactive(repos)
+            if not repo_url:
+                raise typer.Exit(code=0)  # User cancelled
+
+        except FileNotFoundError:
+            logger.error(f"Repository file not found: {repo_file}")
+            logger.info("💡 To generate a student repository list, run:")
+            logger.info("   $ classroom-pilot repos fetch")
+            raise typer.Exit(code=1)
 
     # Delegate to AssignmentService
     try:

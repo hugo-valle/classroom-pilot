@@ -230,6 +230,62 @@ class StudentUpdateHelper:
             pass
         return None
 
+    def check_commit_in_history(self, repo_url: str, target_commit: str, ref: str = "main") -> bool:
+        """
+        Check if a target commit exists in the history of a remote repository.
+
+        Args:
+            repo_url: URL of the repository to check
+            target_commit: Commit SHA to look for in history
+            ref: Branch reference to check (default: main)
+
+        Returns:
+            True if target_commit is in the history of repo_url, False otherwise
+        """
+        temp_dir = None
+        try:
+            import tempfile
+            # Create a temporary directory for shallow clone
+            temp_dir = tempfile.mkdtemp(prefix="commit_check_")
+
+            # Shallow clone to get commit history
+            clone_result = subprocess.run(
+                ['git', 'clone', '--depth=50', '--single-branch',
+                    '--branch', ref, repo_url, temp_dir],
+                capture_output=True,
+                text=True,
+                timeout=60
+            )
+
+            if clone_result.returncode != 0:
+                self.logger.debug(
+                    f"Failed to clone for commit check: {clone_result.stderr}")
+                return False
+
+            # Check if target commit exists in history
+            check_result = subprocess.run(
+                ['git', 'merge-base', '--is-ancestor', target_commit, 'HEAD'],
+                cwd=temp_dir,
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+
+            # Exit code 0 means the commit is an ancestor (in history)
+            return check_result.returncode == 0
+
+        except (subprocess.TimeoutExpired, subprocess.SubprocessError, Exception) as e:
+            self.logger.debug(f"Error checking commit history: {e}")
+            return False
+        finally:
+            # Clean up temp directory
+            if temp_dir and Path(temp_dir).exists():
+                import shutil
+                try:
+                    shutil.rmtree(temp_dir)
+                except Exception:
+                    pass
+
     def check_student_status(self, repo_url: str) -> StudentStatus:
         """Check the status of a student repository."""
         student_name = self.extract_student_name(repo_url)
@@ -261,12 +317,26 @@ class StudentUpdateHelper:
             classroom_commit = self.get_remote_commit(
                 self.global_config.classroom_repo_url)
 
-        # Determine if update is needed
+        # Determine if update is needed by checking if student has the latest commits in their history
         needs_update = True
-        if classroom_commit and student_commit == classroom_commit:
-            needs_update = False
-        elif template_commit and student_commit == template_commit:
-            needs_update = False
+
+        # Check if student has classroom commit in their history
+        if classroom_commit:
+            if student_commit == classroom_commit:
+                # Exact match - student is at same commit as classroom
+                needs_update = False
+            elif self.check_commit_in_history(repo_url, classroom_commit, self.branch):
+                # Classroom commit is in student's history (merged)
+                needs_update = False
+
+        # Fallback to template check if no classroom or student doesn't have classroom updates
+        if needs_update and template_commit:
+            if student_commit == template_commit:
+                # Exact match with template
+                needs_update = False
+            elif self.check_commit_in_history(repo_url, template_commit, self.branch):
+                # Template commit is in student's history (merged)
+                needs_update = False
 
         return StudentStatus(
             student_name=student_name,
