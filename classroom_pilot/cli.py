@@ -753,41 +753,6 @@ def check_classroom(
         raise typer.Exit(code=1)
 
 
-@assignments_app.command("manage")
-def assignment_manage(ctx: typer.Context):
-    """
-    Provides a high-level interface for managing the assignment lifecycle.
-
-    This function provides access to assignment management functionality with
-    support for universal options. Assignment management commands will be
-    implemented in future versions.
-
-    Supports universal options: --verbose, --dry-run
-
-    Example:
-        $ classroom-pilot assignments manage
-        $ classroom-pilot assignments manage --verbose --dry-run
-    """
-    # Access universal options from parent context
-    verbose = ctx.parent.params.get('verbose', False)
-    dry_run = ctx.parent.params.get('dry_run', False)
-
-    if verbose:
-        setup_logging(verbose=True)
-        logger.debug("Verbose mode enabled for assignment management")
-    else:
-        setup_logging()
-
-    if dry_run:
-        logger.info("DRY RUN: Would start assignment management interface")
-        typer.echo("🚧 DRY RUN: Assignment management commands coming soon!")
-        return
-
-    logger.info("Assignment management interface")
-    # TODO: Implement assignment management
-    typer.echo("🚧 Assignment management commands coming soon!")
-
-
 @assignments_app.command("cycle-collaborator")
 def cycle_single_collaborator(
     ctx: typer.Context,
