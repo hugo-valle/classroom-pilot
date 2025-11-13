@@ -650,9 +650,13 @@ def check_student(
 
 @assignments_app.command("student-instructions")
 def student_instructions(
-    repo_url: str = typer.Argument(..., help="Student repository URL"),
+    repo_url: Optional[str] = typer.Argument(
+        None, help="Student repository URL (or leave empty to select from student-repos.txt)"),
     output_file: Optional[str] = typer.Option(
         None, "--output", "-o", help="Save instructions to file"),
+    repo_file: str = typer.Option(
+        "student-repos.txt", "--file", "-f",
+        help="File containing student repository URLs for interactive selection"),
     config_file: str = typer.Option(
         "assignment.conf", "--config", "-c", help="Configuration file path")
 ):
@@ -663,15 +667,41 @@ def student_instructions(
     to help them update their repository manually. The instructions include
     multiple methods and troubleshooting tips.
 
+    If no repository URL is provided, you'll be prompted to select from student-repos.txt.
+
     Args:
         repo_url: URL of the student repository
         output_file: Optional file to save instructions to
+        repo_file: File containing student repository URLs for interactive selection
         config_file: Path to configuration file
 
     Example:
+        $ classroom-pilot assignments student-instructions
         $ classroom-pilot assignments student-instructions https://github.com/org/assignment-student123
         $ classroom-pilot assignments student-instructions https://github.com/org/assignment-student123 -o instructions.txt
     """
+    setup_logging()
+
+    # If no repo_url provided, load from file and allow selection
+    if not repo_url:
+        try:
+            repos = load_student_repos(repo_file)
+            if not repos:
+                logger.error(f"No repositories found in {repo_file}")
+                logger.info("💡 To generate a student repository list, run:")
+                logger.info("   $ classroom-pilot repos fetch")
+                raise typer.Exit(code=1)
+
+            repo_url = select_student_repo_interactive(repos)
+            if not repo_url:
+                raise typer.Exit(code=0)  # User cancelled
+
+        except FileNotFoundError:
+            logger.error(f"Repository file not found: {repo_file}")
+            logger.info("💡 To generate a student repository list, run:")
+            logger.info("   $ classroom-pilot repos fetch")
+            raise typer.Exit(code=1)
+
     logger.info("Generating student instructions")
 
     try:
