@@ -181,10 +181,12 @@ class StudentUpdateHelper:
         org = self.global_config.github_organization
         assignment = self.global_config.assignment_name
 
+        # GitHub URLs are case-insensitive, so compare in lowercase
         expected_pattern = f"https://github.com/{org}/.*{assignment}-.*"
 
         import re
-        if not re.match(expected_pattern.replace('.*', '.*'), repo_url):
+        # Case-insensitive match since GitHub URLs are case-insensitive
+        if not re.match(expected_pattern, repo_url, re.IGNORECASE):
             self.logger.error("Invalid repository URL format")
             self.logger.error(
                 f"Expected: https://github.com/{org}/{assignment}-[student-name]")
