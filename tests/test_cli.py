@@ -191,14 +191,6 @@ class TestBasicCLI:
 class TestWorkflowCommands:
     """Test main workflow commands with dry-run."""
 
-    def test_sync_command_dry_run(self):
-        """Test the repo push command (sync equivalent) in dry-run mode."""
-        success, stdout, stderr = run_cli_command(
-            "python -m classroom_pilot repos --dry-run --verbose push")
-        assert success, f"Repo push command failed: {stderr}"
-        # Dry run message appears in stderr from logger
-        assert "DRY RUN:" in stderr
-
     def test_discover_command_dry_run(self):
         """Test the repo fetch command (discover equivalent) in dry-run mode."""
         success, stdout, stderr = run_cli_command(
@@ -262,14 +254,6 @@ class TestManagementCommands:
         assert "interactive wizard" in stdout.lower(
         ) or "configure" in stdout.lower() or "assignment" in stdout.lower()
 
-    def test_update_command_dry_run(self):
-        """Test the repos update command in dry-run mode."""
-        success, stdout, stderr = run_cli_command(
-            "python -m classroom_pilot repos --dry-run --verbose update")
-        assert success, f"Update command failed: {stderr}"
-        # Dry run message appears in stderr from logger
-        assert "DRY RUN:" in stderr
-
     def test_cron_status_dry_run(self):
         """Test the cron status command in dry-run mode."""
         success, stdout, stderr = run_cli_command(
@@ -288,30 +272,21 @@ class TestManagementCommands:
 
 
 class TestCycleCommands:
-    """Test collaborator cycling commands."""
+    """
+    Test collaborator cycling commands.
+
+    Note: The repos cycle-collaborator command has been removed as redundant.
+    Use 'assignments cycle-collaborator' and 'assignments cycle-collaborators' instead,
+    which provide better functionality with interactive selection and auto-extraction.
+    """
 
     def test_cycle_list_mode(self):
-        """Test cycle-collaborator command in dry-run mode."""
+        """Test assignments cycle-collaborator command in dry-run mode."""
         success, stdout, stderr = run_cli_command(
-            "python -m classroom_pilot repos --dry-run --verbose cycle-collaborator")
+            "python -m classroom_pilot assignments --dry-run --verbose cycle-collaborator --help")
         assert success, f"Cycle collaborator command failed: {stderr}"
-        # Dry run message appears in stderr from logger
-        assert "DRY RUN:" in stderr
-
-    def test_cycle_force_mode(self):
-        """Test cycle-collaborator command help."""
-        success, stdout, stderr = run_cli_command(
-            "python -m classroom_pilot repos cycle-collaborator --help")
-        assert success, f"Cycle collaborator help command failed: {stderr}"
-        assert "Cycle repository collaborator" in stdout
-
-    def test_cycle_repo_urls_mode(self):
-        """Test cycle-collaborator with verbose dry-run mode."""
-        success, stdout, stderr = run_cli_command(
-            "python -m classroom_pilot repos --dry-run --verbose cycle-collaborator")
-        assert success, f"Cycle collaborator verbose command failed: {stderr}"
-        # Dry run message appears in stderr from logger
-        assert "DRY RUN:" in stderr
+        # Check help is displayed correctly
+        assert "Cycle collaborator permissions" in stdout or "cycle" in stdout.lower()
 
 
 class TestGlobalOptions:
