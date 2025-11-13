@@ -938,8 +938,12 @@ def push_to_classroom(
         if dry_run:
             logger.info("🔍 DRY RUN MODE - No changes will be made")
 
-    # Initialize manager
-        manager = ClassroomPushManager(assignment_root=Path.cwd())
+        # Get the loaded global configuration
+        global_config = get_global_config()
+
+        # Initialize manager with global config
+        manager = ClassroomPushManager(
+            global_config=global_config, assignment_root=Path.cwd())
         manager.branch = branch
 
         if dry_run:

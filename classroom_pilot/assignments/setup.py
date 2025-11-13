@@ -482,6 +482,25 @@ class AssignmentSetup:
 
         self.config_values['TEMPLATE_REPO_URL'] = template_url
 
+        # Prompt for classroom repository URL (optional but recommended for template synchronization)
+        # Note: No validator since this is optional - user can press Enter to skip
+        classroom_repo_url = self.input_handler.prompt_input(
+            "GitHub Classroom repository URL (optional)",
+            "",
+            None,  # No validator - field is optional
+            "The repository URL created by GitHub Classroom (e.g., https://github.com/org/classroom-semester-assignment). Leave empty if not using template synchronization."
+        )
+
+        if classroom_repo_url:
+            # Validate the URL if one was provided
+            if self.validators.validate_url(classroom_repo_url):
+                self.config_values['CLASSROOM_REPO_URL'] = classroom_repo_url
+            else:
+                print_error(
+                    "Invalid URL provided for Classroom repository. Skipping...")
+                logger.warning(
+                    f"Invalid CLASSROOM_REPO_URL provided: {classroom_repo_url}")
+
     def _collect_assignment_details(self):
         """
         Collects assignment-specific details from the user and updates the configuration values.
