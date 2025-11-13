@@ -27,8 +27,6 @@ from rich.progress import Progress
 from rich.table import Table
 
 from ..config.global_config import get_global_config, load_global_config
-from ..secrets.github_secrets import GitHubSecretsManager
-from ..utils.github_classroom_api import GitHubClassroomAPI
 from ..utils.logger import get_logger
 
 # Module-level logger for backward compatibility with tests
@@ -91,14 +89,6 @@ class AssignmentOrchestrator:
                     f"Configuration file not found: {config_file}")
         self.global_config = get_global_config()
         self.config_file = config_file or Path.cwd() / "assignment.conf"
-
-        # Initialize components only if config is loaded
-        if self.global_config:
-            self.classroom_api = GitHubClassroomAPI(self.global_config)
-            self.secrets_manager = GitHubSecretsManager(self.global_config)
-        else:
-            self.classroom_api = None
-            self.secrets_manager = None
 
         # Workflow state
         self.results: List[StepResult] = []
@@ -250,41 +240,36 @@ class AssignmentOrchestrator:
                          "https://github.com/example/student-repo-2"]
                 message = f"DRY RUN: Would discover {len(repos)} repositories"
             else:
-                # Use our existing GitHub Classroom API integration
+                # Use the existing repos fetch service
+                from ..services.repos_service import ReposService
+
                 self.logger.info("Discovering student repositories...")
-                repos = self.classroom_api.discover_student_repositories()
-                self.discovered_repos = repos
+                repos_service = ReposService(
+                    dry_run=False, verbose=self.logger.level <= 10)
+                success, fetch_message = repos_service.fetch(
+                    config_file=str(self.config_file))
 
-                # Save to output files for legacy compatibility
-                output_dir = Path(
-                    getattr(self.global_config, 'output_dir', 'scripts'))
-                output_dir.mkdir(exist_ok=True)
+                if not success:
+                    duration = time.time() - start_time
+                    return StepResult(
+                        step=WorkflowStep.DISCOVER,
+                        success=False,
+                        message=f"Repository discovery failed: {fetch_message}",
+                        duration=duration
+                    )
 
-                batch_file = output_dir / \
-                    getattr(self.global_config, 'student_repos_file',
-                            'student-repos-batch.txt')
-                students_only_file = output_dir / \
-                    getattr(self.global_config, 'students_only_file',
-                            'student-repos-students-only.txt')
-
-                # Write all repositories
-                with open(batch_file, 'w') as f:
-                    for repo in repos:
-                        f.write(f"{repo}\n")
-
-                # Write students-only (exclude instructor-tests)
-                student_repos = [
-                    repo for repo in repos if 'instructor-tests' not in repo]
-                with open(students_only_file, 'w') as f:
-                    for repo in student_repos:
-                        f.write(f"{repo}\n")
-
-                self.logger.info(f"Total repositories: {len(repos)}")
-                self.logger.info(f"Student repositories: {len(student_repos)}")
-                self.logger.info(f"Batch file: {batch_file}")
-                self.logger.info(f"Students-only file: {students_only_file}")
-
-                message = f"Discovered {len(repos)} repositories ({len(student_repos)} student repos)"
+                # Load the discovered repositories from student-repos.txt
+                student_repos_file = Path("student-repos.txt")
+                if student_repos_file.exists():
+                    with open(student_repos_file, 'r') as f:
+                        repos = [line.strip() for line in f if line.strip()
+                                 and not line.startswith('#')]
+                    self.discovered_repos = repos
+                    message = f"Discovered {len(repos)} student repositories"
+                else:
+                    repos = []
+                    self.discovered_repos = repos
+                    message = "No repositories discovered"
 
             duration = time.time() - start_time
             return StepResult(
@@ -321,17 +306,12 @@ class AssignmentOrchestrator:
         try:
             # Check if we have repositories to work with
             if not dry_run and not self.discovered_repos:
-                # Try to load from file if discovery wasn't run
-                output_dir = Path(
-                    getattr(self.global_config, 'output_dir', 'scripts'))
-                batch_file = output_dir / \
-                    getattr(self.global_config, 'student_repos_file',
-                            'student-repos-batch.txt')
-
-                if batch_file.exists():
-                    with open(batch_file, 'r') as f:
+                # Try to load from student-repos.txt if discovery wasn't run
+                student_repos_file = Path("student-repos.txt")
+                if student_repos_file.exists():
+                    with open(student_repos_file, 'r') as f:
                         self.discovered_repos = [
-                            line.strip() for line in f if line.strip().startswith('https://')]
+                            line.strip() for line in f if line.strip() and not line.startswith('#')]
                 else:
                     return StepResult(
                         step=WorkflowStep.SECRETS,
@@ -340,31 +320,32 @@ class AssignmentOrchestrator:
                         duration=time.time() - start_time
                     )
 
-            # Use our existing GitHub secrets manager
+            # Use the existing secrets add service
             if dry_run:
                 self.logger.info(
                     "DRY RUN: Would manage secrets for student repositories")
                 message = "DRY RUN: Secret management simulated"
-                success_count = len(
-                    self.discovered_repos) if self.discovered_repos else 2
-                failed_count = 0
+                success = True
             else:
+                from ..services.secrets_service import SecretsService
+
                 self.logger.info(
                     f"Managing secrets for {len(self.discovered_repos)} repositories...")
-                success_count, failed_count = self.secrets_manager.distribute_secrets_to_repositories(
-                    self.discovered_repos,
-                    dry_run=False
+                secrets_service = SecretsService(
+                    dry_run=False, verbose=self.logger.level <= 10)
+                success, secrets_message = secrets_service.add_secrets(
+                    repo_urls=self.discovered_repos,
+                    force_update=False
                 )
-                message = f"Secrets distributed: {success_count} success, {failed_count} failed"
+                message = secrets_message
 
             duration = time.time() - start_time
             return StepResult(
                 step=WorkflowStep.SECRETS,
-                success=failed_count == 0,
+                success=success,
                 message=message,
                 duration=duration,
-                data={"success_count": success_count,
-                      "failed_count": failed_count}
+                data={}
             )
 
         except Exception as e:

@@ -193,7 +193,8 @@ class TestCollectRepositoryInfo:
         setup.url_parser.extract_assignment_from_url.return_value = "test-assignment"
         setup.input_handler.prompt_input.side_effect = [
             "test-org",  # GitHub organization
-            "https://github.com/test-org/test-assignment-template.git"  # Template URL
+            "https://github.com/test-org/test-assignment-template.git",  # Template URL
+            ""  # Classroom repository URL (optional, empty to skip)
         ]
 
         # Execute
@@ -202,7 +203,7 @@ class TestCollectRepositoryInfo:
         # Assert
         assert setup.config_values['GITHUB_ORGANIZATION'] == "test-org"
         assert setup.config_values['TEMPLATE_REPO_URL'] == "https://github.com/test-org/test-assignment-template.git"
-        assert setup.input_handler.prompt_input.call_count == 2
+        assert setup.input_handler.prompt_input.call_count == 3
 
     def test_collect_repository_info_empty_template_url_exits(self, mock_dependencies):
         """
@@ -231,7 +232,8 @@ class TestCollectRepositoryInfo:
         setup.url_parser.extract_assignment_from_url.return_value = "test-assignment"
         setup.input_handler.prompt_input.side_effect = [
             "test-org",  # GitHub organization
-            ""  # Empty template URL
+            "",  # Empty template URL (will trigger exit)
+            ""  # Classroom repository URL (won't be reached due to exit)
         ]
 
         # Execute and Assert
@@ -659,7 +661,8 @@ class TestEdgeCasesAndErrorHandling:
         setup.url_parser.extract_assignment_from_url.return_value = None
         setup.input_handler.prompt_input.side_effect = [
             "fallback-org",  # GitHub organization fallback
-            "https://github.com/fallback-org/test-template.git"  # Template URL
+            "https://github.com/fallback-org/test-template.git",  # Template URL
+            ""  # Classroom repository URL (optional)
         ]
 
         # Execute
@@ -791,7 +794,8 @@ class TestEdgeCasesAndErrorHandling:
         setup.url_parser.extract_assignment_from_url.return_value = "test-assignment"
         setup.input_handler.prompt_input.side_effect = [
             "  test-org  ",  # Organization with whitespace
-            "  https://github.com/test-org/test-assignment-template.git  "  # URL with whitespace
+            "  https://github.com/test-org/test-assignment-template.git  ",  # URL with whitespace
+            ""  # Classroom repository URL (optional)
         ]
 
         # Execute
@@ -931,7 +935,8 @@ class TestInputValidationEdgeCases:
         setup.url_parser.extract_assignment_from_url.return_value = "assignment_with_underscores"
         setup.input_handler.prompt_input.side_effect = [
             "Org.With.Dots",  # Organization with dots
-            "https://github.com/Org.With.Dots/assignment_with_underscores-template.git"
+            "https://github.com/Org.With.Dots/assignment_with_underscores-template.git",  # Template URL
+            ""  # Classroom repository URL (optional)
         ]
 
         # Execute

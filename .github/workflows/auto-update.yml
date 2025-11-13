@@ -8,17 +8,14 @@
 name: 🔄 Auto Update
 
 on:
-  schedule:
-    # Run weekly on Sundays at 2 AM UTC
-    - cron: '0 2 * * 0'
-  workflow_dispatch:  # Allow manual triggering
+  workflow_dispatch: # Allow manual triggering
 
 permissions:
-  contents: write      # Required to create PRs and update files
+  contents: write # Required to create PRs and update files
   pull-requests: write # Required to create pull requests
-  issues: write        # Required to create issues for updates
+  issues: write # Required to create issues for updates
   security-events: read # Required for security monitoring
-  actions: read        # Required for workflow analysis
+  actions: read # Required for workflow analysis
 
 env:
   CACHE_VERSION: v2
@@ -31,7 +28,7 @@ jobs:
       advisories: ${{ steps.security-check.outputs.advisories }}
       vulnerabledeps: ${{ steps.security-check.outputs.vulnerabledeps }}
       updatesneeded: ${{ steps.security-check.outputs.updatesneeded }}
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -102,7 +99,7 @@ jobs:
           echo "This job serves as a placeholder for future dependency management"
 
   enhanced-health-check:
-    name: 🏥 Enhanced Health Check  
+    name: 🏥 Enhanced Health Check
     runs-on: ubuntu-latest
     needs: [security-monitoring, update-dependencies]
     steps:

@@ -131,3 +131,7 @@ test_api_calls/
 workflow_health/
 workflow_status_aggregation/
 workflow_trends/
+
+# GitHub Classroom student repositories (auto-generated)
+student-repos/
+student-repos.txt

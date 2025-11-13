@@ -289,15 +289,32 @@ class CronManager:
         return self.default_schedules.get(step_type, "0 */4 * * *")
 
     def _get_cron_comment(self, steps: List[str]) -> str:
-        """Generate comment for cron job."""
+        """Generate comment for cron job with assignment context."""
         steps_key = "-".join(steps)
-        return f"{self.cron_comment_prefix}-{steps_key}"
+
+        # Include assignment name to make cron jobs unique per assignment
+        assignment_identifier = self._get_assignment_identifier()
+
+        return f"{self.cron_comment_prefix}-{assignment_identifier}-{steps_key}"
+
+    def _get_assignment_identifier(self) -> str:
+        """Get unique identifier for the current assignment."""
+        # Try to get assignment name from config
+        if self.global_config and self.global_config.assignment_name:
+            # Sanitize assignment name for use in cron comment
+            return self.global_config.assignment_name.replace(" ", "-").replace("/", "-")
+
+        # Fallback to directory name if no assignment name configured
+        return Path.cwd().name
 
     def _get_cron_command(self, steps: List[str]) -> str:
         """Generate command for cron job using Python CLI."""
         steps_str = " ".join(steps)
+        config_file = self._get_assignment_config_path()
+
         # Use python -m classroom_pilot automation cron-sync for automation
-        return f"cd {self.cron_script_path} && python -m classroom_pilot automation cron-sync {steps_str} >/dev/null 2>&1"
+        # Include --config to ensure correct assignment is targeted
+        return f"cd {self.cron_script_path} && python -m classroom_pilot automation cron-sync --config {config_file} {steps_str} >/dev/null 2>&1"
 
     def _get_current_crontab(self) -> Optional[str]:
         """Get current user's crontab content."""
