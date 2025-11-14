@@ -1,22 +1,19 @@
 name: 🛡️ Security Audit
 
 on:
-  schedule:
-    # Run weekly on Sundays at 2 AM UTC
-    - cron: '0 2 * * 0'
   workflow_dispatch:
     inputs:
       scan_intensity:
-        description: 'Security scan intensity level'
+        description: "Security scan intensity level"
         required: false
-        default: 'standard'
+        default: "standard"
         type: choice
         options:
           - standard
           - comprehensive
           - deep
       generate_report:
-        description: 'Generate detailed security report'
+        description: "Generate detailed security report"
         required: false
         default: true
         type: boolean
@@ -42,12 +39,12 @@ jobs:
       critical-vulnerabilities: ${{ steps.security-metrics.outputs.critical-vulnerabilities }}
       high-vulnerabilities: ${{ steps.security-metrics.outputs.high-vulnerabilities }}
       sbom-generated: ${{ steps.security-metrics.outputs.sbom-generated }}
-    
+
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Full history for comprehensive analysis
+          fetch-depth: 0 # Full history for comprehensive analysis
 
       - name: 📦 Load workflow utilities
         run: |
@@ -60,12 +57,12 @@ jobs:
         run: |
           source .github/scripts/workflow_utils.sh
           setup_cache_directories "/tmp/security-audit"
-          
+
           # Create comprehensive directory structure
           mkdir -p /tmp/security-audit/{sbom,sarif,reports,licenses,metrics,advisories}
           mkdir -p /tmp/security-audit/sbom/{spdx,cyclonedx,syft}
           mkdir -p /tmp/security-audit/sarif/{trivy,secrets,code-analysis}
-          
+
           print_message "success" "Security audit directories created"
 
       - name: 💾 Cache security audit data
@@ -84,7 +81,7 @@ jobs:
       - name: 🏗️ Setup Python environment
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: 📦 Install Poetry and dependencies
         uses: snok/install-poetry@v1
@@ -97,7 +94,7 @@ jobs:
         run: |
           source .github/scripts/workflow_utils.sh
           print_message "step" "Generating Software Bill of Materials with multiple formats"
-          
+
           # Load security utilities and initialize
           chmod +x .github/scripts/security_utils.sh
           source .github/scripts/security_utils.sh
@@ -115,7 +112,7 @@ jobs:
           format: spdx-json
           output-file: /tmp/security-audit/sbom/spdx/sbom-anchore-spdx.json
 
-      - name: 📋 Generate CycloneDX SBOM with Anchore  
+      - name: 📋 Generate CycloneDX SBOM with Anchore
         uses: anchore/sbom-action@v0
         with:
           path: ./
@@ -126,7 +123,7 @@ jobs:
         run: |
           source .github/scripts/workflow_utils.sh
           print_message "step" "Installing comprehensive security scanning tools"
-          
+
           # Install Trivy
           install_trivy() {
             sudo apt-get update
@@ -136,12 +133,12 @@ jobs:
             sudo apt-get update
             sudo apt-get install trivy -y
           }
-          
+
           # Install Grype (Anchore vulnerability scanner)
           install_grype() {
             curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
           }
-          
+
           # Install OSV-Scanner (Google)
           install_osv_scanner() {
             wget -O osv-scanner.zip https://github.com/google/osv-scanner/releases/latest/download/osv-scanner_linux_amd64.zip
@@ -149,7 +146,7 @@ jobs:
             sudo mv osv-scanner /usr/local/bin/
             rm osv-scanner.zip
           }
-          
+
           # Install all tools with retry logic
           for tool_func in install_trivy install_grype install_osv_scanner; do
             if retry_with_backoff "$tool_func" "${tool_func#install_} installation" 3; then
@@ -159,7 +156,7 @@ jobs:
               exit 1
             fi
           done
-          
+
           # Verify installations
           trivy version
           grype version  
@@ -172,9 +169,9 @@ jobs:
         run: |
           source .github/scripts/workflow_utils.sh
           print_message "step" "Running comprehensive Trivy vulnerability scans"
-          
+
           scan_intensity="${{ github.event.inputs.scan_intensity || 'standard' }}"
-          
+
           # Comprehensive filesystem scan
           trivy fs \
             --cache-dir ~/.cache/trivy \
@@ -184,7 +181,7 @@ jobs:
             --scanners vuln,secret,config,license \
             --exit-code 0 \
             .
-          
+
           # Repository scan for comprehensive analysis - using fs scan for deterministic results
           trivy fs \
             --cache-dir ~/.cache/trivy \
@@ -194,7 +191,7 @@ jobs:
             --scanners vuln,secret,config \
             --exit-code 0 \
             .
-          
+
           # Configuration scan for security misconfigurations
           trivy config \
             --cache-dir ~/.cache/trivy \
@@ -203,7 +200,7 @@ jobs:
             --severity CRITICAL,HIGH,MEDIUM \
             --exit-code 0 \
             .
-          
+
           # Dependency scan using Poetry files
           if [[ -f "pyproject.toml" ]]; then
             trivy fs \
@@ -215,7 +212,7 @@ jobs:
               --exit-code 0 \
               pyproject.toml
           fi
-          
+
           print_message "success" "Comprehensive Trivy vulnerability scanning completed"
         continue-on-error: true
 
@@ -223,13 +220,13 @@ jobs:
         run: |
           source .github/scripts/workflow_utils.sh
           print_message "step" "Running Grype vulnerability scanning"
-          
+
           # Scan current directory
           grype . \
             --output sarif \
             --file /tmp/security-audit/sarif/trivy/grype-scan.sarif \
             || true
-          
+
           # Scan SBOM files for cross-validation
           if [[ -f "/tmp/security-audit/sbom/syft/sbom-syft.json" ]]; then
             grype sbom:/tmp/security-audit/sbom/syft/sbom-syft.json \
@@ -237,7 +234,7 @@ jobs:
               --file /tmp/security-audit/sarif/trivy/grype-sbom.sarif \
               || true
           fi
-          
+
           print_message "success" "Grype vulnerability scanning completed"
         continue-on-error: true
 
@@ -245,13 +242,13 @@ jobs:
         run: |
           source .github/scripts/workflow_utils.sh
           print_message "step" "Running OSV-Scanner vulnerability detection"
-          
+
           # Scan with OSV-Scanner
           osv-scanner \
             --format sarif \
             --output /tmp/security-audit/sarif/trivy/osv-scanner.sarif \
             . || true
-          
+
           print_message "success" "OSV-Scanner vulnerability detection completed"
         continue-on-error: true
 
@@ -265,10 +262,10 @@ jobs:
         run: |
           source .github/scripts/workflow_utils.sh
           print_message "step" "Running license compliance analysis"
-          
+
           # Install license compliance tools
           pip install licensecheck pip-licenses
-          
+
           # Analyze licenses with pip-licenses
           if poetry env info >/dev/null 2>&1; then
             poetry run pip-licenses \
@@ -277,19 +274,19 @@ jobs:
               --with-urls \
               --with-description || true
           fi
-          
+
           # Analyze licenses with licensecheck
           licensecheck \
             --format json \
             --output /tmp/security-audit/licenses/licensecheck.json \
             . || true
-          
+
           # Extract license information from SBOM
           if [[ -f "/tmp/security-audit/sbom/syft/sbom-spdx.json" ]]; then
             jq '.packages[]? | select(.licenseConcluded != null) | {name: .name, license: .licenseConcluded}' \
               /tmp/security-audit/sbom/syft/sbom-spdx.json > /tmp/security-audit/licenses/sbom-licenses.json || true
           fi
-          
+
           print_message "success" "License compliance analysis completed"
         continue-on-error: true
 
@@ -297,7 +294,7 @@ jobs:
         run: |
           source .github/scripts/workflow_utils.sh
           print_message "step" "Validating security policies and configurations"
-          
+
           # Check for required security files
           security_files_check() {
             local missing_files=()
@@ -315,7 +312,7 @@ jobs:
               print_message "success" "All required security files present"
             fi
           }
-          
+
           # Check GitHub security settings (via .github directory)
           github_security_check() {
             local gh_security_score=0
@@ -364,10 +361,10 @@ jobs:
             echo "$gh_security_score" > /tmp/security-audit/metrics/github-security-score.txt
             print_message "info" "GitHub security score: $gh_security_score/$total_checks"
           }
-          
+
           security_files_check
           github_security_check
-          
+
           print_message "success" "Security policy validation completed"
 
       - name: 📊 Collect comprehensive security metrics
@@ -375,7 +372,7 @@ jobs:
         run: |
           source .github/scripts/workflow_utils.sh
           print_message "step" "Collecting comprehensive security metrics"
-          
+
           # Initialize counters
           critical_vulns=0
           high_vulns=0
@@ -384,7 +381,7 @@ jobs:
           secret_findings=0
           license_issues=0
           sbom_files=0
-          
+
           # Count vulnerabilities from all SARIF files
           sarif_files=$(find /tmp/security-audit/sarif -name "*.sarif" -type f)
           for sarif_file in $sarif_files; do
@@ -405,7 +402,7 @@ jobs:
               done <<< "$results"
             fi
           done
-          
+
           # Count secret findings
           secret_files=$(find /tmp/security-audit/sarif/secrets -name "*.sarif" -o -name "*.json" -type f)
           for secret_file in $secret_files; do
@@ -419,45 +416,45 @@ jobs:
               fi
             fi
           done
-          
+
           # Count SBOM files
           sbom_files=$(find /tmp/security-audit/sbom -name "*.json" -type f | wc -l)
-          
+
           # Calculate security score (0-100)
           total_findings=$((critical_vulns + high_vulns + medium_vulns + low_vulns + secret_findings))
-          
+
           # Read GitHub security score
           gh_security_score=0
           if [[ -f "/tmp/security-audit/metrics/github-security-score.txt" ]]; then
             gh_security_score=$(cat /tmp/security-audit/metrics/github-security-score.txt)
           fi
-          
+
           # Calculate overall security score
           base_score=100
           penalty=0
-          
+
           # Penalty for critical vulnerabilities (severe)
           penalty=$((penalty + critical_vulns * 20))
-          
+
           # Penalty for high vulnerabilities
           penalty=$((penalty + high_vulns * 10))
-          
+
           # Penalty for medium vulnerabilities  
           penalty=$((penalty + medium_vulns * 5))
-          
+
           # Penalty for low vulnerabilities
           penalty=$((penalty + low_vulns * 1))
-          
+
           # Penalty for secrets
           penalty=$((penalty + secret_findings * 15))
-          
+
           # Bonus for good GitHub security practices
           bonus=$((gh_security_score * 2))
-          
+
           security_score=$((base_score - penalty + bonus))
           security_score=$((security_score < 0 ? 0 : security_score))
           security_score=$((security_score > 100 ? 100 : security_score))
-          
+
           # Save metrics
           cat > /tmp/security-audit/metrics/security-metrics.json << EOF
           {
@@ -476,13 +473,13 @@ jobs:
             "commit_sha": "${{ github.sha }}"
           }
           EOF
-          
+
           # Set outputs
           echo "security-score=$security_score" >> $GITHUB_OUTPUT
           echo "critical-vulnerabilities=$critical_vulns" >> $GITHUB_OUTPUT  
           echo "high-vulnerabilities=$high_vulns" >> $GITHUB_OUTPUT
           echo "sbom-generated=$sbom_files" >> $GITHUB_OUTPUT
-          
+
           print_message "success" "Security metrics collected - Score: $security_score/100, Critical: $critical_vulns, High: $high_vulns, Secrets: $secret_findings"
 
       - name: 📤 Archive comprehensive security artifacts
@@ -499,7 +496,7 @@ jobs:
         run: |
           source .github/scripts/workflow_utils.sh
           print_message "step" "Uploading SARIF results to GitHub Security"
-          
+
           # Find all SARIF files and upload each one
           sarif_count=0
           while IFS= read -r sarif_file; do
@@ -508,7 +505,7 @@ jobs:
               sarif_count=$((sarif_count + 1))
             fi
           done < <(find /tmp/security-audit/sarif -name "*.sarif" -type f)
-          
+
           if [[ $sarif_count -eq 0 ]]; then
             print_message "warning" "No SARIF files found to upload"
           else
@@ -545,9 +542,9 @@ jobs:
         run: |
           source .github/scripts/workflow_utils.sh
           print_message "step" "Generating comprehensive security report"
-          
+
           audit_duration=$(report_step_timing "Comprehensive Security Audit" "$AUDIT_START_TIME")
-          
+
           # Read metrics
           if [[ -f "/tmp/security-audit/metrics/security-metrics.json" ]]; then
             security_score=$(jq -r '.security_score' /tmp/security-audit/metrics/security-metrics.json)
@@ -568,7 +565,7 @@ jobs:
             sbom_files=0
             total_findings=0
           fi
-          
+
           # Determine security status
           if [[ $critical_vulns -gt 0 ]]; then
             security_status="🔴 Critical Issues Found"
@@ -579,7 +576,7 @@ jobs:
           else
             security_status="🟢 Good Security Posture"
           fi
-          
+
           # Generate comprehensive summary
           security_report="# 🛡️ Comprehensive Security Audit Report\n\n"
           security_report+="## 📊 Security Overview\n\n"
@@ -594,7 +591,7 @@ jobs:
           security_report+="| Secret Exposures | ${secret_findings} | $([ $secret_findings -eq 0 ] && echo "✅" || echo "❌") |\n"
           security_report+="| SBOM Files Generated | ${sbom_files} | $([ $sbom_files -gt 0 ] && echo "✅" || echo "❌") |\n"
           security_report+="| **Audit Duration** | **${audit_duration}s** | |\n\n"
-          
+
           security_report+="## 🔧 Security Tools Used\n\n"
           security_report+="- **Trivy**: Comprehensive vulnerability scanning\n"
           security_report+="- **Grype**: Additional vulnerability analysis\n"  
@@ -604,7 +601,7 @@ jobs:
           security_report+="- **detect-secrets**: Baseline secret detection\n"
           security_report+="- **Syft & Anchore**: SBOM generation\n"
           security_report+="- **License compliance**: Automated license analysis\n\n"
-          
+
           if [[ $critical_vulns -gt 0 || $high_vulns -gt 5 ]]; then
             security_report+="## ⚠️ Immediate Action Required\n\n"
             security_report+="This repository has **critical security issues** that require immediate attention:\n\n"
@@ -613,7 +610,7 @@ jobs:
             [[ $secret_findings -gt 0 ]] && security_report+="- 🔐 **${secret_findings} Potential secrets** detected\n"
             security_report+="\nPlease review the detailed findings in the Security tab and uploaded artifacts.\n\n"
           fi
-          
+
           security_report+="## 📁 Generated Artifacts\n\n"
           security_report+="- **SBOM Files**: Multiple formats (SPDX, CycloneDX, Syft)\n"
           security_report+="- **SARIF Reports**: Detailed vulnerability findings\n"
@@ -627,9 +624,9 @@ jobs:
           security_report+="5. Re-run audit after applying fixes\n\n"
           security_report+="---\n"
           security_report+="_Audit completed on $(date -u) | Repository: ${{ github.repository }} | Commit: ${{ github.sha }}_"
-          
+
           create_step_summary "Comprehensive Security Audit" "$([ $critical_vulns -eq 0 ] && [ $high_vulns -le 2 ] && echo "success" || echo "warning")" "$security_report"
-          
+
           print_message "$([ $critical_vulns -eq 0 ] && [ $high_vulns -le 2 ] && echo "success" || echo "warning")" "Comprehensive security audit completed - Score: ${security_score}/100, Total findings: ${total_findings}"
 
   create-security-issue:
@@ -637,7 +634,7 @@ jobs:
     needs: comprehensive-security-audit
     runs-on: ubuntu-latest
     if: needs.comprehensive-security-audit.outputs.critical-vulnerabilities > 0 || needs.comprehensive-security-audit.outputs.high-vulnerabilities > 5
-    
+
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
@@ -649,35 +646,35 @@ jobs:
             const criticalVulns = '${{ needs.comprehensive-security-audit.outputs.critical-vulnerabilities }}';
             const highVulns = '${{ needs.comprehensive-security-audit.outputs.high-vulnerabilities }}';
             const securityScore = '${{ needs.comprehensive-security-audit.outputs.security-score }}';
-            
+
             const title = `🚨 Security Alert: ${criticalVulns} Critical, ${highVulns} High-Risk Vulnerabilities Detected`;
-            
+
             const body = `# 🛡️ Automated Security Alert
-            
+
             Our weekly security audit has detected critical vulnerabilities that require immediate attention.
-            
+
             ## 📊 Security Summary
             - **Security Score**: ${securityScore}/100
             - **Critical Vulnerabilities**: ${criticalVulns}
             - **High-Risk Vulnerabilities**: ${highVulns}
             - **Detection Date**: ${new Date().toISOString().split('T')[0]}
             - **Commit**: ${{ github.sha }}
-            
+
             ## ⚠️ Immediate Actions Required
             1. Review detailed findings in the [Security tab](https://github.com/${{ github.repository }}/security)
             2. Download the comprehensive audit artifacts from the [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
             3. Prioritize fixing critical vulnerabilities first
             4. Update vulnerable dependencies
             5. Re-run security audit after fixes
-            
+
             ## 🔗 Resources
             - [Security Audit Workflow](${{ github.server_url }}/${{ github.repository }}/actions/workflows/security-audit.yml)
             - [SARIF Reports and SBOM Files](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
-            
+
             ---
             _This issue was automatically created by the Security Audit workflow._
             `;
-            
+
             github.rest.issues.create({
               owner: context.repo.owner,
               repo: context.repo.repo,

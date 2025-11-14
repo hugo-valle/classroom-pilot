@@ -699,18 +699,34 @@ class RepositoryFetcher:
             # Discover repositories
             logger.info(
                 f"Discovering repositories for assignment: {assignment_prefix}")
-            repositories = self.discover_repositories(
+            all_repositories = self.discover_repositories(
                 assignment_prefix=assignment_prefix,
                 organization=organization
             )
 
-            if not repositories:
+            if not all_repositories:
                 logger.warning("No repositories found to fetch")
                 return False
 
-            # Fetch all discovered repositories
-            logger.info(f"Found {len(repositories)} repositories to fetch")
-            results = self.fetch_repositories(repositories)
+            # Filter to only student repositories (exclude templates and instructor repos)
+            student_repositories = self.filter_student_repositories(
+                all_repositories,
+                assignment_prefix,
+                include_template=False,
+                exclude_instructor=True
+            )
+
+            if not student_repositories:
+                logger.warning("No student repositories found to fetch")
+                return False
+
+            logger.info(
+                f"Found {len(student_repositories)} student repositories to fetch "
+                f"(filtered from {len(all_repositories)} total)"
+            )
+
+            # Fetch only student repositories
+            results = self.fetch_repositories(student_repositories)
 
             # Check if any were successful
             successful = [r for r in results if r.success]
@@ -721,8 +737,77 @@ class RepositoryFetcher:
 
             logger.info(
                 f"Successfully fetched {len(successful)}/{len(results)} repositories")
+
+            # Write repository URLs to student-repos.txt
+            self._write_repository_list(student_repositories)
+
+            # Update .gitignore to exclude student-repos/ and student-repos.txt
+            self._update_gitignore()
+
             return True
 
         except Exception as e:
             logger.error(f"Failed to fetch repositories: {e}")
             return False
+
+    def _write_repository_list(self, repositories: List[RepositoryInfo]) -> None:
+        """
+        Write repository URLs to student-repos.txt file.
+
+        Args:
+            repositories: List of repositories to write to file.
+        """
+        try:
+            output_file = Path.cwd() / "student-repos.txt"
+
+            with open(output_file, 'w') as f:
+                for repo in repositories:
+                    if repo.is_student_repo:  # Only write student repositories
+                        f.write(f"{repo.url}\n")
+
+            logger.info(f"✅ Created repository list: {output_file}")
+            student_count = sum(1 for r in repositories if r.is_student_repo)
+            logger.info(f"   Listed {student_count} student repository URLs")
+
+        except Exception as e:
+            logger.warning(f"Failed to write student-repos.txt: {e}")
+
+    def _update_gitignore(self) -> None:
+        """
+        Update .gitignore to exclude student-repos/ directory and student-repos.txt file.
+        """
+        try:
+            gitignore_path = Path.cwd() / ".gitignore"
+
+            # Read existing .gitignore content
+            existing_lines = []
+            if gitignore_path.exists():
+                with open(gitignore_path, 'r') as f:
+                    existing_lines = f.read().splitlines()
+
+            # Check if entries already exist
+            entries_to_add = []
+            if "student-repos/" not in existing_lines:
+                entries_to_add.append("student-repos/")
+            if "student-repos.txt" not in existing_lines:
+                entries_to_add.append("student-repos.txt")
+
+            # Add entries if needed
+            if entries_to_add:
+                with open(gitignore_path, 'a') as f:
+                    if existing_lines and not existing_lines[-1].strip() == "":
+                        # Add blank line if file doesn't end with one
+                        f.write("\n")
+                    f.write(
+                        "# GitHub Classroom student repositories (auto-generated)\n")
+                    for entry in entries_to_add:
+                        f.write(f"{entry}\n")
+
+                logger.info(
+                    f"✅ Updated .gitignore with: {', '.join(entries_to_add)}")
+            else:
+                logger.debug(
+                    ".gitignore already contains student-repos entries")
+
+        except Exception as e:
+            logger.warning(f"Failed to update .gitignore: {e}")

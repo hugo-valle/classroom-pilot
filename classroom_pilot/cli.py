@@ -23,6 +23,84 @@ from .config.global_config import load_global_config, get_global_config
 logger = get_logger("cli")
 
 
+def load_student_repos(file_path: str = "student-repos.txt") -> List[str]:
+    """
+    Load student repository URLs from file.
+
+    Args:
+        file_path: Path to file containing repository URLs
+
+    Returns:
+        List of repository URLs
+
+    Raises:
+        FileNotFoundError: If file doesn't exist
+    """
+    from pathlib import Path
+
+    repo_file = Path(file_path)
+    if not repo_file.exists():
+        raise FileNotFoundError(f"Repository file not found: {file_path}")
+
+    repos = []
+    with open(repo_file, 'r') as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith('#'):
+                repos.append(line)
+
+    return repos
+
+
+def select_student_repo_interactive(repos: List[str]) -> Optional[str]:
+    """
+    Allow user to interactively select a repository from a list.
+
+    Args:
+        repos: List of repository URLs
+
+    Returns:
+        Selected repository URL or None if cancelled
+    """
+    if not repos:
+        return None
+
+    print("\n📚 Available student repositories:\n")
+    for i, repo in enumerate(repos, 1):
+        # Extract student name from URL
+        student_name = repo.split('/')[-1]
+        print(f"  {i}. {student_name}")
+        print(f"     {repo}")
+
+    print(f"\n  0. Cancel")
+
+    while True:
+        try:
+            choice = input("\n👉 Select a repository (enter number): ").strip()
+            if not choice:
+                continue
+
+            choice_num = int(choice)
+
+            if choice_num == 0:
+                print("❌ Cancelled")
+                return None
+
+            if 1 <= choice_num <= len(repos):
+                selected = repos[choice_num - 1]
+                student_name = selected.split('/')[-1]
+                print(f"✅ Selected: {student_name}")
+                return selected
+            else:
+                print(f"⚠️  Please enter a number between 0 and {len(repos)}")
+
+        except ValueError:
+            print("⚠️  Please enter a valid number")
+        except KeyboardInterrupt:
+            print("\n❌ Cancelled")
+            return None
+
+
 def version_callback(value: bool):
     """Callback to handle --version flag."""
     if value:
@@ -360,21 +438,27 @@ def assignment_orchestrate(
 
 
 @assignments_app.command("help-student")
-@assignments_app.command("help-student")
 def help_student(
     ctx: typer.Context,
-    repo_url: str = typer.Argument(..., help="Student repository URL to help"),
+    repo_url: Optional[str] = typer.Argument(
+        None, help="Student repository URL (or leave empty to select from student-repos.txt)"),
     one_student: bool = typer.Option(
         False, "--one-student", help="Use template directly (bypass classroom repository)"),
     auto_confirm: bool = typer.Option(
         False, "--yes", "-y", help="Automatically confirm all prompts"),
+    repo_file: str = typer.Option(
+        "student-repos.txt", "--file", "-f",
+        help="File containing student repository URLs for interactive selection"),
     config_file: str = typer.Option(
         "assignment.conf", "--config", "-c", help="Configuration file path")
 ):
     """
     Help a specific student with repository updates.
 
+    If no repository URL is provided, you'll be prompted to select from student-repos.txt.
+
     Example:
+        $ classroom-pilot assignments help-student
         $ classroom-pilot assignments help-student https://github.com/org/assignment-student123
         $ classroom-pilot assignments help-student --one-student https://github.com/org/assignment-student123
     """
@@ -383,6 +467,26 @@ def help_student(
     dry_run = ctx.obj.get('dry_run', False)
 
     setup_logging(verbose)
+
+    # If no repo_url provided, load from file and allow selection
+    if not repo_url:
+        try:
+            repos = load_student_repos(repo_file)
+            if not repos:
+                logger.error(f"No repositories found in {repo_file}")
+                logger.info("💡 To generate a student repository list, run:")
+                logger.info("   $ classroom-pilot repos fetch")
+                raise typer.Exit(code=1)
+
+            repo_url = select_student_repo_interactive(repos)
+            if not repo_url:
+                raise typer.Exit(code=0)  # User cancelled
+
+        except FileNotFoundError:
+            logger.error(f"Repository file not found: {repo_file}")
+            logger.info("💡 To generate a student repository list, run:")
+            logger.info("   $ classroom-pilot repos fetch")
+            raise typer.Exit(code=1)
 
     # Delegate to AssignmentService
     try:
@@ -410,8 +514,9 @@ def help_student(
 @assignments_app.command("help-students")
 def help_students(
     ctx: typer.Context,
-    repo_file: str = typer.Argument(...,
-                                    help="File containing student repository URLs"),
+    repo_file: str = typer.Option(
+        "student-repos.txt", "--file", "-f",
+        help="File containing student repository URLs (default: student-repos.txt)"),
     auto_confirm: bool = typer.Option(
         False, "--yes", "-y", help="Automatically confirm all prompts"),
     config_file: str = typer.Option(
@@ -420,15 +525,30 @@ def help_students(
     """
     Help multiple students with repository updates (batch processing).
 
+    By default, uses student-repos.txt which is generated by 'repos fetch'.
+    You can specify a different file with --file option.
+
+    Note: If you don't have a student-repos.txt file, generate one first by running:
+        $ classroom-pilot repos fetch
+
     Example:
-        $ classroom-pilot assignments help-students student-repos.txt
-        $ classroom-pilot assignments help-students student-repos.txt --yes
+        $ classroom-pilot assignments help-students
+        $ classroom-pilot assignments help-students --yes
+        $ classroom-pilot assignments help-students --file custom-repos.txt
     """
     # Access universal options from context
     verbose = ctx.obj.get('verbose', False)
     dry_run = ctx.obj.get('dry_run', False)
 
     setup_logging(verbose)
+
+    # Check if repo_file exists
+    from pathlib import Path
+    if not Path(repo_file).exists():
+        logger.error(f"Repository file not found: {repo_file}")
+        logger.info("💡 To generate a student repository list, run:")
+        logger.info("   $ classroom-pilot repos fetch")
+        raise typer.Exit(code=1)
 
     # Delegate to AssignmentService
     try:
@@ -447,6 +567,11 @@ def help_students(
 
         logger.info(f"✅ {message}")
 
+    except FileNotFoundError as e:
+        logger.error(f"File not found: {e}")
+        logger.info("💡 To generate a student repository list, run:")
+        logger.info("   $ classroom-pilot repos fetch")
+        raise typer.Exit(code=1)
     except Exception as e:
         logger.error(f"Batch student assistance failed: {e}")
         raise typer.Exit(code=1)
@@ -455,15 +580,21 @@ def help_students(
 @assignments_app.command("check-student")
 def check_student(
     ctx: typer.Context,
-    repo_url: str = typer.Argument(...,
-                                   help="Student repository URL to check"),
+    repo_url: Optional[str] = typer.Argument(
+        None, help="Student repository URL (or leave empty to select from student-repos.txt)"),
+    repo_file: str = typer.Option(
+        "student-repos.txt", "--file", "-f",
+        help="File containing student repository URLs for interactive selection"),
     config_file: str = typer.Option(
         "assignment.conf", "--config", "-c", help="Configuration file path")
 ):
     """
     Check the status of a student repository.
 
+    If no repository URL is provided, you'll be prompted to select from student-repos.txt.
+
     Example:
+        $ classroom-pilot assignments check-student
         $ classroom-pilot assignments check-student https://github.com/org/assignment-student123
     """
     # Access universal options from context
@@ -471,6 +602,26 @@ def check_student(
     dry_run = ctx.obj.get('dry_run', False)
 
     setup_logging(verbose)
+
+    # If no repo_url provided, load from file and allow selection
+    if not repo_url:
+        try:
+            repos = load_student_repos(repo_file)
+            if not repos:
+                logger.error(f"No repositories found in {repo_file}")
+                logger.info("💡 To generate a student repository list, run:")
+                logger.info("   $ classroom-pilot repos fetch")
+                raise typer.Exit(code=1)
+
+            repo_url = select_student_repo_interactive(repos)
+            if not repo_url:
+                raise typer.Exit(code=0)  # User cancelled
+
+        except FileNotFoundError:
+            logger.error(f"Repository file not found: {repo_file}")
+            logger.info("💡 To generate a student repository list, run:")
+            logger.info("   $ classroom-pilot repos fetch")
+            raise typer.Exit(code=1)
 
     # Delegate to AssignmentService
     try:
@@ -499,9 +650,13 @@ def check_student(
 
 @assignments_app.command("student-instructions")
 def student_instructions(
-    repo_url: str = typer.Argument(..., help="Student repository URL"),
+    repo_url: Optional[str] = typer.Argument(
+        None, help="Student repository URL (or leave empty to select from student-repos.txt)"),
     output_file: Optional[str] = typer.Option(
         None, "--output", "-o", help="Save instructions to file"),
+    repo_file: str = typer.Option(
+        "student-repos.txt", "--file", "-f",
+        help="File containing student repository URLs for interactive selection"),
     config_file: str = typer.Option(
         "assignment.conf", "--config", "-c", help="Configuration file path")
 ):
@@ -512,15 +667,41 @@ def student_instructions(
     to help them update their repository manually. The instructions include
     multiple methods and troubleshooting tips.
 
+    If no repository URL is provided, you'll be prompted to select from student-repos.txt.
+
     Args:
         repo_url: URL of the student repository
         output_file: Optional file to save instructions to
+        repo_file: File containing student repository URLs for interactive selection
         config_file: Path to configuration file
 
     Example:
+        $ classroom-pilot assignments student-instructions
         $ classroom-pilot assignments student-instructions https://github.com/org/assignment-student123
         $ classroom-pilot assignments student-instructions https://github.com/org/assignment-student123 -o instructions.txt
     """
+    setup_logging()
+
+    # If no repo_url provided, load from file and allow selection
+    if not repo_url:
+        try:
+            repos = load_student_repos(repo_file)
+            if not repos:
+                logger.error(f"No repositories found in {repo_file}")
+                logger.info("💡 To generate a student repository list, run:")
+                logger.info("   $ classroom-pilot repos fetch")
+                raise typer.Exit(code=1)
+
+            repo_url = select_student_repo_interactive(repos)
+            if not repo_url:
+                raise typer.Exit(code=0)  # User cancelled
+
+        except FileNotFoundError:
+            logger.error(f"Repository file not found: {repo_file}")
+            logger.info("💡 To generate a student repository list, run:")
+            logger.info("   $ classroom-pilot repos fetch")
+            raise typer.Exit(code=1)
+
     logger.info("Generating student instructions")
 
     try:
@@ -602,50 +783,18 @@ def check_classroom(
         raise typer.Exit(code=1)
 
 
-@assignments_app.command("manage")
-def assignment_manage(ctx: typer.Context):
-    """
-    Provides a high-level interface for managing the assignment lifecycle.
-
-    This function provides access to assignment management functionality with
-    support for universal options. Assignment management commands will be
-    implemented in future versions.
-
-    Supports universal options: --verbose, --dry-run
-
-    Example:
-        $ classroom-pilot assignments manage
-        $ classroom-pilot assignments manage --verbose --dry-run
-    """
-    # Access universal options from parent context
-    verbose = ctx.parent.params.get('verbose', False)
-    dry_run = ctx.parent.params.get('dry_run', False)
-
-    if verbose:
-        setup_logging(verbose=True)
-        logger.debug("Verbose mode enabled for assignment management")
-    else:
-        setup_logging()
-
-    if dry_run:
-        logger.info("DRY RUN: Would start assignment management interface")
-        typer.echo("🚧 DRY RUN: Assignment management commands coming soon!")
-        return
-
-    logger.info("Assignment management interface")
-    # TODO: Implement assignment management
-    typer.echo("🚧 Assignment management commands coming soon!")
-
-
 @assignments_app.command("cycle-collaborator")
 def cycle_single_collaborator(
     ctx: typer.Context,
-    repo_url: str = typer.Argument(
-        ..., help="Repository URL to cycle collaborator permissions for"),
-    username: str = typer.Argument(...,
-                                   help="Username to cycle permissions for"),
+    repo_url: Optional[str] = typer.Argument(
+        None, help="Repository URL to cycle collaborator permissions for (or leave empty to select from student-repos.txt)"),
+    username: Optional[str] = typer.Argument(
+        None, help="Username to cycle permissions for (auto-extracted from URL if not provided)"),
     force: bool = typer.Option(
-        False, "--force", "-f", help="Force cycling even when access appears correct"),
+        False, "--force", help="Force cycling even when access appears correct"),
+    repo_file: str = typer.Option(
+        "student-repos.txt", "--file", "-f",
+        help="File containing student repository URLs for interactive selection"),
     config_file: str = typer.Option(
         "assignment.conf", "--config", "-c", help="Configuration file path")
 ):
@@ -656,17 +805,22 @@ def cycle_single_collaborator(
     It intelligently detects when cycling is needed and only performs the operation
     when necessary, unless force mode is enabled.
 
+    If no repository URL is provided, you'll be prompted to select from student-repos.txt.
+    The username is automatically extracted from the repository URL if not explicitly provided.
+
     Args:
-        repo_url: URL of the repository to cycle permissions for
-        username: Username to cycle permissions for
+        repo_url: URL of the repository to cycle permissions for (auto-selected if omitted)
+        username: Username to cycle permissions for (auto-extracted if not provided)
         force: Force cycling even when access appears correct
+        repo_file: File containing student repository URLs for interactive selection
         config_file: Path to configuration file
 
     Supports universal options: --verbose, --dry-run
 
     Example:
-        $ classroom-pilot assignments cycle-collaborator https://github.com/org/repo student123
-        $ classroom-pilot assignments cycle-collaborator --force https://github.com/org/repo student123 --verbose --dry-run
+        $ classroom-pilot assignments cycle-collaborator
+        $ classroom-pilot assignments cycle-collaborator https://github.com/org/repo-student123
+        $ classroom-pilot assignments cycle-collaborator https://github.com/org/repo student123 --force
     """
     # Access universal options from parent context
     verbose = ctx.parent.params.get('verbose', False)
@@ -674,12 +828,53 @@ def cycle_single_collaborator(
 
     if verbose:
         setup_logging(verbose=True)
-        logger.debug(
-            f"Verbose mode enabled for cycling collaborator {username} on {repo_url}")
     else:
         setup_logging()
 
     logger.info("Cycling single repository collaborator permissions")
+
+    # If no repo_url provided, load from file and allow selection
+    if not repo_url:
+        try:
+            repos = load_student_repos(repo_file)
+            if not repos:
+                logger.error(f"No repositories found in {repo_file}")
+                logger.info("💡 To generate a student repository list, run:")
+                logger.info("   $ classroom-pilot repos fetch")
+                raise typer.Exit(code=1)
+
+            repo_url = select_student_repo_interactive(repos)
+            if not repo_url:
+                raise typer.Exit(code=0)  # User cancelled
+
+        except FileNotFoundError:
+            logger.error(f"Repository file not found: {repo_file}")
+            logger.info("💡 To generate a student repository list, run:")
+            logger.info("   $ classroom-pilot repos fetch")
+            raise typer.Exit(code=1)
+
+    # Extract username from URL if not provided
+    if not username:
+        try:
+            # Extract username from URL (e.g., https://github.com/org/assignment-username -> username)
+            url_parts = repo_url.rstrip('/').split('/')
+            repo_name = url_parts[-1]
+            # Try to extract username after last dash
+            if '-' in repo_name:
+                username = repo_name.split('-')[-1]
+                logger.info(f"Extracted username from URL: {username}")
+            else:
+                logger.error("Could not extract username from repository URL")
+                logger.error(
+                    "Please provide username explicitly: cycle-collaborator <repo_url> <username>")
+                raise typer.Exit(code=1)
+        except (IndexError, AttributeError) as e:
+            logger.error(f"Failed to parse repository URL: {e}")
+            raise typer.Exit(code=1)
+
+    if verbose:
+        logger.debug(
+            f"Verbose mode enabled for cycling collaborator {username} on {repo_url}")
 
     if dry_run:
         logger.info(
@@ -726,8 +921,9 @@ def cycle_single_collaborator(
 @assignments_app.command("cycle-collaborators")
 def cycle_multiple_collaborators(
     ctx: typer.Context,
-    batch_file: str = typer.Argument(...,
-                                     help="File containing repository URLs or usernames"),
+    batch_file: str = typer.Argument(
+        "student-repos.txt",
+        help="File containing repository URLs or usernames (default: student-repos.txt)"),
     repo_url_mode: bool = typer.Option(
         False, "--repo-urls", help="Treat batch file as repository URLs (extract usernames)"),
     force: bool = typer.Option(
@@ -742,12 +938,15 @@ def cycle_multiple_collaborators(
     and cycles collaborator permissions for each entry. It provides intelligent
     detection of access issues and only cycles when necessary.
 
+    By default, uses student-repos.txt which is generated by 'repos fetch'.
+    You can specify a different file as an argument.
+
     The batch file format depends on the mode:
     - Username mode (default): One username per line
     - Repository URL mode (--repo-urls): One repository URL per line
 
     Args:
-        batch_file: Path to file containing repository URLs or usernames
+        batch_file: Path to file containing repository URLs or usernames (default: student-repos.txt)
         repo_url_mode: Treat file as repository URLs instead of usernames
         force: Force cycling even when access appears correct
         dry_run: Preview actions without making changes
@@ -755,8 +954,9 @@ def cycle_multiple_collaborators(
         Supports universal options: --verbose, --dry-run
 
     Example:
-        $ classroom-pilot assignments cycle-collaborators student-repos.txt --repo-urls
-        $ classroom-pilot assignments cycle-collaborators usernames.txt --force
+        $ classroom-pilot assignments cycle-collaborators
+        $ classroom-pilot assignments cycle-collaborators --repo-urls
+        $ classroom-pilot assignments cycle-collaborators custom-repos.txt --repo-urls --force
     """
     # Access universal options from context
     verbose = ctx.obj.get('verbose', False)
@@ -820,11 +1020,15 @@ def cycle_multiple_collaborators(
 
 @assignments_app.command("check-repository-access")
 def check_repository_access(
-    repo_url: str = typer.Argument(...,
-                                   help="Repository URL to check access for"),
-    username: str = typer.Argument(..., help="Username to check access for"),
+    repo_url: Optional[str] = typer.Argument(
+        None, help="Repository URL to check access for (or leave empty to select from student-repos.txt)"),
+    username: Optional[str] = typer.Argument(
+        None, help="Username to check access for (auto-extracted from URL if not provided)"),
     verbose: bool = typer.Option(
         False, "--verbose", "-v", help="Enable verbose output"),
+    repo_file: str = typer.Option(
+        "student-repos.txt", "--file", "-f",
+        help="File containing student repository URLs for interactive selection"),
     config_file: str = typer.Option(
         "assignment.conf", "--config", "-c", help="Configuration file path")
 ):
@@ -835,17 +1039,62 @@ def check_repository_access(
     including collaborator status and pending invitations. It provides
     detailed status information to help diagnose access issues.
 
+    If no repository URL is provided, you'll be prompted to select from student-repos.txt.
+    The username is automatically extracted from the repository URL if not explicitly provided.
+
     Args:
         repo_url: URL of the repository to check
-        username: Username to check access for
+        username: Username to check access for (auto-extracted if not provided)
         verbose: Enable detailed logging
+        repo_file: File containing student repository URLs for interactive selection
         config_file: Path to configuration file
 
     Example:
-        $ classroom-pilot assignments check-repository-access https://github.com/org/repo student123
+        $ classroom-pilot assignments check-repository-access
+        $ classroom-pilot assignments check-repository-access https://github.com/org/assignment-student123
+        $ classroom-pilot assignments check-repository-access https://github.com/org/assignment-student123 student123
     """
     setup_logging(verbose)
     logger.info("Checking repository access status")
+
+    # If no repo_url provided, load from file and allow selection
+    if not repo_url:
+        try:
+            repos = load_student_repos(repo_file)
+            if not repos:
+                logger.error(f"No repositories found in {repo_file}")
+                logger.info("💡 To generate a student repository list, run:")
+                logger.info("   $ classroom-pilot repos fetch")
+                raise typer.Exit(code=1)
+
+            repo_url = select_student_repo_interactive(repos)
+            if not repo_url:
+                raise typer.Exit(code=0)  # User cancelled
+
+        except FileNotFoundError:
+            logger.error(f"Repository file not found: {repo_file}")
+            logger.info("💡 To generate a student repository list, run:")
+            logger.info("   $ classroom-pilot repos fetch")
+            raise typer.Exit(code=1)
+
+    # Extract username from URL if not provided
+    if not username:
+        try:
+            # Extract username from URL (e.g., https://github.com/org/assignment-username -> username)
+            url_parts = repo_url.rstrip('/').split('/')
+            repo_name = url_parts[-1]
+            # Try to extract username after last dash
+            if '-' in repo_name:
+                username = repo_name.split('-')[-1]
+                logger.info(f"Extracted username from URL: {username}")
+            else:
+                logger.error("Could not extract username from repository URL")
+                logger.error(
+                    "Please provide username explicitly: check-repository-access <repo_url> <username>")
+                raise typer.Exit(code=1)
+        except (IndexError, AttributeError) as e:
+            logger.error(f"Failed to parse repository URL: {e}")
+            raise typer.Exit(code=1)
 
     try:
         from .assignments.cycle_collaborator import CycleCollaboratorManager
@@ -938,8 +1187,12 @@ def push_to_classroom(
         if dry_run:
             logger.info("🔍 DRY RUN MODE - No changes will be made")
 
-    # Initialize manager
-        manager = ClassroomPushManager(assignment_root=Path.cwd())
+        # Get the loaded global configuration
+        global_config = get_global_config()
+
+        # Initialize manager with global config
+        manager = ClassroomPushManager(
+            global_config=global_config, assignment_root=Path.cwd())
         manager.branch = branch
 
         if dry_run:
@@ -1053,201 +1306,6 @@ def repos_fetch(
         logger.info(f"✅ {message}")
     except Exception as e:
         logger.error(f"Repository fetch failed: {e}")
-        raise typer.Exit(code=1)
-
-
-@repos_app.command("update")
-def repos_update(
-    ctx: typer.Context,
-    config_file: str = typer.Option(
-        "assignment.conf", "--config", "-c", help="Configuration file path")
-):
-    """
-    Update assignment configuration and student repositories.
-
-    This function updates the assignment configuration and all associated student repositories.
-    It supports a dry-run mode to preview actions without making changes, and a verbose mode for detailed output.
-    The configuration file path can be specified.
-
-    Args:
-        config_file (str): Path to the configuration file.
-
-    Supports universal options: --verbose, --dry-run
-
-    Raises:
-        typer.Exit: If the repository update fails.
-
-    Example:
-        $ classroom-pilot repos update
-        $ classroom-pilot repos update --config custom.conf --verbose --dry-run
-    """
-    # Access universal options from context
-    verbose = ctx.obj.get('verbose', False)
-    dry_run = ctx.obj.get('dry_run', False)
-
-    if verbose:
-        logger.debug(
-            f"Verbose mode enabled for repo update with config: {config_file}")
-
-    logger.info("Updating repositories")
-
-    if dry_run:
-        logger.info(
-            f"DRY RUN: Would update repositories using config: {config_file}")
-        return
-        return
-    # Delegate to ReposService
-    try:
-        from .services.repos_service import ReposService
-
-        service = ReposService(dry_run=dry_run, verbose=verbose)
-        ok, message = service.update(config_file=config_file)
-        if not ok:
-            logger.error(message)
-            raise typer.Exit(code=1)
-        logger.info(f"✅ {message}")
-    except Exception as e:
-        logger.error(f"Repository update failed: {e}")
-        raise typer.Exit(code=1)
-
-
-@repos_app.command("push")
-def repos_push(
-    ctx: typer.Context,
-    config_file: str = typer.Option(
-        "assignment.conf", "--config", "-c", help="Configuration file path")
-):
-    """
-    Syncs the template repository to the GitHub Classroom repository.
-
-    This command pushes the current state of the template repository to the configured
-    GitHub Classroom repository, using the provided configuration file. It supports dry-run
-    mode to preview actions without executing them, and verbose mode for detailed output.
-
-    Args:
-        config_file (str): Path to the configuration file (default: "assignment.conf").
-
-    Supports universal options: --verbose, --dry-run
-
-    Raises:
-        typer.Exit: If the repository push fails, exits with a non-zero status code.
-
-    Example:
-        $ classroom-pilot repos push
-        $ classroom-pilot repos push --config custom.conf --verbose --dry-run
-    """
-    # Access universal options from context
-    verbose = ctx.obj.get('verbose', False)
-    dry_run = ctx.obj.get('dry_run', False)
-
-    if verbose:
-        logger.debug(
-            f"Verbose mode enabled for repo push with config: {config_file}")
-
-    logger.info("Pushing to classroom repository")
-
-    if dry_run:
-        logger.info(
-            f"DRY RUN: Would push to classroom repository using config: {config_file}")
-        return
-    # Delegate to ReposService
-    try:
-        from .services.repos_service import ReposService
-
-        service = ReposService(dry_run=dry_run, verbose=verbose)
-        ok, message = service.push(config_file=config_file)
-        if not ok:
-            logger.error(message)
-            raise typer.Exit(code=1)
-        logger.info(f"✅ {message}")
-    except Exception as e:
-        logger.error(f"Repository push failed: {e}")
-        raise typer.Exit(code=1)
-
-
-@repos_app.command("cycle-collaborator")
-def repos_cycle_collaborator(
-    ctx: typer.Context,
-    assignment_prefix: str = typer.Option(
-        None, "--assignment-prefix", help="Assignment prefix"),
-    username: str = typer.Option(None, "--username", help="Username"),
-    organization: str = typer.Option(
-        None, "--organization", help="Organization"),
-    list_collaborators: bool = typer.Option(
-        False, "--list", help="List collaborators"),
-    force: bool = typer.Option(False, "--force", help="Force cycling"),
-    config_file: str = typer.Option(
-        "assignment.conf", "--config", "-c", help="Configuration file path")
-):
-    """
-    Cycle repository collaborator permissions for assignments.
-
-    This command manages collaborator permissions on repositories matching a given assignment prefix,
-    optionally for a specific user and organization. It can list current collaborators, force cycling
-    of permissions, and supports dry-run and verbose modes.
-
-    Args:
-        assignment_prefix (str, optional): Prefix for assignment repositories to target.
-        username (str, optional): Username of the collaborator to cycle.
-        organization (str, optional): Name of the GitHub organization.
-        list_collaborators (bool, optional): If True, list current collaborators instead of cycling.
-        force (bool, optional): If True, force cycling of collaborator permissions.
-        config_file (str, optional): Path to the configuration file (default: "assignment.conf").
-
-    Supports universal options: --verbose, --dry-run
-
-    Raises:
-        typer.Exit: Exits with code 1 if cycling collaborator permissions fails.
-
-    Example:
-        $ classroom-pilot repos cycle-collaborator --assignment-prefix hw1 --username student123 --organization myorg
-        $ classroom-pilot repos cycle-collaborator --list --verbose --dry-run
-    """
-    # Access universal options from context
-    verbose = ctx.obj.get('verbose', False)
-    dry_run = ctx.obj.get('dry_run', False)
-
-    if verbose:
-        logger.debug(
-            "Verbose mode enabled for cycling collaborator permissions")
-
-    logger.info("Cycling collaborator permissions")
-
-    if dry_run:
-        logger.info("DRY RUN: Would cycle collaborator permissions")
-        if assignment_prefix and username and organization:
-            repo_url = f"https://github.com/{organization}/{assignment_prefix}-{username}"
-            logger.info(f"DRY RUN: Would target repository: {repo_url}")
-        logger.info(f"DRY RUN: List mode: {list_collaborators}")
-        logger.info(f"DRY RUN: Force mode: {force}")
-        return
-    # Delegate to ReposService
-    try:
-        from .services.repos_service import ReposService
-
-        service = ReposService(dry_run=dry_run, verbose=verbose)
-        ok, message = service.cycle_collaborator(
-            assignment_prefix=assignment_prefix,
-            username=username,
-            organization=organization,
-            list_collaborators=list_collaborators,
-            force=force,
-            config_file=config_file,
-        )
-
-        if not ok:
-            logger.error(message)
-            raise typer.Exit(code=1)
-
-        # If listing, output collaborators lines
-        if list_collaborators:
-            for line in message.splitlines():
-                logger.info(line)
-        else:
-            logger.info(f"✅ {message}")
-
-    except Exception as e:
-        logger.error(f"Collaborator cycling failed: {e}")
         raise typer.Exit(code=1)
 
 
@@ -1756,164 +1814,6 @@ def automation_cron_sync(
         if verbose:
             import traceback
             logger.error(traceback.format_exc())
-        raise typer.Exit(code=1)
-
-
-@automation_app.command("cron")
-def automation_cron(
-    ctx: typer.Context,
-    action: str = typer.Option(
-        "status", "--action", "-a", help="Action to perform (status, install, remove)"),
-    config_file: str = typer.Option(
-        "assignment.conf", "--config", "-c", help="Configuration file path")
-):
-    """
-    Manage cron automation jobs via CLI (legacy command).
-
-    This is a legacy command that provides basic cron job management.
-    Use the specific cron-* commands for better functionality:
-    - cron-install: Install cron jobs
-    - cron-remove: Remove cron jobs  
-    - cron-status: Show status
-    - cron-logs: Show logs
-
-    Args:
-        action (str): Action to perform on cron jobs. Options are "status", "install", or "remove".
-        dry_run (bool): If True, shows what would be done without executing any changes.
-        verbose (bool): If True, enables verbose logging output.
-        config_file (str): Path to the configuration file to use.
-    """
-    # Access universal options from context
-    verbose = ctx.obj.get('verbose', False)
-    dry_run = ctx.obj.get('dry_run', False)
-
-    setup_logging(verbose)
-
-    typer.echo("⚠️  This is a legacy command. Consider using specific commands:",
-               color=typer.colors.YELLOW)
-    typer.echo("   classroom-pilot automation cron-install [steps]")
-    typer.echo("   classroom-pilot automation cron-remove [steps]")
-    typer.echo("   classroom-pilot automation cron-status")
-    typer.echo("   classroom-pilot automation cron-logs")
-    typer.echo()
-
-    # For now, delegate to Python cron manager implementation
-    logger.info(f"Managing cron jobs: {action}")
-
-    try:
-        from .automation.cron_manager import CronManager
-
-        manager = CronManager()
-
-        if dry_run:
-            logger.info(f"DRY RUN: Would execute cron {action}")
-            return
-
-        if action == "status":
-            status = manager.get_cron_status()
-            # Format the status for display
-            output = f"Cron Jobs Installed: {status.total_jobs}\n"
-            if status.has_jobs:
-                output += f"Jobs: {[job.steps_key for job in status.installed_jobs]}\n"
-            output += f"Log File Exists: {status.log_file_exists}\n"
-            if status.last_log_activity:
-                output += f"Last Activity: {status.last_log_activity[:100]}...\n"
-            typer.echo(output)
-        elif action == "install":
-            success, message = manager.install_cron_job(
-                ["sync"], "0 */4 * * *")
-            if not success:
-                logger.error(f"Cron installation failed: {message}")
-                raise typer.Exit(code=1)
-        elif action == "remove":
-            success, message = manager.remove_cron_job("sync")
-            if not success:
-                logger.error(f"Cron removal failed: {message}")
-                raise typer.Exit(code=1)
-        else:
-            logger.error(f"Unknown cron action: {action}")
-            raise typer.Exit(code=1)
-
-    except ImportError as e:
-        logger.error(f"Failed to import cron manager: {e}")
-        raise typer.Exit(code=1)
-
-
-@automation_app.command("sync")
-def automation_sync(
-    ctx: typer.Context,
-    config_file: str = typer.Option(
-        "assignment.conf", "--config", "-c", help="Configuration file path")
-):
-    """
-    Execute scheduled synchronization tasks using configuration from a file.
-
-    This function sets up logging based on the verbosity flag, loads the configuration
-    from the specified file, and invokes a Bash wrapper to perform the scheduled sync.
-    It supports a dry-run mode to preview actions without executing them.
-
-    Args:
-        config_file (str): Path to the configuration file.
-
-    Supports universal options: --verbose, --dry-run
-
-    Raises:
-        typer.Exit: Exits with code 1 if the scheduled sync fails.
-
-    Example:
-        $ classroom-pilot automation sync
-        $ classroom-pilot automation --dry-run --verbose sync
-    """
-    # Access universal options from context
-    verbose = ctx.obj.get('verbose', False)
-    dry_run = ctx.obj.get('dry_run', False)
-
-    if verbose:
-        logger.debug("Verbose mode enabled for scheduled sync")
-
-    logger.info("Running scheduled sync")
-
-    if dry_run:
-        logger.info("DRY RUN: Would run scheduled sync")
-        logger.info(f"DRY RUN: Config file: {config_file}")
-        return
-    try:
-        from .services.automation_service import AutomationService
-
-        service = AutomationService(dry_run=dry_run, verbose=verbose)
-        ok, message = service.sync(
-            config_file=config_file, dry_run=dry_run, verbose=verbose)
-        if not ok:
-            logger.error(message)
-            raise typer.Exit(code=1)
-        logger.info(message)
-    except Exception as e:
-        logger.error(f"Scheduled sync failed: {e}")
-        raise typer.Exit(code=1)
-
-
-@automation_app.command("batch")
-def automation_batch():
-    """
-    Run batch processing operations for the CLI.
-
-    This function sets up logging and provides a placeholder for future batch processing commands.
-    Currently, it notifies the user that batch processing commands are coming soon.
-
-    Returns:
-        None
-    """
-    setup_logging()
-    logger.info("Batch processing interface")
-
-    try:
-        from .services.automation_service import AutomationService
-
-        service = AutomationService()
-        ok, message = service.batch()
-        typer.echo(message)
-    except Exception as e:
-        logger.error(f"Batch processing failed: {e}")
         raise typer.Exit(code=1)
 
 

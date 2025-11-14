@@ -249,12 +249,13 @@ class TestCronOperations:
         assert result == "0 1 * * *"  # Daily at 1 AM for multiple steps
 
     def test_get_cron_comment(self, cron_manager):
-        """Test cron comment generation."""
+        """Test cron comment generation with assignment identifier."""
         comment = cron_manager._get_cron_comment(["sync"])
-        assert comment == "# GitHub Classroom Assignment Auto-sync"
+        # Comment now includes assignment identifier (directory name: classroom-pilot)
+        assert comment == "# GitHub Classroom Assignment Auto-classroom-pilot-sync"
 
         comment = cron_manager._get_cron_comment(["sync", "secrets"])
-        assert comment == "# GitHub Classroom Assignment Auto-sync-secrets"
+        assert comment == "# GitHub Classroom Assignment Auto-classroom-pilot-sync-secrets"
 
     def test_get_cron_command(self, cron_manager):
         """Test cron command generation."""
@@ -351,7 +352,7 @@ class TestCronOperations:
     def test_job_exists_true(self, mock_get_crontab, cron_manager):
         """Test checking if job exists when it does."""
         mock_get_crontab.return_value = (
-            "# GitHub Classroom Assignment Auto-sync\n"
+            "# GitHub Classroom Assignment Auto-classroom-pilot-sync\n"
             "0 */4 * * * python -m classroom_pilot automation cron-sync\n"
         )
 
@@ -521,9 +522,9 @@ class TestCronInstallation:
 
         assert result == CronOperationResult.SUCCESS
         mock_set_crontab.assert_called_once()
-        # Verify the new crontab contains our job
+        # Verify the new crontab contains our job with assignment identifier
         call_args = mock_set_crontab.call_args[0][0]
-        assert "# GitHub Classroom Assignment Auto-sync" in call_args
+        assert "# GitHub Classroom Assignment Auto-classroom-pilot-sync" in call_args
         assert "0 */4 * * *" in call_args  # Default schedule for sync
 
 
@@ -619,7 +620,7 @@ class TestCronRemoval:
         """Test removing specific job successfully."""
         mock_job_exists.return_value = True
         mock_get_crontab.return_value = (
-            "# GitHub Classroom Assignment Auto-sync\n"
+            "# GitHub Classroom Assignment Auto-classroom-pilot-sync\n"
             "0 */4 * * * python -m classroom_pilot automation cron-sync 'assignment.conf' sync >/dev/null 2>&1\n"
             "# Other job\n"
             "0 0 * * * /other/command\n"
@@ -633,7 +634,7 @@ class TestCronRemoval:
 
         # Verify sync job is removed but other job remains
         call_args = mock_set_crontab.call_args[0][0]
-        assert "Auto-sync" not in call_args
+        assert "Auto-classroom-pilot-sync" not in call_args
         assert "# Other job" in call_args
 
 
