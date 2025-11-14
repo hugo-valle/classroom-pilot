@@ -70,7 +70,7 @@ jobs:
           mkdir -p performance_results
 
           # Setup test assignment configuration
-          cp assignment.conf performance_test_data/test_assignment.conf
+          cp tests/fixtures/minimal_assignment.conf performance_test_data/test_assignment.conf
 
       - name: Load Workflow Utilities
         run: |
