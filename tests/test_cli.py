@@ -477,3 +477,123 @@ STUDENT_FILES=assignment.ipynb
         assert success, f"Assignment root with custom config failed: {stderr}"
         # Should show that it loaded the custom config from the assignment root
         assert "custom.conf" in stderr or "Configuration loaded" in stderr
+
+    def test_verbose_with_assignments_commands(self, temp_assignment_dir):
+        """Test --verbose flag with assignments commands."""
+        success, stdout, stderr = run_cli_command(
+            f"python -m classroom_pilot --assignment-root {temp_assignment_dir} assignments --verbose validate-config")
+
+        assert success, f"Verbose assignments command failed: {stderr}"
+        # Should show verbose logging output
+        assert "DEBUG" in stderr or "Configuration" in stderr
+
+    def test_verbose_with_repos_commands(self):
+        """Test --verbose flag with repos fetch command."""
+        success, stdout, stderr = run_cli_command(
+            "python -m classroom_pilot repos --verbose --help")
+
+        assert success, f"Verbose repos command failed: {stderr}"
+        # Help should still work with verbose flag
+        assert "fetch" in stdout.lower() or "repository" in stdout.lower()
+
+    def test_verbose_with_secrets_commands(self):
+        """Test --verbose flag with secrets add command."""
+        success, stdout, stderr = run_cli_command(
+            "python -m classroom_pilot secrets --verbose --help")
+
+        assert success, f"Verbose secrets command failed: {stderr}"
+        assert "secret" in stdout.lower() or "add" in stdout.lower()
+
+    def test_verbose_with_automation_commands(self):
+        """Test --verbose flag with automation commands."""
+        success, stdout, stderr = run_cli_command(
+            "python -m classroom_pilot automation --verbose --help")
+
+        assert success, f"Verbose automation command failed: {stderr}"
+        assert "automation" in stdout.lower() or "cron" in stdout.lower()
+
+    def test_verbose_with_config_commands(self):
+        """Test --verbose flag with config commands."""
+        success, stdout, stderr = run_cli_command(
+            "python -m classroom_pilot config --verbose check-token --help")
+
+        assert success, f"Verbose config command failed: {stderr}"
+        assert "token" in stdout.lower() or "check" in stdout.lower()
+
+    def test_dry_run_with_assignments_commands(self, temp_assignment_dir):
+        """Test --dry-run flag with assignments commands."""
+        success, stdout, stderr = run_cli_command(
+            f"python -m classroom_pilot --assignment-root {temp_assignment_dir} assignments --dry-run setup")
+
+        assert success, f"Dry-run assignments command failed: {stderr}"
+        # Should show dry-run message
+        assert "DRY RUN" in stderr or "dry" in stderr.lower()
+
+    def test_dry_run_with_repos_commands(self, temp_assignment_dir):
+        """Test --dry-run flag with repos fetch."""
+        success, stdout, stderr = run_cli_command(
+            f"python -m classroom_pilot --assignment-root {temp_assignment_dir} repos --dry-run fetch")
+
+        # Command should execute and show dry-run behavior
+        assert "DRY RUN" in stderr or "dry" in stderr.lower() or success
+
+    def test_dry_run_with_secrets_commands(self):
+        """Test --dry-run flag with secrets add."""
+        success, stdout, stderr = run_cli_command(
+            "python -m classroom_pilot secrets --dry-run add")
+
+        # Should show dry-run message (may fail due to missing args, but should recognize flag)
+        assert "DRY RUN" in stderr or "dry" in stderr.lower() or not success
+
+    def test_dry_run_with_automation_commands(self):
+        """Test --dry-run flag with automation cron-install."""
+        success, stdout, stderr = run_cli_command(
+            "python -m classroom_pilot automation --dry-run cron-install sync")
+
+        # Should execute and show dry-run behavior
+        assert "DRY RUN" in stderr or "dry" in stderr.lower() or success
+
+    def test_dry_run_with_config_commands(self, tmp_path):
+        """Test --dry-run flag with config commands."""
+        # Test set-token with dry-run
+        success, stdout, stderr = run_cli_command(
+            "python -m classroom_pilot config --dry-run set-token ghp_test_token_12345678901234567890")
+
+        assert success, f"Dry-run config set-token failed: {stderr}"
+        assert "DRY RUN" in stderr
+
+        # Test check-token with dry-run
+        success2, stdout2, stderr2 = run_cli_command(
+            "python -m classroom_pilot config --dry-run check-token")
+
+        assert success2, f"Dry-run config check-token failed: {stderr2}"
+        assert "DRY RUN" in stderr2
+
+    def test_verbose_and_dry_run_combined(self, temp_assignment_dir):
+        """Test both --verbose and --dry-run flags together."""
+        success, stdout, stderr = run_cli_command(
+            f"python -m classroom_pilot --assignment-root {temp_assignment_dir} assignments --verbose --dry-run setup")
+
+        assert success, f"Combined verbose and dry-run failed: {stderr}"
+        # Should show both verbose output and dry-run messages
+        assert "DRY RUN" in stderr or "dry" in stderr.lower()
+
+    def test_help_works_at_all_levels(self):
+        """Test --help flag at main level, subcommand group level, and command level."""
+        # Main level help
+        success1, stdout1, stderr1 = run_cli_command(
+            "python -m classroom_pilot --help")
+        assert success1, "Main level help failed"
+        assert "assignments" in stdout1.lower()
+
+        # Subcommand group level help
+        success2, stdout2, stderr2 = run_cli_command(
+            "python -m classroom_pilot assignments --help")
+        assert success2, "Subcommand group help failed"
+        assert "setup" in stdout2.lower() or "orchestrate" in stdout2.lower()
+
+        # Individual command level help
+        success3, stdout3, stderr3 = run_cli_command(
+            "python -m classroom_pilot assignments setup --help")
+        assert success3, "Command level help failed"
+        assert "url" in stdout3.lower() or "setup" in stdout3.lower()

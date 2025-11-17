@@ -14,13 +14,14 @@
 #   - --assignment-root: Specify assignment root directory
 #
 # Usage:
-#   ./test_global_options.sh [--verbose-tests|--dry-run-tests|--config-tests|--assignment-root-tests|--combined-tests|--all]
+#   ./test_global_options.sh [--verbose-tests|--dry-run-tests|--config-tests|--assignment-root-tests|--config-commands-tests|--combined-tests|--all]
 #
 # Options:
 #   --verbose-tests         Run only --verbose option tests
 #   --dry-run-tests         Run only --dry-run option tests
 #   --config-tests          Run only --config option tests
 #   --assignment-root-tests Run only --assignment-root option tests
+#   --config-commands-tests Run only config commands global options tests
 #   --combined-tests        Run only combined options tests
 #   --all                   Run all tests (default)
 #
@@ -560,6 +561,136 @@ test_all_options_combined() {
     fi
 }
 
+################################################################################
+# Section 6: Config Commands Global Options Tests
+################################################################################
+
+test_verbose_config_set_token() {
+    # Check if test should be skipped
+    is_test_skipped "${FUNCNAME[0]}" && mark_test_skipped "verbose config set-token" "$(get_skip_reason "${FUNCNAME[0]}")" && return
+    log_step "Testing --verbose with config set-token --help"
+    
+    local output
+    local exit_code=0
+    
+    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot config --verbose set-token --help 2>&1) || exit_code=$?
+    
+    if [ $exit_code -eq 0 ] && [[ "$output" =~ "token" ]]; then
+        mark_test_passed "verbose flag works with config set-token help"
+    else
+        mark_test_failed "verbose config set-token" "Expected help output with token info, got exit=$exit_code"
+    fi
+}
+
+test_verbose_config_check_token() {
+    # Check if test should be skipped
+    is_test_skipped "${FUNCNAME[0]}" && mark_test_skipped "verbose config check-token" "$(get_skip_reason "${FUNCNAME[0]}")" && return
+    log_step "Testing --verbose with config check-token"
+    
+    local output
+    local exit_code=0
+    
+    # check-token may fail if no token exists, but should still show verbose output
+    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot config --verbose check-token 2>&1) || exit_code=$?
+    
+    # Should show verbose logging or token status messages
+    if [[ "$output" =~ "token" ]] || [[ "$output" =~ "Token" ]] || [[ "$output" =~ "Checking" ]]; then
+        mark_test_passed "verbose flag works with config check-token"
+    else
+        mark_test_failed "verbose config check-token" "Expected token-related output"
+    fi
+}
+
+test_dry_run_config_set_token() {
+    # Check if test should be skipped
+    is_test_skipped "${FUNCNAME[0]}" && mark_test_skipped "dry-run config set-token" "$(get_skip_reason "${FUNCNAME[0]}")" && return
+    log_step "Testing --dry-run with config set-token"
+    
+    local output
+    local exit_code=0
+    
+    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot config --dry-run set-token ghp_test_token_12345678901234567890 2>&1) || exit_code=$?
+    
+    if [ $exit_code -eq 0 ] && verify_dry_run_output "$output"; then
+        mark_test_passed "dry-run prevents token modification in set-token"
+    else
+        mark_test_failed "dry-run config set-token" "Expected DRY RUN message and exit=0, got exit=$exit_code"
+    fi
+}
+
+test_dry_run_config_check_token() {
+    # Check if test should be skipped
+    is_test_skipped "${FUNCNAME[0]}" && mark_test_skipped "dry-run config check-token" "$(get_skip_reason "${FUNCNAME[0]}")" && return
+    log_step "Testing --dry-run with config check-token"
+    
+    local output
+    local exit_code=0
+    
+    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot config --dry-run check-token 2>&1) || exit_code=$?
+    
+    if [ $exit_code -eq 0 ] && verify_dry_run_output "$output"; then
+        mark_test_passed "dry-run shows what would be checked without actual validation"
+    else
+        mark_test_failed "dry-run config check-token" "Expected DRY RUN message and exit=0, got exit=$exit_code"
+    fi
+}
+
+test_verbose_dry_run_config_combined() {
+    # Check if test should be skipped
+    is_test_skipped "${FUNCNAME[0]}" && mark_test_skipped "verbose dry-run config combined" "$(get_skip_reason "${FUNCNAME[0]}")" && return
+    log_step "Testing --verbose and --dry-run combined with config set-token"
+    
+    local output
+    local exit_code=0
+    
+    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot config --verbose --dry-run set-token ghp_test 2>&1) || exit_code=$?
+    
+    if [ $exit_code -eq 0 ] && verify_dry_run_output "$output"; then
+        mark_test_passed "both verbose and dry-run flags work together for config commands"
+    else
+        mark_test_failed "verbose dry-run config combined" "Expected both verbose and DRY RUN indicators, got exit=$exit_code"
+    fi
+}
+
+test_config_help_at_all_levels() {
+    # Check if test should be skipped
+    is_test_skipped "${FUNCNAME[0]}" && mark_test_skipped "config help at all levels" "$(get_skip_reason "${FUNCNAME[0]}")" && return
+    log_step "Testing --help at all levels for config commands"
+    
+    # Subcommand group level
+    local output1
+    local exit_code1=0
+    output1=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot config --help 2>&1) || exit_code1=$?
+    
+    # set-token command level
+    local output2
+    local exit_code2=0
+    output2=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot config set-token --help 2>&1) || exit_code2=$?
+    
+    # check-token command level
+    local output3
+    local exit_code3=0
+    output3=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot config check-token --help 2>&1) || exit_code3=$?
+    
+    if [ $exit_code1 -eq 0 ] && [ $exit_code2 -eq 0 ] && [ $exit_code3 -eq 0 ] && \
+       [[ "$output1" =~ "config" ]] && [[ "$output2" =~ "token" ]] && [[ "$output3" =~ "token" ]]; then
+        mark_test_passed "help displays correctly at all config command levels"
+    else
+        mark_test_failed "config help at all levels" "Expected help at all levels"
+    fi
+}
+
+run_config_tests() {
+    log_section "Running Config Commands Global Options Tests"
+    
+    test_verbose_config_set_token
+    test_verbose_config_check_token
+    test_dry_run_config_set_token
+    test_dry_run_config_check_token
+    test_verbose_dry_run_config_combined
+    test_config_help_at_all_levels
+}
+
 run_combined_tests() {
     log_section "Running Combined Options Tests"
     
@@ -596,6 +727,9 @@ main() {
             run_dry_run_tests
             ;;
         --config-tests)
+            run_config_tests
+            ;;
+        --config-commands-tests)
             run_config_tests
             ;;
         --assignment-root-tests)

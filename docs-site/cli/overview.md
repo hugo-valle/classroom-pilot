@@ -31,14 +31,143 @@ For backward compatibility:
 
 ## ⚙️ Global Options
 
-Global options apply to all commands:
+Classroom Pilot provides two types of global options based on their scope and placement:
+
+### Main-Level Options
+
+These options are placed **before** the subcommand group and control application-wide behavior:
+
+| Option | Description | Example |
+|--------|-------------|---------|
+| `--version` | Display version information and exit | `classroom-pilot --version` |
+| `--config <file>` | Specify custom configuration file (default: assignment.conf) | `classroom-pilot --config custom.conf assignments setup` |
+| `--assignment-root <path>` | Specify assignment root directory containing configuration | `classroom-pilot --assignment-root /path/to/assignment repos fetch` |
+| `--help` | Display main help information | `classroom-pilot --help` |
+
+### Subcommand-Group-Level Options
+
+These options are placed **after** the subcommand group name but **before** the individual command:
 
 | Option | Short | Description | Example |
 |--------|-------|-------------|---------|
-| `--dry-run` | | Preview actions without executing | `classroom-pilot --dry-run assignments orchestrate` |
-| `--verbose` | | Enable detailed logging | `classroom-pilot --verbose repos fetch` |
-| `--config FILE` | | Use custom configuration file | `classroom-pilot --config my.conf secrets add` |
-| `--help` | | Show help information | `classroom-pilot --help` |
+| `--verbose` | `-v` | Enable detailed logging output (available for all subcommand groups) | `classroom-pilot assignments --verbose orchestrate` |
+| `--dry-run` | | Show what would be done without executing (available for all subcommand groups) | `classroom-pilot repos --dry-run fetch` |
+| `--help` | `-h` | Display help for the subcommand group or command | `classroom-pilot assignments --help` |
+
+### Option Placement Examples
+
+**Correct placement:**
+
+```bash
+# Main-level options (before subcommand)
+classroom-pilot --config custom.conf assignments setup
+classroom-pilot --assignment-root /path/to/assignment repos fetch
+
+# Subcommand-group-level options (after subcommand group)
+classroom-pilot assignments --verbose --dry-run orchestrate
+classroom-pilot repos --dry-run fetch
+classroom-pilot secrets --verbose add
+classroom-pilot automation --dry-run cron-install sync
+classroom-pilot config --verbose --dry-run set-token ghp_token
+```
+
+**Help at different levels:**
+
+```bash
+classroom-pilot --help                    # Main help
+classroom-pilot assignments --help        # Assignments subcommand group help
+classroom-pilot assignments setup --help  # Individual command help
+```
+
+### Global Options Behavior
+
+#### Verbose Mode (`--verbose`, `-v`)
+
+When enabled, verbose mode provides detailed logging output including:
+
+- Configuration loading and parsing details
+- API request and response information
+- File system operations
+- Progress indicators for long-running operations
+- Debug-level messages for troubleshooting
+
+**Example:**
+```bash
+# See detailed output during assignment orchestration
+classroom-pilot assignments --verbose orchestrate
+
+# Debug token validation issues
+classroom-pilot config --verbose check-token
+```
+
+#### Dry-Run Mode (`--dry-run`)
+
+Dry-run mode shows exactly what would be executed without making any actual changes:
+
+- Displays planned operations with "DRY RUN:" prefix
+- Shows which files would be modified
+- Lists repositories that would be affected
+- Previews secrets that would be deployed
+- Validates configuration without executing
+
+**Example:**
+```bash
+# Preview what orchestration would do
+classroom-pilot assignments --dry-run orchestrate
+
+# Check what token changes would occur
+classroom-pilot config --dry-run set-token ghp_new_token
+```
+
+#### Combined Options
+
+Options can be combined for maximum control during development and testing:
+
+```bash
+# Verbose dry-run: see detailed output without executing
+classroom-pilot assignments --verbose --dry-run orchestrate
+
+# Custom config with verbose output
+classroom-pilot --config test.conf repos --verbose fetch
+
+# All options together
+classroom-pilot --verbose --assignment-root /path --config custom.conf assignments --dry-run setup
+```
+
+### Troubleshooting Tips
+
+**Common Mistakes:**
+
+1. **Wrong option placement:**
+   ```bash
+   # ❌ Wrong: verbose before subcommand
+   classroom-pilot --verbose assignments orchestrate
+   
+   # ✅ Correct: verbose after subcommand group
+   classroom-pilot assignments --verbose orchestrate
+   ```
+
+2. **Mixing main and subcommand options:**
+   ```bash
+   # ❌ Wrong: config after subcommand
+   classroom-pilot assignments --config custom.conf setup
+   
+   # ✅ Correct: config before subcommand
+   classroom-pilot --config custom.conf assignments setup
+   ```
+
+**Verification:**
+
+- **Check verbose is working:** Look for "DEBUG" level messages or detailed configuration output in stderr
+- **Check dry-run is working:** Look for "DRY RUN:" prefix in output messages
+- **Verify option recognition:** Use `--help` to see available options at each level
+
+**Best Practices:**
+
+1. Use `--dry-run` first when testing new configurations
+2. Combine `--verbose --dry-run` for maximum visibility during development
+3. Use `--config` with test configurations before modifying production
+4. Always verify `--help` at the command level if unsure about options
 
 ## 📋 Quick Reference
 

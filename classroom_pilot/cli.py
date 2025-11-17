@@ -272,6 +272,25 @@ def automation_callback(
     ctx.obj['dry_run'] = dry_run
 
 
+@config_app.callback()
+def config_callback(
+    ctx: typer.Context,
+    verbose: bool = typer.Option(
+        False, "--verbose", "-v", help="Enable verbose output"
+    ),
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Show what would be done without executing"
+    )
+):
+    """Configuration and token management commands."""
+    if verbose:
+        setup_logging(verbose=True)
+    # Store options in context for child commands to access
+    ctx.ensure_object(dict)
+    ctx.obj['verbose'] = verbose
+    ctx.obj['dry_run'] = dry_run
+
+
 # Add subcommand groups to main app
 app.add_typer(assignments_app, name="assignments")
 app.add_typer(repos_app, name="repos")
@@ -1429,9 +1448,9 @@ def secrets_manage(ctx: typer.Context):
         $ classroom-pilot secrets manage
         $ classroom-pilot secrets manage --verbose --dry-run
     """
-    # Access universal options from parent context
-    verbose = ctx.parent.params.get('verbose', False)
-    dry_run = ctx.parent.params.get('dry_run', False)
+    # Access universal options from context
+    verbose = ctx.obj.get('verbose', False)
+    dry_run = ctx.obj.get('dry_run', False)
 
     if verbose:
         setup_logging(verbose=True)
@@ -1823,6 +1842,7 @@ def automation_cron_sync(
 
 @config_app.command("set-token")
 def config_set_token(
+    ctx: typer.Context,
     token: str = typer.Argument(
         ...,
         help="GitHub Personal Access Token (classic or fine-grained)"
@@ -1862,7 +1882,18 @@ def config_set_token(
 
     Generate tokens at: https://github.com/settings/tokens
     """
-    setup_logging()
+    verbose = ctx.obj.get('verbose', False)
+    dry_run = ctx.obj.get('dry_run', False)
+
+    setup_logging(verbose)
+
+    if dry_run:
+        logger.info("DRY RUN: Would update GitHub token")
+        logger.info(f"DRY RUN: Token format: {token[:10]}...")
+        if expires_at:
+            logger.info(f"DRY RUN: Would set expiration: {expires_at}")
+        logger.info(f"DRY RUN: Force update: {force}")
+        return
 
     try:
         from .utils.token_manager import GitHubTokenManager
@@ -2000,7 +2031,7 @@ def config_set_token(
 
 
 @config_app.command("check-token")
-def config_check_token():
+def config_check_token(ctx: typer.Context):
     """
     Check the current GitHub token status, expiration, and scopes.
 
@@ -2014,7 +2045,14 @@ def config_check_token():
     Example:
         classroom-pilot config check-token
     """
-    setup_logging()
+    verbose = ctx.obj.get('verbose', False)
+    dry_run = ctx.obj.get('dry_run', False)
+
+    setup_logging(verbose)
+
+    if dry_run:
+        logger.info("DRY RUN: Would check GitHub token status")
+        return
 
     try:
         from .utils.token_manager import GitHubTokenManager
