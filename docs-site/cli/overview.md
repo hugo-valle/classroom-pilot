@@ -169,6 +169,57 @@ classroom-pilot --verbose --assignment-root /path --config custom.conf assignmen
 3. Use `--config` with test configurations before modifying production
 4. Always verify `--help` at the command level if unsure about options
 
+### Universal Global Options Support
+
+**All commands** in Classroom Pilot now uniformly support `--verbose` and `--dry-run` at the subcommand group level. This includes:
+
+**Assignment Commands:**
+- `assignments setup` - Setup with verbose logging and dry-run preview
+- `assignments orchestrate` - Full workflow with detailed output
+- `assignments check-classroom` - Check classroom status with verbose/dry-run
+- `assignments check-repository-access` - Verify access with detailed logging
+- `assignments cycle-collaborator` - Cycle permissions with preview mode
+- `assignments manage` - Template management with verbose output
+
+**Repository Commands:**
+- `repos fetch` - Discover repositories with detailed logging
+- `repos collaborator` - Manage collaborators with dry-run preview
+
+**Secrets Commands:**
+- `secrets add` - Deploy secrets with verbose output and dry-run
+- `secrets manage` - Advanced management with preview mode
+
+**Automation Commands:**
+- `automation cron-install` - Install cron jobs with preview
+- `automation cron-remove` - Remove jobs with dry-run
+- `automation cron-status` - Check status with verbose logging
+- `automation cron-logs` - View logs with detailed output
+- `automation cron-schedules` - List schedules with verbose info
+- `automation cron-sync` - Sync workflows with preview mode
+
+**Config Commands:**
+- `config set-token` - Update token with verbose logging and dry-run
+- `config check-token` - Verify token with detailed output
+
+**Example usage across all command groups:**
+
+```bash
+# Assignments - preview and verbose logging
+classroom-pilot assignments --verbose --dry-run check-classroom
+
+# Repos - detailed repository access check
+classroom-pilot assignments --verbose check-repository-access
+
+# Secrets - preview secret deployment
+classroom-pilot secrets --dry-run add
+
+# Automation - preview cron log viewing
+classroom-pilot automation --dry-run cron-logs
+
+# Config - preview token changes
+classroom-pilot config --verbose --dry-run set-token ghp_new_token
+```
+
 ## 📋 Quick Reference
 
 ### Assignment Management
