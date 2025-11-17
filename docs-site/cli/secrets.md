@@ -22,18 +22,25 @@ classroom-pilot secrets add --secrets-file api-keys.env
 # Add specific secret
 classroom-pilot secrets add --name "API_KEY" --value "secret-value"
 
-# Add secrets with confirmation
-classroom-pilot secrets add --confirm --verbose
+# Add secrets with confirmation and verbose logging (group-level option)
+classroom-pilot secrets --verbose add --confirm
+
+# Dry run to preview operations (group-level option)
+classroom-pilot secrets --dry-run add --assignment "api-project"
 ```
 
-**Options:**
+**Group-Level Options** (placed after `secrets`, before `add`):
+- `--verbose`: Enable detailed logging
+- `--dry-run`: Preview operations without execution
+- `--help`: Show command help
+
+**Command Options:**
 - `--assignment NAME`: Target specific assignment
 - `--secrets-file FILE`: Load secrets from file
 - `--name NAME`: Secret name (for single secret)
 - `--value VALUE`: Secret value (for single secret)
 - `--confirm`: Require confirmation before adding
 - `--overwrite`: Overwrite existing secrets
-- `--dry-run`: Preview operations without execution
 
 **Supported File Formats:**
 - `.env` files (KEY=value format)
@@ -81,15 +88,22 @@ classroom-pilot secrets remove --pattern "TEMP_*"
 
 # Remove with confirmation
 classroom-pilot secrets remove --name "CRITICAL_KEY" --confirm
+
+# Dry run to preview deletions (group-level option)
+classroom-pilot secrets --dry-run remove --name "OLD_API_KEY"
 ```
 
-**Options:**
+**Group-Level Options** (placed after `secrets`, before `remove`):
+- `--verbose`: Enable detailed logging
+- `--dry-run`: Preview deletions without execution
+- `--help`: Show command help
+
+**Command Options:**
 - `--name NAME`: Specific secret name
 - `--assignment NAME`: Target assignment
 - `--pattern GLOB`: Pattern matching secret names
 - `--all`: Remove all secrets (use with caution)
 - `--confirm`: Require confirmation
-- `--dry-run`: Preview deletions
 
 ### `classroom-pilot secrets rotate`
 

@@ -184,6 +184,38 @@ classroom-pilot automation logs --export logs-backup.tar.gz
 - `--level LEVEL`: Log level filter (debug, info, warning, error)
 - `--export FILE`: Export logs to file
 
+### `classroom-pilot automation cron-logs`
+
+View cron job execution logs with detailed output.
+
+```bash
+# View all cron logs
+classroom-pilot automation cron-logs
+
+# Verbose output for detailed logging (group-level option)
+classroom-pilot automation --verbose cron-logs
+
+# Dry run to preview operation (group-level option)
+classroom-pilot automation --dry-run cron-logs
+
+# With custom configuration
+classroom-pilot --config automation.conf automation cron-logs
+```
+
+**Group-Level Options** (placed after `automation`, before `cron-logs`):
+- `--verbose`: Enable detailed logging output
+- `--dry-run`: Preview operation without execution
+- `--help`: Show command help
+
+**Command Options:**
+- `--lines COUNT`: Number of log lines to display (default: 50)
+- `--follow`: Follow logs in real-time
+- `--job-name NAME`: Filter logs by specific cron job name
+- `--since TIMESTAMP`: Show logs since specific time
+- `--format FORMAT`: Output format (text, json, yaml)
+
+This command provides access to cron job execution logs, showing scheduled task runs, their outcomes, and any errors encountered during automated operations.
+
 ## Configuration
 
 Automation uses configuration for scheduling and execution settings:

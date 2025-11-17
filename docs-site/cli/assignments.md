@@ -16,28 +16,33 @@ Initialize a new assignment with proper configuration and repository structure.
 # Basic assignment setup
 classroom-pilot assignments setup
 
-# Setup with specific configuration
-classroom-pilot assignments setup --config assignment.conf
+# Setup with specific configuration (main-level option before subcommand)
+classroom-pilot --config assignment.conf assignments setup
 
-# Dry run to preview changes
-classroom-pilot assignments setup --dry-run
+# Dry run to preview changes (group-level option after subcommand group)
+classroom-pilot assignments --dry-run setup
 
-# Verbose output for debugging
-classroom-pilot assignments setup --verbose
+# Verbose output for debugging (group-level option after subcommand group)
+classroom-pilot assignments --verbose setup
+
+# Combine verbose and dry-run
+classroom-pilot assignments --verbose --dry-run setup
 ```
 
-**Options:**
+**Main-Level Options** (placed before `assignments`):
 - `--config PATH`: Specify custom configuration file
+- `--assignment-root PATH`: Specify assignment root directory
+
+**Group-Level Options** (placed after `assignments`, before `setup`):
 - `--dry-run`: Show what would be done without making changes
 - `--verbose`: Enable detailed output
 - `--help`: Show command help
 
 **Example:**
 ```bash
-# Setup assignment with custom config
-classroom-pilot assignments setup \
-  --config assignments/hw01-config.yaml \
-  --verbose
+# Setup assignment with custom config and verbose output
+classroom-pilot --config assignments/hw01-config.yaml \
+  assignments --verbose setup
 ```
 
 ### `classroom-pilot assignments orchestrate`
@@ -48,23 +53,27 @@ Execute the complete assignment workflow including repository creation, secret d
 # Run full orchestration
 classroom-pilot assignments orchestrate
 
-# Orchestrate specific assignment
-classroom-pilot assignments orchestrate --assignment "homework-01"
+# Orchestrate with verbose output (group-level option)
+classroom-pilot assignments --verbose orchestrate
 
-# Skip specific steps
-classroom-pilot assignments orchestrate --skip-secrets
+# Dry run to preview operations (group-level option)
+classroom-pilot assignments --dry-run orchestrate
 
-# Run with custom timing
-classroom-pilot assignments orchestrate --delay 30
+# Combine verbose and dry-run for maximum visibility
+classroom-pilot assignments --verbose --dry-run orchestrate
+
+# With custom configuration (main-level option)
+classroom-pilot --config custom.conf assignments orchestrate
 ```
 
-**Options:**
-- `--assignment NAME`: Target specific assignment
-- `--skip-secrets`: Skip secret distribution
-- `--skip-collaborators`: Skip collaborator management
-- `--delay SECONDS`: Delay between operations (default: 10)
-- `--max-retries COUNT`: Maximum retry attempts (default: 3)
+**Main-Level Options** (placed before `assignments`):
+- `--config PATH`: Specify custom configuration file
+- `--assignment-root PATH`: Specify assignment root directory
+
+**Group-Level Options** (placed after `assignments`, before `orchestrate`):
 - `--dry-run`: Preview operations without execution
+- `--verbose`: Enable detailed output
+- `--help`: Show command help
 
 **Workflow Steps:**
 1. **Repository Discovery**: Find student repositories
@@ -120,6 +129,104 @@ classroom-pilot assignments validate --report validation.html
 - `--strict`: Enable strict validation rules
 - `--report FILE`: Generate HTML validation report
 - `--fix`: Automatically fix detected issues
+
+### `classroom-pilot assignments check-classroom`
+
+Check if the classroom repository is ready for student updates.
+
+```bash
+# Basic classroom status check
+classroom-pilot assignments check-classroom
+
+# Check with verbose output (group-level option)
+classroom-pilot assignments --verbose check-classroom
+
+# Dry run to preview the check (group-level option)
+classroom-pilot assignments --dry-run check-classroom
+
+# With custom configuration
+classroom-pilot --config classroom.conf assignments check-classroom
+```
+
+**Group-Level Options** (placed after `assignments`, before `check-classroom`):
+- `--verbose`: Enable detailed logging
+- `--dry-run`: Preview check without execution
+- `--help`: Show command help
+
+This command verifies that the classroom repository is accessible and compares its state with the template repository to ensure it's ready for student assistance operations.
+
+### `classroom-pilot assignments check-repository-access`
+
+Check repository access status for a specific user.
+
+```bash
+# Interactive selection from student-repos.txt
+classroom-pilot assignments check-repository-access
+
+# Check specific repository
+classroom-pilot assignments check-repository-access \
+  https://github.com/org/assignment-student123
+
+# Check with explicit username
+classroom-pilot assignments check-repository-access \
+  https://github.com/org/assignment-student123 student123
+
+# Verbose output for debugging (group-level option)
+classroom-pilot assignments --verbose check-repository-access
+
+# Dry run to preview check (group-level option)
+classroom-pilot assignments --dry-run check-repository-access
+```
+
+**Group-Level Options** (placed after `assignments`, before `check-repository-access`):
+- `--verbose`: Enable detailed logging
+- `--dry-run`: Preview check without execution
+- `--help`: Show command help
+
+**Command Options:**
+- `--file PATH`: File containing student repository URLs (default: student-repos.txt)
+- `--config PATH`: Configuration file path (default: assignment.conf)
+
+This command checks whether a user has proper access to a repository, including collaborator status and pending invitations.
+
+### `classroom-pilot assignments cycle-collaborator`
+
+Cycle collaborator permissions for a specific repository.
+
+```bash
+# Interactive selection from student-repos.txt
+classroom-pilot assignments cycle-collaborator
+
+# Cycle specific repository
+classroom-pilot assignments cycle-collaborator \
+  https://github.com/org/repo-student123
+
+# Cycle with explicit username
+classroom-pilot assignments cycle-collaborator \
+  https://github.com/org/repo student123
+
+# Force permission cycle without prompts
+classroom-pilot assignments cycle-collaborator \
+  https://github.com/org/repo student123 --force
+
+# Verbose output (group-level option)
+classroom-pilot assignments --verbose cycle-collaborator
+
+# Dry run to preview operation (group-level option)
+classroom-pilot assignments --dry-run cycle-collaborator
+```
+
+**Group-Level Options** (placed after `assignments`, before `cycle-collaborator`):
+- `--verbose`: Enable detailed logging
+- `--dry-run`: Preview operation without execution
+- `--help`: Show command help
+
+**Command Options:**
+- `--force`: Force operation without interactive prompts
+- `--file PATH`: File containing student repository URLs (default: student-repos.txt)
+- `--config PATH`: Configuration file path (default: assignment.conf)
+
+This command removes and re-adds a collaborator to refresh their repository permissions.
 
 ## Configuration
 
