@@ -14,16 +14,17 @@
 #   - --assignment-root: Specify assignment root directory
 #
 # Usage:
-#   ./test_global_options.sh [--verbose-tests|--dry-run-tests|--config-tests|--assignment-root-tests|--config-commands-tests|--combined-tests|--all]
+#   ./test_global_options.sh [--verbose-tests|--dry-run-tests|--config-tests|--assignment-root-tests|--config-commands-tests|--additional-command-tests|--combined-tests|--all]
 #
 # Options:
-#   --verbose-tests         Run only --verbose option tests
-#   --dry-run-tests         Run only --dry-run option tests
-#   --config-tests          Run only --config option tests
-#   --assignment-root-tests Run only --assignment-root option tests
-#   --config-commands-tests Run only config commands global options tests
-#   --combined-tests        Run only combined options tests
-#   --all                   Run all tests (default)
+#   --verbose-tests           Run only --verbose option tests
+#   --dry-run-tests           Run only --dry-run option tests
+#   --config-tests            Run only --config option tests
+#   --assignment-root-tests   Run only --assignment-root option tests
+#   --config-commands-tests   Run only config commands global options tests
+#   --additional-command-tests Run only additional command-specific global options tests
+#   --combined-tests          Run only combined options tests
+#   --all                     Run all tests (default)
 #
 # Requirements:
 #   - lib/test_helpers.sh
@@ -700,6 +701,159 @@ run_combined_tests() {
 }
 
 ################################################################################
+# Section 7: Additional Command-Specific Global Options Tests
+################################################################################
+
+test_verbose_check_classroom() {
+    # Check if test should be skipped
+    is_test_skipped "${FUNCNAME[0]}" && mark_test_skipped "verbose check-classroom" "$(get_skip_reason "${FUNCNAME[0]}")" && return
+    log_step "Testing --verbose with check-classroom"
+    
+    local output
+    local exit_code=0
+    
+    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot assignments --verbose check-classroom --help 2>&1) || exit_code=$?
+    
+    if [ $exit_code -eq 0 ] && [[ "$output" =~ "check" ]] || [[ "$output" =~ "classroom" ]]; then
+        mark_test_passed "verbose flag works with check-classroom"
+    else
+        mark_test_failed "verbose check-classroom" "Expected help output, got exit=$exit_code"
+    fi
+}
+
+test_dry_run_check_classroom() {
+    # Check if test should be skipped
+    is_test_skipped "${FUNCNAME[0]}" && mark_test_skipped "dry-run check-classroom" "$(get_skip_reason "${FUNCNAME[0]}")" && return
+    log_step "Testing --dry-run with check-classroom"
+    
+    local output
+    local exit_code=0
+    
+    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot assignments --dry-run check-classroom 2>&1) || exit_code=$?
+    
+    if [ $exit_code -eq 0 ] && verify_dry_run_output "$output"; then
+        mark_test_passed "dry-run prevents actual check-classroom execution"
+    else
+        mark_test_failed "dry-run check-classroom" "Expected DRY RUN message, got exit=$exit_code"
+    fi
+}
+
+test_verbose_check_repository_access() {
+    # Check if test should be skipped
+    is_test_skipped "${FUNCNAME[0]}" && mark_test_skipped "verbose check-repository-access" "$(get_skip_reason "${FUNCNAME[0]}")" && return
+    log_step "Testing --verbose with check-repository-access --help"
+    
+    local output
+    local exit_code=0
+    
+    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot assignments --verbose check-repository-access --help 2>&1) || exit_code=$?
+    
+    if [ $exit_code -eq 0 ] && [[ "$output" =~ "access" ]] || [[ "$output" =~ "repository" ]]; then
+        mark_test_passed "verbose flag works with check-repository-access"
+    else
+        mark_test_failed "verbose check-repository-access" "Expected help output, got exit=$exit_code"
+    fi
+}
+
+test_dry_run_check_repository_access() {
+    # Check if test should be skipped
+    is_test_skipped "${FUNCNAME[0]}" && mark_test_skipped "dry-run check-repository-access" "$(get_skip_reason "${FUNCNAME[0]}")" && return
+    log_step "Testing --dry-run with check-repository-access --help"
+    
+    local output
+    local exit_code=0
+    
+    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot assignments --dry-run check-repository-access --help 2>&1) || exit_code=$?
+    
+    if [ $exit_code -eq 0 ]; then
+        mark_test_passed "dry-run works with check-repository-access"
+    else
+        mark_test_failed "dry-run check-repository-access" "Expected success, got exit=$exit_code"
+    fi
+}
+
+test_verbose_cycle_collaborator() {
+    # Check if test should be skipped
+    is_test_skipped "${FUNCNAME[0]}" && mark_test_skipped "verbose cycle-collaborator" "$(get_skip_reason "${FUNCNAME[0]}")" && return
+    log_step "Testing --verbose with cycle-collaborator --help"
+    
+    local output
+    local exit_code=0
+    
+    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot assignments --verbose cycle-collaborator --help 2>&1) || exit_code=$?
+    
+    if [ $exit_code -eq 0 ] && [[ "$output" =~ "collaborator" ]] || [[ "$output" =~ "cycle" ]]; then
+        mark_test_passed "verbose flag works with cycle-collaborator"
+    else
+        mark_test_failed "verbose cycle-collaborator" "Expected help output, got exit=$exit_code"
+    fi
+}
+
+test_dry_run_cycle_collaborator() {
+    # Check if test should be skipped
+    is_test_skipped "${FUNCNAME[0]}" && mark_test_skipped "dry-run cycle-collaborator" "$(get_skip_reason "${FUNCNAME[0]}")" && return
+    log_step "Testing --dry-run with cycle-collaborator --help"
+    
+    local output
+    local exit_code=0
+    
+    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot assignments --dry-run cycle-collaborator --help 2>&1) || exit_code=$?
+    
+    if [ $exit_code -eq 0 ]; then
+        mark_test_passed "dry-run works with cycle-collaborator"
+    else
+        mark_test_failed "dry-run cycle-collaborator" "Expected success, got exit=$exit_code"
+    fi
+}
+
+test_verbose_cron_logs() {
+    # Check if test should be skipped
+    is_test_skipped "${FUNCNAME[0]}" && mark_test_skipped "verbose cron-logs" "$(get_skip_reason "${FUNCNAME[0]}")" && return
+    log_step "Testing --verbose with cron-logs"
+    
+    local output
+    local exit_code=0
+    
+    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot automation --verbose cron-logs --help 2>&1) || exit_code=$?
+    
+    if [ $exit_code -eq 0 ] && [[ "$output" =~ "log" ]] || [[ "$output" =~ "workflow" ]]; then
+        mark_test_passed "verbose flag works with cron-logs"
+    else
+        mark_test_failed "verbose cron-logs" "Expected help output, got exit=$exit_code"
+    fi
+}
+
+test_dry_run_cron_logs() {
+    # Check if test should be skipped
+    is_test_skipped "${FUNCNAME[0]}" && mark_test_skipped "dry-run cron-logs" "$(get_skip_reason "${FUNCNAME[0]}")" && return
+    log_step "Testing --dry-run with cron-logs"
+    
+    local output
+    local exit_code=0
+    
+    output=$(cd "$PROJECT_ROOT" && poetry run classroom-pilot automation --dry-run cron-logs 2>&1) || exit_code=$?
+    
+    if [ $exit_code -eq 0 ] && verify_dry_run_output "$output"; then
+        mark_test_passed "dry-run prevents actual cron-logs execution"
+    else
+        mark_test_failed "dry-run cron-logs" "Expected DRY RUN message, got exit=$exit_code"
+    fi
+}
+
+run_additional_command_tests() {
+    log_section "Running Additional Command-Specific Global Options Tests"
+    
+    test_verbose_check_classroom
+    test_dry_run_check_classroom
+    test_verbose_check_repository_access
+    test_dry_run_check_repository_access
+    test_verbose_cycle_collaborator
+    test_dry_run_cycle_collaborator
+    test_verbose_cron_logs
+    test_dry_run_cron_logs
+}
+
+################################################################################
 # Main Test Execution
 ################################################################################
 
@@ -708,6 +862,7 @@ run_all_tests() {
     run_dry_run_tests
     run_config_tests
     run_assignment_root_tests
+    run_additional_command_tests
     run_combined_tests
 }
 
@@ -734,6 +889,9 @@ main() {
             ;;
         --assignment-root-tests)
             run_assignment_root_tests
+            ;;
+        --additional-command-tests)
+            run_additional_command_tests
             ;;
         --combined-tests)
             run_combined_tests

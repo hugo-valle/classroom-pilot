@@ -751,8 +751,7 @@ def student_instructions(
 
 @assignments_app.command("check-classroom")
 def check_classroom(
-    verbose: bool = typer.Option(
-        False, "--verbose", "-v", help="Enable verbose output"),
+    ctx: typer.Context,
     config_file: str = typer.Option(
         "assignment.conf", "--config", "-c", help="Configuration file path")
 ):
@@ -763,14 +762,24 @@ def check_classroom(
     compares its state with the template repository to ensure it's ready
     for student assistance operations.
 
+    Supports universal options: --verbose, --dry-run
+
     Args:
-        verbose: Enable detailed logging
         config_file: Path to configuration file
 
     Example:
         $ classroom-pilot assignments check-classroom
     """
+    # Access universal options from context
+    verbose = ctx.obj.get('verbose', False)
+    dry_run = ctx.obj.get('dry_run', False)
+
     setup_logging(verbose)
+
+    if dry_run:
+        logger.info("DRY RUN: Would check classroom repository status")
+        return
+
     logger.info("Checking classroom repository status")
 
     try:
@@ -841,9 +850,9 @@ def cycle_single_collaborator(
         $ classroom-pilot assignments cycle-collaborator https://github.com/org/repo-student123
         $ classroom-pilot assignments cycle-collaborator https://github.com/org/repo student123 --force
     """
-    # Access universal options from parent context
-    verbose = ctx.parent.params.get('verbose', False)
-    dry_run = ctx.parent.params.get('dry_run', False)
+    # Access universal options from context
+    verbose = ctx.obj.get('verbose', False)
+    dry_run = ctx.obj.get('dry_run', False)
 
     if verbose:
         setup_logging(verbose=True)
@@ -1039,12 +1048,11 @@ def cycle_multiple_collaborators(
 
 @assignments_app.command("check-repository-access")
 def check_repository_access(
+    ctx: typer.Context,
     repo_url: Optional[str] = typer.Argument(
         None, help="Repository URL to check access for (or leave empty to select from student-repos.txt)"),
     username: Optional[str] = typer.Argument(
         None, help="Username to check access for (auto-extracted from URL if not provided)"),
-    verbose: bool = typer.Option(
-        False, "--verbose", "-v", help="Enable verbose output"),
     repo_file: str = typer.Option(
         "student-repos.txt", "--file", "-f",
         help="File containing student repository URLs for interactive selection"),
@@ -1061,10 +1069,11 @@ def check_repository_access(
     If no repository URL is provided, you'll be prompted to select from student-repos.txt.
     The username is automatically extracted from the repository URL if not explicitly provided.
 
+    Supports universal options: --verbose, --dry-run
+
     Args:
         repo_url: URL of the repository to check
         username: Username to check access for (auto-extracted if not provided)
-        verbose: Enable detailed logging
         repo_file: File containing student repository URLs for interactive selection
         config_file: Path to configuration file
 
@@ -1073,7 +1082,16 @@ def check_repository_access(
         $ classroom-pilot assignments check-repository-access https://github.com/org/assignment-student123
         $ classroom-pilot assignments check-repository-access https://github.com/org/assignment-student123 student123
     """
+    # Access universal options from context
+    verbose = ctx.obj.get('verbose', False)
+    dry_run = ctx.obj.get('dry_run', False)
+
     setup_logging(verbose)
+
+    if dry_run:
+        logger.info("DRY RUN: Would check repository access")
+        return
+
     logger.info("Checking repository access status")
 
     # If no repo_url provided, load from file and allow selection
@@ -1646,10 +1664,9 @@ def automation_cron_status(
 
 @automation_app.command("cron-logs")
 def automation_cron_logs(
+    ctx: typer.Context,
     lines: int = typer.Option(
         30, "--lines", "-n", help="Number of recent log lines to show"),
-    verbose: bool = typer.Option(
-        False, "--verbose", "-v", help="Enable verbose output"),
     config_file: str = typer.Option(
         "assignment.conf", "--config", "-c", help="Configuration file path")
 ):
@@ -1659,10 +1676,20 @@ def automation_cron_logs(
     Display recent log entries from automated workflow executions to help
     with debugging and monitoring cron job activity.
 
+    Supports universal options: --verbose, --dry-run
+
     Example:
         classroom-pilot automation cron-logs --lines 50
     """
+    # Access universal options from context
+    verbose = ctx.obj.get('verbose', False)
+    dry_run = ctx.obj.get('dry_run', False)
+
     setup_logging(verbose)
+
+    if dry_run:
+        logger.info("DRY RUN: Would show recent workflow log entries")
+        return
 
     try:
         from .services.automation_service import AutomationService

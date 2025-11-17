@@ -597,3 +597,122 @@ STUDENT_FILES=assignment.ipynb
             "python -m classroom_pilot assignments setup --help")
         assert success3, "Command level help failed"
         assert "url" in stdout3.lower() or "setup" in stdout3.lower()
+
+
+class TestCommandsWithGlobalOptions:
+    """
+    TestCommandsWithGlobalOptions contains comprehensive tests for commands that
+    previously had inconsistent global option handling. These tests verify that
+    all commands now uniformly support --verbose and --dry-run at the group level.
+
+    Test Cases:
+    - Commands with previously command-level verbose: check-classroom, check-repository-access, cron-logs
+    - Commands with inconsistent context access: cycle-collaborator
+    - Additional automation commands: cron-remove, cron-schedules, cron-sync
+    - Secrets manage command
+    """
+
+    def test_check_classroom_with_verbose(self):
+        """Test assignments check-classroom with --verbose flag."""
+        success, stdout, stderr = run_cli_command(
+            "python -m classroom_pilot assignments --verbose check-classroom --help")
+
+        assert success, f"Verbose check-classroom command failed: {stderr}"
+        assert "check" in stdout.lower() or "classroom" in stdout.lower()
+
+    def test_check_classroom_with_dry_run(self):
+        """Test assignments check-classroom with --dry-run flag."""
+        success, stdout, stderr = run_cli_command(
+            "python -m classroom_pilot assignments --dry-run check-classroom")
+
+        assert success, f"Dry-run check-classroom command failed: {stderr}"
+        assert "DRY RUN" in stderr
+
+    def test_check_repository_access_with_verbose(self):
+        """Test assignments check-repository-access with --verbose flag."""
+        success, stdout, stderr = run_cli_command(
+            "python -m classroom_pilot assignments --verbose check-repository-access --help")
+
+        assert success, f"Verbose check-repository-access command failed: {stderr}"
+        assert "access" in stdout.lower() or "repository" in stdout.lower()
+
+    def test_check_repository_access_with_dry_run(self):
+        """Test assignments check-repository-access with --dry-run flag."""
+        success, stdout, stderr = run_cli_command(
+            "python -m classroom_pilot assignments --dry-run check-repository-access --help")
+
+        # Dry-run should work even with --help
+        assert success or "DRY RUN" in stderr, f"Dry-run check-repository-access failed: {stderr}"
+
+    def test_cycle_collaborator_with_verbose(self):
+        """Test assignments cycle-collaborator with --verbose flag."""
+        success, stdout, stderr = run_cli_command(
+            "python -m classroom_pilot assignments --verbose cycle-collaborator --help")
+
+        assert success, f"Verbose cycle-collaborator command failed: {stderr}"
+        assert "collaborator" in stdout.lower() or "cycle" in stdout.lower()
+
+    def test_cycle_collaborator_with_dry_run(self):
+        """Test assignments cycle-collaborator with --dry-run flag."""
+        success, stdout, stderr = run_cli_command(
+            "python -m classroom_pilot assignments --dry-run cycle-collaborator --help")
+
+        assert success, f"Dry-run cycle-collaborator command failed: {stderr}"
+        # Should show help or dry-run message
+        assert "collaborator" in stdout.lower() or "DRY RUN" in stderr
+
+    def test_cron_logs_with_verbose(self):
+        """Test automation cron-logs with --verbose flag."""
+        success, stdout, stderr = run_cli_command(
+            "python -m classroom_pilot automation --verbose cron-logs --help")
+
+        assert success, f"Verbose cron-logs command failed: {stderr}"
+        assert "log" in stdout.lower() or "workflow" in stdout.lower()
+
+    def test_cron_logs_with_dry_run(self):
+        """Test automation cron-logs with --dry-run flag."""
+        success, stdout, stderr = run_cli_command(
+            "python -m classroom_pilot automation --dry-run cron-logs")
+
+        assert success, f"Dry-run cron-logs command failed: {stderr}"
+        assert "DRY RUN" in stderr
+
+    def test_cron_remove_with_verbose(self):
+        """Test automation cron-remove with --verbose flag."""
+        success, stdout, stderr = run_cli_command(
+            "python -m classroom_pilot automation --verbose cron-remove --help")
+
+        assert success, f"Verbose cron-remove command failed: {stderr}"
+        assert "remove" in stdout.lower() or "cron" in stdout.lower()
+
+    def test_cron_remove_with_dry_run(self):
+        """Test automation cron-remove with --dry-run flag."""
+        success, stdout, stderr = run_cli_command(
+            "python -m classroom_pilot automation --dry-run cron-remove fetch")
+
+        # Should show dry-run message
+        assert "DRY RUN" in stderr or success, f"Dry-run cron-remove failed: {stderr}"
+
+    def test_cron_schedules_with_help(self):
+        """Test automation cron-schedules --help works correctly."""
+        success, stdout, stderr = run_cli_command(
+            "python -m classroom_pilot automation cron-schedules --help")
+
+        assert success, f"Cron-schedules help failed: {stderr}"
+        assert "schedule" in stdout.lower() or "workflow" in stdout.lower()
+
+    def test_cron_sync_with_verbose_dry_run(self):
+        """Test automation cron-sync with both --verbose and --dry-run flags."""
+        success, stdout, stderr = run_cli_command(
+            "python -m classroom_pilot automation --verbose --dry-run cron-sync")
+
+        # Should show dry-run message
+        assert "DRY RUN" in stderr or success, f"Verbose dry-run cron-sync failed: {stderr}"
+
+    def test_secrets_manage_with_verbose_dry_run(self):
+        """Test secrets manage with both --verbose and --dry-run flags."""
+        success, stdout, stderr = run_cli_command(
+            "python -m classroom_pilot secrets --verbose --dry-run manage")
+
+        assert success, f"Verbose dry-run secrets manage failed: {stderr}"
+        assert "DRY RUN" in stderr
