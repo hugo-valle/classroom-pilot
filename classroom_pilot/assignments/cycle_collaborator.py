@@ -502,10 +502,14 @@ class CycleCollaboratorManager:
         results = []
         errors = []
 
-        if repo_url_mode:
-            # Process repository URLs with extracted usernames
-            for repo_url in lines:
-                try:
+        for line in lines:
+            try:
+                # Auto-detect if line is a URL or username
+                is_url = line.startswith('https://') or line.startswith('http://')
+
+                if is_url or repo_url_mode:
+                    # Process as repository URL with extracted username
+                    repo_url = line
                     username = self._extract_username_from_repo_url(repo_url)
                     if username:
                         result = self.cycle_single_repository(
@@ -514,34 +518,21 @@ class CycleCollaboratorManager:
                     else:
                         errors.append(
                             f"Could not extract username from URL: {repo_url}")
-                except Exception as e:
-                    logger.error(
-                        f"Failed to process repository URL {repo_url}: {e}")
-                    errors.append(f"Failed to process {repo_url}: {e}")
-        else:
-            # Process usernames with assignment prefix
-            if not self.assignment_prefix:
-                errors.append(
-                    "Assignment prefix not configured for username mode")
-                return BatchSummary(
-                    total_repositories=0,
-                    successful_operations=0,
-                    skipped_operations=0,
-                    failed_operations=0,
-                    repositories_fixed=0,
-                    repositories_already_ok=0,
-                    errors=errors
-                )
+                else:
+                    # Process as username with assignment prefix
+                    if not self.assignment_prefix:
+                        errors.append(
+                            "Assignment prefix not configured for username mode")
+                        continue
 
-            for username in lines:
-                try:
+                    username = line
                     repo_url = f"https://github.com/{self.github_organization}/{self.assignment_prefix}-{username}"
                     result = self.cycle_single_repository(
                         repo_url, username, force)
                     results.append(result)
-                except Exception as e:
-                    logger.error(f"Failed to process username {username}: {e}")
-                    errors.append(f"Failed to process {username}: {e}")
+            except Exception as e:
+                logger.error(f"Failed to process entry {line}: {e}")
+                errors.append(f"Failed to process {line}: {e}")
 
         # Generate summary
         successful = len(

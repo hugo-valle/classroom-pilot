@@ -958,9 +958,9 @@ def cycle_multiple_collaborators(
         $ classroom-pilot assignments cycle-collaborators --repo-urls
         $ classroom-pilot assignments cycle-collaborators custom-repos.txt --repo-urls --force
     """
-    # Access universal options from context
-    verbose = ctx.obj.get('verbose', False)
-    dry_run = ctx.obj.get('dry_run', False)
+    # Access universal options from parent context
+    verbose = ctx.parent.params.get('verbose', False)
+    dry_run = ctx.parent.params.get('dry_run', False)
 
     setup_logging(verbose)
     logger.info("Cycling multiple repository collaborator permissions")
